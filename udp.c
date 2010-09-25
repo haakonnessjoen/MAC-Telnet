@@ -122,5 +122,5 @@ int sendCustomUDP(const int socket, const char *sourcemac, const char *destmac, 
 	send_result = sendto(socket, buffer, datalen+8+14+20, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
 	free(buffer);
 
-	return send_result;
+	return send_result-8-14-20;
 }

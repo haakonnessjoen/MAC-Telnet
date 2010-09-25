@@ -60,10 +60,8 @@ void etherAddrton(unsigned char *dest, const unsigned char *mac) {
 		if (*p == ':') {
 			continue;
 		}
-		printf("Reading %c and %c\n", *p, p[1]);
 		dest[i++] = hex2(p++);
 	} while (*p++ && *p);
-	printf("fra %s, Til: %X", mac, dest[1]);
 }
 
 int sendCustomUDP(const int socket, const char *sourcemac, const char *destmac, const char *sourceip, const int sourceport, const char *destip, const int destport, const char *data, const int datalen) {
@@ -137,8 +135,8 @@ int main (int argc, char **argv) {
 	printf("Sockid: %d\n", s);
 
 	result = sendCustomUDP(s, "00:19:db:66:e5::bf", "04:1e:64:ea:e5:15", "10.0.0.100", 20561, "255.255.255.255", 20561, data, 10);
-	result = sendCustomUDP(s, "00:19:db:66:e5::bf", "04:1e:64:ea:e5:15", "10.0.0.100", 20561, "255.255.255.255", 20561, data, 10);
 	printf("Send result: %d\n", result);
+	close(s);
 
 	return 0;
 }

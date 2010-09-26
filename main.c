@@ -34,8 +34,11 @@ int counter=0;
 int outcounter=0;
 int sessionkey=0;
 unsigned char *src = "00:e0:81:b5:ac:8e";
-unsigned char *dst = "00:0c:42:43:58:a4";
+unsigned char dstmem[] = "00:0c:42:43:58:a4";
+unsigned char *dst = &dstmem;
 unsigned char encryptionkey[128];
+unsigned char username[255];
+unsigned char password[255];
 
 void handlePacket(unsigned char *data, int data_len) {
 	struct mt_mactelnet_hdr pkthdr;
@@ -74,7 +77,7 @@ void handlePacket(unsigned char *data, int data_len) {
 				memcpy(encryptionkey, cpkt.data, cpkt.length);
 
 				md5data[0] = 0;
-				strcpy(md5data+1, "password");
+				strcpy(md5data+1, password);
 				strncat(md5data+1, encryptionkey, 16);
 
 				MD5_Init(&c);
@@ -82,7 +85,7 @@ void handlePacket(unsigned char *data, int data_len) {
 				MD5_Final(md5sum+1, &c);
 				md5sum[0] = 0;
 
-				sendAuthData("admin", md5sum);
+				sendAuthData(username, md5sum);
 				if (DEBUG)
 					printf("Received encryption key of %d characters\n", cpkt.length);
 				
@@ -129,6 +132,15 @@ int main (int argc, char **argv) {
 	struct sockaddr_in si_me;
 	char buff[1500];
 	int plen = 0;
+
+	if (argc < 3) {
+		fprintf(stderr, "Usage: %s <MAC> <username> <password>\n", argv[0]);
+		return 1;
+	}
+
+	strncpy(dst, argv[1], 17);
+	strncpy(username, argv[2], 254);
+	strncpy(password, argv[3], 254);
 
 	srand(time(NULL));
 

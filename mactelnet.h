@@ -17,6 +17,8 @@
 #define MT_CPTYPE_TERM_HEIGHT 6
 #define MT_CPTYPE_PACKET_ERROR 7
 #define MT_CPTYPE_END_AUTH 9
+// Internal CPTYPE, not part of protocol
+#define MT_CPTYPE_PLAINDATA -1
 
 struct mt_mactelnet_hdr {
 	unsigned char ver;
@@ -25,6 +27,12 @@ struct mt_mactelnet_hdr {
 	unsigned char dstaddr[6];
 	unsigned short seskey;
 	unsigned int counter;
+	unsigned char *data;
+};
+
+struct mt_mactelnet_control_hdr {
+	signed char cptype;
+	unsigned int length;
 	unsigned char *data;
 };
 

@@ -64,18 +64,27 @@ void parsePacket(unsigned char *data, struct mt_mactelnet_hdr *pkthdr) {
 }
 
 
-void parseControlPacket(unsigned char *data, int data_len) {
+int parseControlPacket(unsigned char *data, const int data_len, struct mt_mactelnet_control_hdr *cpkthdr) {
 	unsigned char magic[] = { 0x56, 0x34, 0x12, 0xff };
-	if (memcmp(data,&magic,4) == 0) {
-		if (DEBUG)
-			printf("\tControl packet:\n\t\tType: %d\n\t\tLength: %d\n", data[4], data[5]<<24|data[6]<<16|data[7]<<8|data[8]);
-		if (data_len - 9 - (data[4], data[5]<<24|data[6]<<16|data[7]<<8|data[8]) > 0) {
-			parseControlPacket(data + 9 + (data[4], data[5]<<24|data[6]<<16|data[7]<<8|data[8]), data_len - 9 - (data[4], data[5]<<24|data[6]<<16|data[7]<<8|data[8]));
-		}
 
-		if (data[4] == 1) {
-			printf("Connected. Enter username & password.\n\n"); // TODOD: Teh good shiat
-		}
+	if (data_len <= 0)
+		return 0;
+
+	if (memcmp(data, &magic, 4) == 0) {
+		if (DEBUG)
+			printf("\t----Control packet:\n\t\tType: %d\n\t\tLength: %d\n", data[4], data[5]<<24|data[6]<<16|data[7]<<8|data[8]);
+
+		cpkthdr->cptype = data[4];
+		cpkthdr->length = data[5]<<24|data[6]<<16|data[7]<<8|data[8];
+		cpkthdr->data = data + 9;
+
+		return cpkthdr->length + 9;
+
+	} else {
+		cpkthdr->cptype = MT_CPTYPE_PLAINDATA;
+		cpkthdr->length = data_len;
+		cpkthdr->data = data;
+		return data_len;
 	}
 }
 

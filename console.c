@@ -15,7 +15,5 @@ int getTerminalSize(unsigned short *width, unsigned short *height) {
 	*width = ws.ws_col;
 	*height = ws.ws_row;
 
-	printf("Console width: %d, height: %d\n", *width, *height);
-
 	return 1;
 }

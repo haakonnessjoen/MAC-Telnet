@@ -16,6 +16,7 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
+#include <stdlib.h>
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -35,10 +36,37 @@ int outcounter=0;
 int sessionkey=0;
 unsigned char *src = "00:e0:81:b5:ac:8e";
 unsigned char dstmem[] = "00:0c:42:43:58:a4";
-unsigned char *dst = &dstmem;
+unsigned char *dst = dstmem;
 unsigned char encryptionkey[128];
 unsigned char username[255];
 unsigned char password[255];
+
+void sendAuthData(unsigned char *username, unsigned char *password) {
+	unsigned char data[1500];
+	unsigned char *terminal = "linux";
+	int userLen = strlen(username);
+	int terminalLen = strlen(terminal);
+	unsigned short width = 0;
+	unsigned short height = 0;
+	int result;
+	int plen;
+	int databytes;
+
+	plen = initPacket(data, MT_PTYPE_DATA, src, dst, sessionkey, outcounter);
+	databytes = plen;
+	plen += addControlPacket(data + plen, MT_CPTYPE_PASSWORD, password, 17);
+	plen += addControlPacket(data + plen, MT_CPTYPE_USERNAME, username, userLen);
+	plen += addControlPacket(data + plen, MT_CPTYPE_TERM_TYPE, terminal, terminalLen);
+
+	if (getTerminalSize(&width, &height) > 0) {
+		plen += addControlPacket(data + plen, MT_CPTYPE_TERM_WIDTH, &width, 2);
+		plen += addControlPacket(data + plen, MT_CPTYPE_TERM_HEIGHT, &height, 2);
+	}
+
+	outcounter += plen - databytes;
+
+	result = sendCustomUDP(sockfd, src, dst, "213.236.240.252", 20561, "255.255.255.255", 20561, data, plen);
+}
 
 void handlePacket(unsigned char *data, int data_len) {
 	struct mt_mactelnet_hdr pkthdr;
@@ -96,33 +124,19 @@ void handlePacket(unsigned char *data, int data_len) {
 			}
 		}
 	}
-}
-
-void sendAuthData(unsigned char *username, unsigned char *password) {
-	unsigned char data[1500];
-	unsigned char *terminal = "linux";
-	int userLen = strlen(username);
-	int terminalLen = strlen(terminal);
-	unsigned short width = 0;
-	unsigned short height = 0;
-	int result;
-	int plen;
-	int databytes;
-
-	plen = initPacket(data, MT_PTYPE_DATA, src, dst, sessionkey, outcounter);
-	databytes = plen;
-	plen += addControlPacket(data + plen, MT_CPTYPE_PASSWORD, password, 17);
-	plen += addControlPacket(data + plen, MT_CPTYPE_USERNAME, username, userLen);
-	plen += addControlPacket(data + plen, MT_CPTYPE_TERM_TYPE, terminal, terminalLen);
-
-	if (getTerminalSize(&width, &height) > 0) {
-		plen += addControlPacket(data + plen, MT_CPTYPE_TERM_WIDTH, &width, 2);
-		plen += addControlPacket(data + plen, MT_CPTYPE_TERM_HEIGHT, &height, 2);
+	else if (pkthdr.ptype == MT_PTYPE_ACK) {
+		// TODO: If we were resubmitting lost messages, stop resubmitting here if received counter is correct.
 	}
-
-	outcounter += plen - databytes;
-
-	result = sendCustomUDP(sockfd, src, dst, "213.236.240.252", 20561, "255.255.255.255", 20561, data, plen);
+	else if (pkthdr.ptype == MT_PTYPE_END) {
+		char odata[200];
+		int plen=0,result=0;
+		plen = initPacket(odata, MT_PTYPE_END, src, dst, pkthdr.seskey, 0);
+		result = sendCustomUDP(sockfd, src, dst, "213.236.240.252", 20561, "255.255.255.255", 20561, odata, plen);
+		fprintf(stderr, "Connection closed.\n");
+		exit(0);
+	} else {
+		fprintf(stderr, "Unhandeled packet type: %d received from server %s\n", pkthdr.ptype, dst);
+	}
 }
 
 int main (int argc, char **argv) {
@@ -199,19 +213,12 @@ int main (int argc, char **argv) {
 	result = recvfrom(insockfd, buff, 1500, 0, 0, 0);
 	handlePacket(buff, result);
 
-	memset(buff, 0, 1500);
-	result = recvfrom(insockfd, buff, 1500, 0, 0, 0);
-	handlePacket(buff, result);
-
-	memset(buff, 0, 1500);
-	result = recvfrom(insockfd, buff, 1500, 0, 0, 0);
-	handlePacket(buff, result);
-
 while(1) {
 	memset(buff, 0, 1500);
 	result = recvfrom(insockfd, buff, 1500, 0, 0, 0);
 	handlePacket(buff, result);
 }
+	
 	close(sockfd);
 	close(insockfd);
 

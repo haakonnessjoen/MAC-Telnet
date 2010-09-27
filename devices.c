@@ -35,6 +35,7 @@ int getDeviceIp(const int sockfd, const unsigned char *deviceName, struct sockad
 	ifc.ifc_req = ifr;
 
 	if (ioctl(sockfd, SIOCGIFCONF, &ifc) != 0) {
+		free(ifr);
                 return -1;
         }
 
@@ -42,8 +43,10 @@ int getDeviceIp(const int sockfd, const unsigned char *deviceName, struct sockad
 	for (i = 0; i < numDevices; ++i) {
 		if (strcmp(ifr[i].ifr_name, deviceName) == 0) {
 			memcpy(ip, &(ifr[i].ifr_addr), sizeof(ip));
+			free(ifr);
 			return 1;
 		}
 	}
+	free(ifr);
 	return -1;
 }

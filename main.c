@@ -159,7 +159,7 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 
-	etherAddrton(dstmac, argv[2]);
+	ether_aton_r(argv[2], (struct ether_addr *)dstmac);
 	strncpy(username, argv[3], 254);
 	strncpy(password, argv[4], 254);
 

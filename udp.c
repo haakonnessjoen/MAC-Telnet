@@ -33,36 +33,6 @@ unsigned short in_cksum(unsigned short *addr, int len)
 	return (answer);
 }
 
-unsigned char hex(const unsigned char c) {
-    if ('0' <= c && c <= '9') return c - '0';
-    if ('a' <= c && c <= 'f') return c - 'a' + 10;
-    if ('A' <= c && c <= 'F') return c - 'A' + 10;
-    return -1;
-}
-
-unsigned char hex2(const unsigned char *p) {
-    int i;
-    unsigned char c;
-    i = hex(*p++);
-    if (i < 0) return i;
-    c = (i << 4);
-    i = hex(*p);
-    if (i < 0) return i;
-    return c | i;
-}
-
-void etherAddrton(unsigned char *dest, const unsigned char *mac) {
-	const unsigned char *p = mac;
-	int i = 0;
-
-	do {
-		if (*p == ':') {
-			continue;
-		}
-		dest[i++] = hex2(p++);
-	} while (*p++ && *p);
-}
-
 int sendCustomUDP(const int socket, const int ifindex, const unsigned char *sourcemac, const unsigned char *destmac, const struct in_addr *sourceip, const int sourceport, const struct in_addr *destip, const int destport, const char *data, const int datalen) {
 	struct sockaddr_ll socket_address;
 	void* buffer = (void*)malloc(ETH_FRAME_LEN);

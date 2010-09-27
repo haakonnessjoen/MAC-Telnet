@@ -8,6 +8,7 @@
 #include <linux/in.h>
 #include <linux/udp.h>
 #include <linux/if_arp.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 unsigned short in_cksum(unsigned short *addr, int len)
@@ -42,6 +43,11 @@ int sendCustomUDP(const int socket, const int ifindex, const unsigned char *sour
 	unsigned char *rest = (unsigned char *)(buffer+20+14+sizeof(struct udphdr));
 	static unsigned int id = 1;
 	int send_result = 0;
+
+	if (buffer == NULL) {
+		perror("malloc");
+		exit(1);
+	}
 
 	// Ethernet header
 	memcpy(eh->h_source, sourcemac, ETH_ALEN);

@@ -34,7 +34,6 @@
 
 int sockfd;
 int deviceIndex;
-int counter=0;
 int outcounter=0;
 int sessionkey=0;
 
@@ -88,8 +87,7 @@ void handlePacket(unsigned char *data, int data_len) {
 		int plen=0,result=0;
 		int rest = 0;
 		unsigned char *p = data;
-		counter += data_len - 22;
-		plen = initPacket(odata, MT_PTYPE_ACK, srcmac, dstmac, pkthdr.seskey, counter);
+		plen = initPacket(odata, MT_PTYPE_ACK, srcmac, dstmac, pkthdr.seskey, pkthdr.counter + (data_len - 22));
 		result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, odata, plen);
 
 		if (DEBUG)

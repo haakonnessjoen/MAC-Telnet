@@ -63,51 +63,45 @@ void etherAddrton(unsigned char *dest, const unsigned char *mac) {
 	} while (*p++ && *p);
 }
 
-int sendCustomUDP(const int socket, const char *sourcemac, const char *destmac, const char *sourceip, const int sourceport, const char *destip, const int destport, const char *data, const int datalen) {
+int sendCustomUDP(const int socket, const int ifindex, const unsigned char *sourcemac, const unsigned char *destmac, const struct in_addr *sourceip, const int sourceport, const struct in_addr *destip, const int destport, const char *data, const int datalen) {
 	struct sockaddr_ll socket_address;
-	struct in_addr srcipaddr;
-	struct in_addr dstipaddr;
 	void* buffer = (void*)malloc(ETH_FRAME_LEN);
 	struct ethhdr *eh = (struct ethhdr *)buffer;
 	struct iphdr *ip = (struct iphdr *)(buffer+14);
 	struct udphdr *udp = (struct udphdr *)(buffer+14+20);
-	unsigned char *resten = (unsigned char *)(buffer+20+14+sizeof(struct udphdr));
+	unsigned char *rest = (unsigned char *)(buffer+20+14+sizeof(struct udphdr));
 	static unsigned int id = 1;
 	int send_result = 0;
 
 	// Ethernet header
-	etherAddrton(eh->h_source, sourcemac);
-	etherAddrton(eh->h_dest, destmac);
+	memcpy(eh->h_source, sourcemac, ETH_ALEN);
+	memcpy(eh->h_dest, destmac, ETH_ALEN);
 	eh->h_proto = 8;
 
 	// SendTo struct
 	socket_address.sll_family   = PF_PACKET;	
 	socket_address.sll_protocol = htons(ETH_P_IP);	
-	socket_address.sll_ifindex  = 2;
+	socket_address.sll_ifindex  = ifindex;
 	socket_address.sll_hatype   = ARPHRD_ETHER;
 	socket_address.sll_pkttype  = PACKET_OTHERHOST;
 	socket_address.sll_halen    = ETH_ALEN;		
 
-	memcpy(socket_address.sll_addr, eh->h_source, 6);
+	memcpy(socket_address.sll_addr, eh->h_source, ETH_ALEN);
 	socket_address.sll_addr[6]  = 0x00;/*not used*/
 	socket_address.sll_addr[7]  = 0x00;/*not used*/
-
-	// TODO: errorhandling
-	inet_aton(sourceip, &srcipaddr);
-	inet_aton(destip, &dstipaddr);
 
 	// IP Header
 	ip->version = 4;
 	ip->ihl = 5;
 	ip->tos = 0x10;
-	ip->tot_len = htons(datalen+8+20);
+	ip->tot_len = htons(datalen + 8 + 20);
 	ip->id = htons(id++);
 	ip->frag_off = 0x0040;
 	ip->ttl = 64;
 	ip->protocol = 17; // UDP
 	ip->check = 0x0000;
-	ip->saddr = srcipaddr.s_addr;
-	ip->daddr = dstipaddr.s_addr;
+	ip->saddr = sourceip->s_addr;
+	ip->daddr = destip->s_addr;
 	ip->check = in_cksum((unsigned short *)ip, sizeof(struct iphdr));
 
 	// UDP Header
@@ -116,7 +110,7 @@ int sendCustomUDP(const int socket, const char *sourcemac, const char *destmac, 
 	udp->check = 0;
 	udp->len = htons(sizeof(struct udphdr) + datalen);
 
-	memcpy(resten, data, datalen);
+	memcpy(rest, data, datalen);
 
 	/*send the packet*/
 	send_result = sendto(socket, buffer, datalen+8+14+20, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));

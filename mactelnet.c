@@ -18,10 +18,11 @@
 */
 #include <string.h>
 #include <stdio.h>
+#include <linux/if_ether.h>
 #include "mactelnet.h"
 #include "config.h"
 
-int initPacket(unsigned char *data, unsigned char ptype, unsigned char *src, unsigned char *dst, unsigned short sessionkey, unsigned short counter) {
+int initPacket(unsigned char *data, unsigned char ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned short counter) {
 
 	// PACKET VERSION
 	data[0] = 1;
@@ -30,10 +31,10 @@ int initPacket(unsigned char *data, unsigned char ptype, unsigned char *src, uns
 	data[1] = ptype;
 
 	// src ethernet address
-	etherAddrton(data + 2, src);
+	memcpy(data + 2, srcmac, ETH_ALEN);
 
 	// dst ethernet address
-	etherAddrton(data + 8, dst);
+	memcpy(data + 8, dstmac, ETH_ALEN);
 
 	data[14] = sessionkey >> 8;
 	data[15] = sessionkey & 0xff;
@@ -49,7 +50,7 @@ int initPacket(unsigned char *data, unsigned char ptype, unsigned char *src, uns
 	return 22;
 }
 
-int addControlPacket(unsigned char *data, unsigned char cptype, unsigned char *cpdata, int data_len) {
+int addControlPacket(unsigned char *data, unsigned char cptype, void *cpdata, int data_len) {
 	data[0] = 0x56;
 	data[1] = 0x34;
 	data[2] = 0x12;

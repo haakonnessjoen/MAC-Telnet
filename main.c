@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <netinet/ether.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <string.h>
@@ -32,12 +33,17 @@
 #include "config.h"
 
 int sockfd;
+int deviceIndex;
 int counter=0;
 int outcounter=0;
 int sessionkey=0;
-unsigned char *src = "00:e0:81:b5:ac:8e";
-unsigned char dstmem[] = "00:0c:42:43:58:a4";
-unsigned char *dst = dstmem;
+
+unsigned char srcmac[ETH_ALEN];
+unsigned char dstmac[ETH_ALEN];
+
+struct in_addr sourceip; 
+struct in_addr destip;
+
 unsigned char encryptionkey[128];
 unsigned char username[255];
 unsigned char password[255];
@@ -53,7 +59,7 @@ void sendAuthData(unsigned char *username, unsigned char *password) {
 	int plen;
 	int databytes;
 
-	plen = initPacket(data, MT_PTYPE_DATA, src, dst, sessionkey, outcounter);
+	plen = initPacket(data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
 	databytes = plen;
 	plen += addControlPacket(data + plen, MT_CPTYPE_PASSWORD, password, 17);
 	plen += addControlPacket(data + plen, MT_CPTYPE_USERNAME, username, userLen);
@@ -66,7 +72,7 @@ void sendAuthData(unsigned char *username, unsigned char *password) {
 
 	outcounter += plen - databytes;
 
-	result = sendCustomUDP(sockfd, src, dst, "213.236.240.252", 20561, "255.255.255.255", 20561, data, plen);
+	result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, data, plen);
 }
 
 void handlePacket(unsigned char *data, int data_len) {
@@ -83,8 +89,8 @@ void handlePacket(unsigned char *data, int data_len) {
 		int rest = 0;
 		unsigned char *p = data;
 		counter += data_len - 22;
-		plen = initPacket(odata, MT_PTYPE_ACK, src, dst, pkthdr.seskey, counter);
-		result = sendCustomUDP(sockfd, src, dst, "213.236.240.252", 20561, "255.255.255.255", 20561, odata, plen);
+		plen = initPacket(odata, MT_PTYPE_ACK, srcmac, dstmac, pkthdr.seskey, counter);
+		result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, odata, plen);
 
 		if (DEBUG)
 			printf("ACK: Plen = %d, Send result: %d\n", plen, result);
@@ -131,12 +137,12 @@ void handlePacket(unsigned char *data, int data_len) {
 	else if (pkthdr.ptype == MT_PTYPE_END) {
 		char odata[200];
 		int plen=0,result=0;
-		plen = initPacket(odata, MT_PTYPE_END, src, dst, pkthdr.seskey, 0);
-		result = sendCustomUDP(sockfd, src, dst, "213.236.240.252", 20561, "255.255.255.255", 20561, odata, plen);
+		plen = initPacket(odata, MT_PTYPE_END, srcmac, dstmac, pkthdr.seskey, 0);
+		result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, odata, plen);
 		fprintf(stderr, "Connection closed.\n");
 		exit(0);
 	} else {
-		fprintf(stderr, "Unhandeled packet type: %d received from server %s\n", pkthdr.ptype, dst);
+		fprintf(stderr, "Unhandeled packet type: %d received from server %s\n", pkthdr.ptype, ether_ntoa((struct ether_addr *)dstmac));
 	}
 }
 
@@ -147,14 +153,13 @@ int main (int argc, char **argv) {
 	struct sockaddr_in si_me;
 	char buff[1500];
 	int plen = 0;
-	int deviceIndex;
 
 	if (argc < 4) {
 		fprintf(stderr, "Usage: %s <ifname> <MAC> <username> <password>\n", argv[0]);
 		return 1;
 	}
 
-	strncpy(dst, argv[2], 17);
+	etherAddrton(dstmac, argv[2]);
 	strncpy(username, argv[3], 254);
 	strncpy(password, argv[4], 254);
 
@@ -181,6 +186,16 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 
+	result = getDeviceMAC(sockfd, argv[1], srcmac);
+	if (result < 0) {
+		fprintf(stderr, "Cannot determine MAC address of device %s\n", argv[1]);
+		return 1;
+	}
+
+	// Set up global info about the connection
+	inet_pton(AF_INET, (char *)"255.255.255.255", &destip);
+	memcpy(&sourceip, &(si_me.sin_addr), 4);
+
 	// Initialize receiving socket on the device chosen
 	memset((char *) &si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
@@ -195,10 +210,10 @@ int main (int argc, char **argv) {
 	// Sessioon key
 	sessionkey = rand() % 65535;
 
-	printf("Connecting to %s...\n", dst);
+	printf("Connecting to %s...\n", ether_ntoa((struct ether_addr *)dstmac));
 
-	plen = initPacket(data, MT_PTYPE_SESSIONSTART, src, dst, sessionkey, 0);
-	result = sendCustomUDP(sockfd, src, dst, inet_ntoa(si_me.sin_addr), 20561, "255.255.255.255", 20561, data, plen);
+	plen = initPacket(data, MT_PTYPE_SESSIONSTART, srcmac, dstmac, sessionkey, 0);
+	result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, data, plen);
 	if (DEBUG)
 		printf("Plen = %d, Send result: %d\n", plen, result);
 	if (DEBUG)
@@ -209,11 +224,11 @@ int main (int argc, char **argv) {
 
 	// TODO: Should resubmit whenever a PTYPE_DATA packet is sent, and an ACK packet with correct datacounter is received
 	// or time out the connection, in all other cases.
-	plen = initPacket(data, MT_PTYPE_DATA, src, dst, sessionkey, 0);
+	plen = initPacket(data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, 0);
 	plen += addControlPacket(data + plen, MT_CPTYPE_BEGINAUTH, NULL, 0);
 	outcounter += 9;
 
-	result = sendCustomUDP(sockfd, src, dst, "213.236.240.252", 20561, "255.255.255.255", 20561, data, plen);
+	result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, data, plen);
 	if (DEBUG)
 		printf("Plen = %d, Send result: %d\n", plen, result);
 

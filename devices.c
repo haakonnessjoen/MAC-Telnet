@@ -3,6 +3,7 @@
 #include <malloc.h>
 #include <unistd.h>
 #include <netinet/in.h>
+#include <linux/if_ether.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
 
@@ -15,6 +16,19 @@ int getDeviceIndex(int sockfd, unsigned char *deviceName) {
 	}
 
 	return ifr.ifr_ifindex;
+}
+
+int getDeviceMAC(const int sockfd, const unsigned char *deviceName, unsigned char *mac) {
+	struct ifreq ifr;
+
+	strncpy(ifr.ifr_name, deviceName, 16);
+	if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) != 0) {
+		return -1;
+	}
+
+	memcpy(mac, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
+
+	return 1;
 }
 
 int getDeviceIp(const int sockfd, const unsigned char *deviceName, struct sockaddr_in *ip) {
@@ -36,8 +50,8 @@ int getDeviceIp(const int sockfd, const unsigned char *deviceName, struct sockad
 
 	if (ioctl(sockfd, SIOCGIFCONF, &ifc) != 0) {
 		free(ifr);
-                return -1;
-        }
+		return -1;
+	}
 
 	numDevices = ifc.ifc_len / sizeof(struct ifreq);
 	for (i = 0; i < numDevices; ++i) {

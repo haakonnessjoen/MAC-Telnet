@@ -24,16 +24,16 @@
 
 int initPacket(unsigned char *data, unsigned char ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned short counter) {
 
-	// PACKET VERSION
+	/* PACKET VERSION */
 	data[0] = 1;
 
-	// PACKET TYPE
+	/* PACKET TYPE */
 	data[1] = ptype;
 
-	// src ethernet address
+	/* src ethernet address */
 	memcpy(data + 2, srcmac, ETH_ALEN);
 
-	// dst ethernet address
+	/* dst ethernet address */
 	memcpy(data + 8, dstmac, ETH_ALEN);
 
 	data[14] = sessionkey >> 8;
@@ -56,15 +56,16 @@ int addControlPacket(unsigned char *data, unsigned char cptype, void *cpdata, in
 	data[2] = 0x12;
 	data[3] = 0xff;
 
-	// Control packet type
+	/* Control packet type */
 	data[4] = cptype;
 
-	// Data length
+	/* Data length */
 	data[5] = (data_len >> 24) & 0xff;
 	data[6] = (data_len >> 16) & 0xff;
 	data[7] = (data_len >> 8) & 0xff;
 	data[8] = data_len & 0xff;
 
+	/* Insert data */
 	if (data_len) {
 		memcpy(data+9, cpdata, data_len);
 	}

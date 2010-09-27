@@ -130,7 +130,7 @@ void handlePacket(unsigned char *data, int data_len) {
 		}
 	}
 	else if (pkthdr.ptype == MT_PTYPE_ACK) {
-		// TODO: If we were resubmitting lost messages, stop resubmitting here if received counter is correct.
+		/* TODO: If we were resubmitting lost messages, stop resubmitting here if received counter is correct. */
 	}
 	else if (pkthdr.ptype == MT_PTYPE_END) {
 		char odata[200];
@@ -144,6 +144,9 @@ void handlePacket(unsigned char *data, int data_len) {
 	}
 }
 
+/*
+ * TODO: Rewrite main() when all sub-functionality is tested
+ */
 int main (int argc, char **argv) {
 	int insockfd;
 	int result;
@@ -163,10 +166,10 @@ int main (int argc, char **argv) {
 
 	srand(time(NULL));
 
-	// Transmit raw packets with this socket
+	/* Transmit raw packets with this socket */
 	sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 
-	// Receive regular udp packets with this socket
+	/* Receive regular udp packets with this socket */
 	insockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
 	deviceIndex = getDeviceIndex(sockfd, argv[1]);
@@ -175,37 +178,40 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 
-	// Even though we talk to the server without IP address, it makes it much
-	// easier to read packets when we use our real ip as the sender ip.
-	// This way we can listen to normal UDP traffic on port 20561
+	/*
+	 * Even though we talk to the server without IP address, it makes it much
+	 * easier to read packets when we use our real ip as the sender ip.
+	 * This way we can listen to normal UDP traffic on port 20561
+	*/
 	result = getDeviceIp(sockfd, argv[1], &si_me);
 	if (result < 0) {
 		fprintf(stderr, "Cannot determine IP of device %s\n", argv[1]);
 		return 1;
 	}
 
+	/* Determine source mac address */
 	result = getDeviceMAC(sockfd, argv[1], srcmac);
 	if (result < 0) {
 		fprintf(stderr, "Cannot determine MAC address of device %s\n", argv[1]);
 		return 1;
 	}
 
-	// Set up global info about the connection
+	/* Set up global info about the connection */
 	inet_pton(AF_INET, (char *)"255.255.255.255", &destip);
 	memcpy(&sourceip, &(si_me.sin_addr), 4);
 
-	// Initialize receiving socket on the device chosen
+	/* Initialize receiving socket on the device chosen */
 	memset((char *) &si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
 	si_me.sin_port = htons(20561);
 
-	// Bind to udp port
+	/* Bind to udp port */
 	if (bind(insockfd, (struct sockaddr *)&si_me, sizeof(si_me))==-1) {
 		fprintf(stderr, "Error binding to %s:20561\n", inet_ntoa(si_me.sin_addr));
 		return 1;
 	}
 
-	// Sessioon key
+	/* Sessioon key */
 	sessionkey = rand() % 65535;
 
 	printf("Connecting to %s...\n", ether_ntoa((struct ether_addr *)dstmac));
@@ -220,8 +226,10 @@ int main (int argc, char **argv) {
 	result = recvfrom(insockfd, buff, 1400, 0, 0, 0);
 	handlePacket(buff, result);
 
-	// TODO: Should resubmit whenever a PTYPE_DATA packet is sent, and an ACK packet with correct datacounter is received
-	// or time out the connection, in all other cases.
+	/*
+	 * TODO: Should resubmit whenever a PTYPE_DATA packet is sent, and an ACK packet with correct datacounter is received
+	 * or time out the connection, in all other cases.
+	*/
 	plen = initPacket(data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, 0);
 	plen += addControlPacket(data + plen, MT_CPTYPE_BEGINAUTH, NULL, 0);
 	outcounter += 9;

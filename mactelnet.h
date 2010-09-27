@@ -19,13 +19,13 @@
 #ifndef _MACTELNET_H
 #define _MACTELNET_H 1
 
-// Packet type
+/* Packet type */
 #define MT_PTYPE_SESSIONSTART 0
 #define MT_PTYPE_DATA 1
 #define MT_PTYPE_ACK 2
 #define MT_PTYPE_END 255
 
-// Control packet type
+/* Control packet type */
 #define MT_CPTYPE_BEGINAUTH 0
 #define MT_CPTYPE_ENCRYPTIONKEY 1
 #define MT_CPTYPE_PASSWORD 2
@@ -35,7 +35,7 @@
 #define MT_CPTYPE_TERM_HEIGHT 6
 #define MT_CPTYPE_PACKET_ERROR 7
 #define MT_CPTYPE_END_AUTH 9
-// Internal CPTYPE, not part of protocol
+/* Internal CPTYPE, not part of protocol */
 #define MT_CPTYPE_PLAINDATA -1
 
 struct mt_mactelnet_hdr {

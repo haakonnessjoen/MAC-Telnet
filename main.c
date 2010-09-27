@@ -28,6 +28,7 @@
 #include "mactelnet.h"
 #include "udp.h"
 #include "console.h"
+#include "devices.h"
 #include "config.h"
 
 int sockfd;
@@ -146,15 +147,16 @@ int main (int argc, char **argv) {
 	struct sockaddr_in si_me;
 	char buff[1500];
 	int plen = 0;
+	int deviceIndex;
 
-	if (argc < 3) {
-		fprintf(stderr, "Usage: %s <MAC> <username> <password>\n", argv[0]);
+	if (argc < 4) {
+		fprintf(stderr, "Usage: %s <ifname> <MAC> <username> <password>\n", argv[0]);
 		return 1;
 	}
 
-	strncpy(dst, argv[1], 17);
-	strncpy(username, argv[2], 254);
-	strncpy(password, argv[3], 254);
+	strncpy(dst, argv[2], 17);
+	strncpy(username, argv[3], 254);
+	strncpy(password, argv[4], 254);
 
 	srand(time(NULL));
 
@@ -164,15 +166,29 @@ int main (int argc, char **argv) {
 	// Receive regular udp packets with this socket
 	insockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-	// Initialize receiving socket
+	deviceIndex = getDeviceIndex(sockfd, argv[1]);
+	if (deviceIndex < 0) {
+		fprintf(stderr, "Device %s not found.\n", argv[1]);
+		return 1;
+	}
+
+	// Even though we talk to the server without IP address, it makes it much
+	// easier to read packets when we use our real ip as the sender ip.
+	// This way we can listen to normal UDP traffic on port 20561
+	result = getDeviceIp(sockfd, argv[1], &si_me);
+	if (result < 0) {
+		fprintf(stderr, "Cannot determine IP of device %s\n", argv[1]);
+		return 1;
+	}
+
+	// Initialize receiving socket on the device chosen
 	memset((char *) &si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
 	si_me.sin_port = htons(20561);
-	si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	// Bind to udp port
 	if (bind(insockfd, (struct sockaddr *)&si_me, sizeof(si_me))==-1) {
-		fprintf(stderr, "Error binding to port 20561\n");
+		fprintf(stderr, "Error binding to %s:20561\n", inet_ntoa(si_me.sin_addr));
 		return 1;
 	}
 
@@ -182,7 +198,7 @@ int main (int argc, char **argv) {
 	printf("Connecting to %s...\n", dst);
 
 	plen = initPacket(data, MT_PTYPE_SESSIONSTART, src, dst, sessionkey, 0);
-	result = sendCustomUDP(sockfd, src, dst, "213.236.240.252", 20561, "255.255.255.255", 20561, data, plen);
+	result = sendCustomUDP(sockfd, src, dst, inet_ntoa(si_me.sin_addr), 20561, "255.255.255.255", 20561, data, plen);
 	if (DEBUG)
 		printf("Plen = %d, Send result: %d\n", plen, result);
 	if (DEBUG)

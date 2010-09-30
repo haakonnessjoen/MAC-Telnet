@@ -1,5 +1,5 @@
 /*
-    Mac-Telnet - Connect to RouterOS clients via MAC address
+    Mac-Telnet - Connect to RouterOS routers via MAC address
     Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
 
     This program is free software; you can redistribute it and/or modify
@@ -116,7 +116,7 @@ int parseControlPacket(unsigned char *data, const int data_len, struct mt_mactel
 		cpkthdr->cptype = data[4];
 
 		/* Control packet data length */
-		cpkthdr->length = data[5]<<24|data[6]<<16|data[7]<<8|data[8];
+		cpkthdr->length = data[5] << 24 | data[6] << 16 | data[7] << 8 | data[8];
 
 		/* Set pointer to actual data */
 		cpkthdr->data = data + 9;

@@ -1,5 +1,5 @@
 /*
-    Mac-Telnet - Connect to RouterOS clients via MAC address
+    Mac-Telnet - Connect to RouterOS routers via MAC address
     Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
 
     This program is free software; you can redistribute it and/or modify
@@ -18,9 +18,11 @@
 */
 #include <stdlib.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/ether.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <string.h>
@@ -36,6 +38,9 @@ int sockfd;
 int deviceIndex;
 int outcounter=0;
 int sessionkey=0;
+int running = 1;
+
+unsigned char terminalMode = 0;
 
 unsigned char srcmac[ETH_ALEN];
 unsigned char dstmac[ETH_ALEN];
@@ -123,6 +128,7 @@ void handlePacket(unsigned char *data, int data_len) {
 					printf("Received encryption key of %d characters\n", cpkt.length);
 				
 			}
+		
 			else if (cpkt.cptype == MT_CPTYPE_PLAINDATA) {
 				cpkt.data[cpkt.length] = 0;
 				printf("%s", cpkt.data);
@@ -138,7 +144,8 @@ void handlePacket(unsigned char *data, int data_len) {
 		plen = initPacket(odata, MT_PTYPE_END, srcmac, dstmac, pkthdr.seskey, 0);
 		result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, odata, plen);
 		fprintf(stderr, "Connection closed.\n");
-		exit(0);
+		/* exit */
+		running = 0;
 	} else {
 		fprintf(stderr, "Unhandeled packet type: %d received from server %s\n", pkthdr.ptype, ether_ntoa((struct ether_addr *)dstmac));
 	}
@@ -154,6 +161,9 @@ int main (int argc, char **argv) {
 	struct sockaddr_in si_me;
 	char buff[1500];
 	int plen = 0;
+	struct timeval timeout;
+	fd_set read_fds;
+
 
 	if (argc < 4) {
 		fprintf(stderr, "Usage: %s <ifname> <MAC> <username> <password>\n", argv[0]);
@@ -214,7 +224,10 @@ int main (int argc, char **argv) {
 	/* Sessioon key */
 	sessionkey = rand() % 65535;
 
-	printf("Connecting to %s...\n", ether_ntoa((struct ether_addr *)dstmac));
+	/* stop output buffering */
+	setvbuf(stdout, (char*)NULL, _IONBF, 0);
+
+	printf("Connecting to %s...", ether_ntoa((struct ether_addr *)dstmac));
 
 	plen = initPacket(data, MT_PTYPE_SESSIONSTART, srcmac, dstmac, sessionkey, 0);
 	result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, data, plen);
@@ -223,7 +236,20 @@ int main (int argc, char **argv) {
 	if (DEBUG)
 		printf("Sessionkey: %d\n", sessionkey);
 
+	FD_ZERO(&read_fds);
+	FD_SET(insockfd, &read_fds);
+	timeout.tv_sec = 5;
+	timeout.tv_usec = 0;
+	select(insockfd+1, &read_fds, NULL, NULL, &timeout);
+
+	if (!FD_ISSET(insockfd, &read_fds)) {
+		fprintf(stderr, "Connection timed out\n");
+		exit(1);
+	}
+
 	result = recvfrom(insockfd, buff, 1400, 0, 0, 0);
+	printf("done\n");
+
 	handlePacket(buff, result);
 
 	/*
@@ -246,16 +272,37 @@ int main (int argc, char **argv) {
 	}
 	handlePacket(buff, result);
 
-	memset(buff, 0, 1500);
-	result = recvfrom(insockfd, buff, 1500, 0, 0, 0);
-	handlePacket(buff, result);
+	/* stop input buffering at all levels. Give full control of terminal to RouterOS */
+	rawTerm();
+	setvbuf(stdin,  (char*)NULL, _IONBF, 0);
 
-while(1) {
-	memset(buff, 0, 1500);
-	result = recvfrom(insockfd, buff, 1500, 0, 0, 0);
-	handlePacket(buff, result);
-}
-	
+	while (running) {
+		int reads;
+
+		FD_ZERO(&read_fds);
+		FD_SET(0, &read_fds);
+		FD_SET(insockfd, &read_fds);
+		timeout.tv_sec = 1;
+		timeout.tv_usec = 0;
+
+		reads = select(insockfd+1, &read_fds, NULL, NULL, &timeout);
+		if (reads > 0) {
+			if (FD_ISSET(insockfd, &read_fds)) {
+				memset(buff, 0, 1500);
+				result = recvfrom(insockfd, buff, 1500, 0, 0, 0);
+				handlePacket(buff, result);
+			}
+			if (FD_ISSET(0, &read_fds)) {
+				unsigned char key = getc(stdin);
+				memset(data, 0, sizeof(data));
+				plen = initPacket(data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
+				outcounter ++;
+				memcpy(data + plen, &key, 1);
+				result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, data, plen + 1);
+			}
+		}
+	}
+	resetTerm();
 	close(sockfd);
 	close(insockfd);
 

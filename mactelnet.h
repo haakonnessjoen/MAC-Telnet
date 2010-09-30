@@ -59,4 +59,7 @@ extern int addControlPacket(unsigned char *data, unsigned char cptype, void *cpd
 extern void parsePacket(unsigned char *data, struct mt_mactelnet_hdr *pkthdr);
 extern int parseControlPacket(unsigned char *data, const int data_len, struct mt_mactelnet_control_hdr *cpkthdr);
 
+/* Control packet magic header */
+extern unsigned char mt_mactelnet_cpmagic[4];
+
 #endif

@@ -36,25 +36,32 @@ unsigned short in_cksum(unsigned short *addr, int len)
 
 int sendCustomUDP(const int socket, const int ifindex, const unsigned char *sourcemac, const unsigned char *destmac, const struct in_addr *sourceip, const int sourceport, const struct in_addr *destip, const int destport, const char *data, const int datalen) {
 	struct sockaddr_ll socket_address;
+
+	/*
+	 * Create a buffer for the full ethernet frame
+	 * and align header pointers to the correct positions.
+	*/
 	void* buffer = (void*)malloc(ETH_FRAME_LEN);
 	struct ethhdr *eh = (struct ethhdr *)buffer;
 	struct iphdr *ip = (struct iphdr *)(buffer+14);
 	struct udphdr *udp = (struct udphdr *)(buffer+14+20);
 	unsigned char *rest = (unsigned char *)(buffer+20+14+sizeof(struct udphdr));
+
 	static unsigned int id = 1;
 	int send_result = 0;
 
+	/* Abort if we couldn't allocate enough memory */
 	if (buffer == NULL) {
 		perror("malloc");
 		exit(1);
 	}
 
-	/* Ethernet header */
+	/* Init ethernet header */
 	memcpy(eh->h_source, sourcemac, ETH_ALEN);
 	memcpy(eh->h_dest, destmac, ETH_ALEN);
 	eh->h_proto = 8;
 
-	/* SendTo struct */
+	/* Init SendTo struct */
 	socket_address.sll_family   = PF_PACKET;	
 	socket_address.sll_protocol = htons(ETH_P_IP);	
 	socket_address.sll_ifindex  = ifindex;
@@ -66,7 +73,7 @@ int sendCustomUDP(const int socket, const int ifindex, const unsigned char *sour
 	socket_address.sll_addr[6]  = 0x00;/*not used*/
 	socket_address.sll_addr[7]  = 0x00;/*not used*/
 
-	/* IP Header */
+	/* Init IP Header */
 	ip->version = 4;
 	ip->ihl = 5;
 	ip->tos = 0x10;
@@ -78,19 +85,22 @@ int sendCustomUDP(const int socket, const int ifindex, const unsigned char *sour
 	ip->check = 0x0000;
 	ip->saddr = sourceip->s_addr;
 	ip->daddr = destip->s_addr;
+	/* Calculate checksum for IP header */
 	ip->check = in_cksum((unsigned short *)ip, sizeof(struct iphdr));
 
-	/* UDP Header */
+	/* Init UDP Header */
 	udp->source = htons(20561);
 	udp->dest = htons(20561);
 	udp->check = 0;
 	udp->len = htons(sizeof(struct udphdr) + datalen);
 
+	/* Insert actual data */
 	memcpy(rest, data, datalen);
 
 	/* Send the packet */
 	send_result = sendto(socket, buffer, datalen+8+14+20, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
 	free(buffer);
 
+	/* Return amount of _data_ bytes sent */
 	return send_result-8-14-20;
 }

@@ -30,6 +30,7 @@
 int getDeviceIndex(int sockfd, unsigned char *deviceName) {
 	struct ifreq ifr;
 
+	/* Find interface index from deviceName */
 	strncpy(ifr.ifr_name, deviceName, 16);
 	if (ioctl(sockfd, SIOCGIFINDEX, &ifr) != 0) {
 		return -1;
@@ -42,6 +43,7 @@ int getDeviceIndex(int sockfd, unsigned char *deviceName) {
 int getDeviceMAC(const int sockfd, const unsigned char *deviceName, unsigned char *mac) {
 	struct ifreq ifr;
 
+	/* Find interface hardware address from deviceName */
 	strncpy(ifr.ifr_name, deviceName, 16);
 	if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) != 0) {
 		return -1;
@@ -75,6 +77,7 @@ int getDeviceIp(const int sockfd, const unsigned char *deviceName, struct sockad
 		exit(1);
 	}
 
+	/* Do the actual query for info about all interfaces */
 	ifc.ifc_req = ifr;
 	if (ioctl(sockfd, SIOCGIFCONF, &ifc) != 0) {
 		free(ifr);

@@ -31,13 +31,16 @@ int main(int argc, char **argv)  {
 	unsigned char name[100];
 	unsigned char mac[ETH_ALEN];
 
+	/* Open a UDP socket handle */
 	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
+	/* Set initialize address/port */
 	memset((char *) &si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
 	si_me.sin_port = htons(5678);
 	si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 
+	/* Bind to specified address/port */
 	if (bind(sock, (struct sockaddr *)&si_me, sizeof(si_me))==-1) {
 		fprintf(stderr, "Error binding to %s:5678\n", inet_ntoa(si_me.sin_addr));
 		return 1;
@@ -47,25 +50,33 @@ int main(int argc, char **argv)  {
 	fprintf(stderr, "Searching for MikroTik routers... Abort with CTRL+C.\n");
 
 	while(1) {
+		/* Wait for a UDP packet */
 		result = recvfrom(sock, buff, 1500, 0, 0, 0);
 		if (result < 0) {
 			fprintf(stderr, "Error occured. aborting\n");
 			exit(1);
 		}
 
+		/* Fetch length of Identifier string */
 		memcpy(&nameLen, buff+16,2);
 		nameLen = (nameLen >> 8) | ((nameLen&0xff)<<8);
 
 		/* Max name length = 99 */
 		nameLen = nameLen < 100 ? nameLen : 99;
 
+		/* Read Identifier string */
 		memcpy(&name, buff+18, nameLen);
+
+		/* Append zero */
 		name[nameLen] = 0;
 
+		/* Read source MAC address */
 		memcpy(&mac, buff+8, ETH_ALEN);
 
+		/* Print it */
 		printf("%17s %s\n", ether_ntoa((struct ether_addr *)mac), name);
 	}
 
+	/* We'll never get here.. */
 	return 0;
 }

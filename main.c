@@ -18,6 +18,7 @@
 */
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <arpa/inet.h>
@@ -200,21 +201,28 @@ int main (int argc, char **argv) {
 	fd_set read_fds;
 
 	if (argc < 4) {
-		fprintf(stderr, "Usage: %s <ifname> <MAC> <username> <password>\n", argv[0]);
+		fprintf(stderr, "Usage: %s <ifname> <MAC> <username> [password]\n", argv[0]);
 
 		if (argc > 1) {
-			fprintf(stderr, "\nRequired parameters:\n");
+			fprintf(stderr, "\nParameters:\n");
 			fprintf(stderr, "  ifname    Network interface that the RouterOS resides on. (example: eth0)\n");
 			fprintf(stderr, "  MAC       MAC-Address of the RouterOS device. Use mndp to discover them.\n");
 			fprintf(stderr, "  username  Your username.\n");
 			fprintf(stderr, "  password  Your password.\n");
 		}
 		return 1;
+	} else if (argc == 4) {
+		char *tmp;
+		tmp = getpass("Passsword: ");
+		strncpy(password, tmp, 254);
+		/* security */
+		memset(tmp, 0, strlen(tmp));
+	} else {
+		strncpy(password, argv[4], 254);
 	}
 
 	ether_aton_r(argv[2], (struct ether_addr *)dstmac);
 	strncpy(username, argv[3], 254);
-	strncpy(password, argv[4], 254);
 
 	srand(time(NULL));
 

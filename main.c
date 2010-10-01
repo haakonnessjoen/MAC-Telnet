@@ -204,7 +204,7 @@ int main (int argc, char **argv) {
 
 		if (argc > 1) {
 			fprintf(stderr, "\nRequired parameters:\n");
-			fprintf(stderr, "  ifname    Network interface that the RouterOS resides on. (ex: eth0)\n");
+			fprintf(stderr, "  ifname    Network interface that the RouterOS resides on. (example: eth0)\n");
 			fprintf(stderr, "  MAC       MAC-Address of the RouterOS device. Use mndp to discover them.\n");
 			fprintf(stderr, "  username  Your username.\n");
 			fprintf(stderr, "  password  Your password.\n");

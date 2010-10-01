@@ -196,6 +196,7 @@ int main (int argc, char **argv) {
 	char buff[1500];
 	int plen = 0;
 	struct timeval timeout;
+	int keepalive_counter = 0;
 	fd_set read_fds;
 
 	if (argc < 4) {
@@ -342,6 +343,14 @@ int main (int argc, char **argv) {
 				outcounter ++;
 				memcpy(data + plen, &key, 1);
 				result = sendUDP(data, plen + 1);
+			}
+		} else {
+			/* keepalive */
+			if ((keepalive_counter++ % 10) == 0) {
+				char odata[22];
+				int plen=0,result=0;
+				plen = initPacket(odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, 0);
+				result = sendUDP(odata, plen);
 			}
 		}
 	}

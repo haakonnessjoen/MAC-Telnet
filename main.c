@@ -19,10 +19,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/ether.h>
 #include <sys/time.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <string.h>
@@ -79,6 +81,23 @@ void sendAuthData(unsigned char *username, unsigned char *password) {
 	result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, data, plen);
 }
 
+void sig_winch(int sig) {
+	unsigned short width,height;
+	unsigned char data[1500];
+	int result,plen,databytes;
+
+	if (getTerminalSize(&width, &height) > 0) {
+		plen = initPacket(data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
+		databytes = plen;
+		plen += addControlPacket(data + plen, MT_CPTYPE_TERM_WIDTH, &width, 2);
+		plen += addControlPacket(data + plen, MT_CPTYPE_TERM_HEIGHT, &height, 2);
+		outcounter += plen - databytes;
+
+		result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, data, plen);
+	}
+	signal(SIGWINCH, sig_winch);
+}
+
 void handlePacket(unsigned char *data, int data_len) {
 	struct mt_mactelnet_hdr pkthdr;
 	struct mt_mactelnet_control_hdr cpkthdr;
@@ -132,6 +151,11 @@ void handlePacket(unsigned char *data, int data_len) {
 			else if (cpkt.cptype == MT_CPTYPE_PLAINDATA) {
 				cpkt.data[cpkt.length] = 0;
 				printf("%s", cpkt.data);
+			}
+
+			else if (cpkt.cptype == MT_CPTYPE_END_AUTH) {
+				terminalMode = 1;
+				signal(SIGWINCH, sig_winch);
 			}
 		}
 	}

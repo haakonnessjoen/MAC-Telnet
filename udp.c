@@ -34,7 +34,7 @@ unsigned short in_cksum(unsigned short *addr, int len)
 	return (answer);
 }
 
-int sendCustomUDP(const int socket, const int ifindex, const unsigned char *sourcemac, const unsigned char *destmac, const struct in_addr *sourceip, const int sourceport, const struct in_addr *destip, const int destport, const char *data, const int datalen) {
+int sendCustomUDP(const int socket, const int ifindex, const unsigned char *sourcemac, const unsigned char *destmac, const struct in_addr *sourceip, const int sourceport, const struct in_addr *destip, const int destport, const unsigned char *data, const int datalen) {
 	struct sockaddr_ll socket_address;
 
 	/*
@@ -89,8 +89,8 @@ int sendCustomUDP(const int socket, const int ifindex, const unsigned char *sour
 	ip->check = in_cksum((unsigned short *)ip, sizeof(struct iphdr));
 
 	/* Init UDP Header */
-	udp->source = htons(20561);
-	udp->dest = htons(20561);
+	udp->source = htons(sourceport);
+	udp->dest = htons(destport);
 	udp->check = 0;
 	udp->len = htons(sizeof(struct udphdr) + datalen);
 

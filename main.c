@@ -49,10 +49,15 @@ unsigned char dstmac[ETH_ALEN];
 
 struct in_addr sourceip; 
 struct in_addr destip;
+int sourceport;
 
 unsigned char encryptionkey[128];
 unsigned char username[255];
 unsigned char password[255];
+
+int sendUDP(const unsigned char *data, int len) {
+	return sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip,  sourceport, &destip, 20561, data, len);
+}
 
 void sendAuthData(unsigned char *username, unsigned char *password) {
 	unsigned char data[1500];
@@ -78,7 +83,7 @@ void sendAuthData(unsigned char *username, unsigned char *password) {
 
 	outcounter += plen - databytes;
 
-	result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, data, plen);
+	result = sendUDP(data, plen);
 }
 
 void sig_winch(int sig) {
@@ -93,7 +98,7 @@ void sig_winch(int sig) {
 		plen += addControlPacket(data + plen, MT_CPTYPE_TERM_HEIGHT, &height, 2);
 		outcounter += plen - databytes;
 
-		result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, data, plen);
+		result = sendUDP(data, plen);
 	}
 	signal(SIGWINCH, sig_winch);
 }
@@ -105,13 +110,19 @@ void handlePacket(unsigned char *data, int data_len) {
 	if (DEBUG)
 		printf("Received packet:\n\tVersion %d\n\tType: %d\n\tSesskey: %d\n\tCounter: %d\n\n", pkthdr.ver, pkthdr.ptype, pkthdr.seskey, pkthdr.counter);
 
+	if (pkthdr.seskey != sessionkey) {
+		if (DEBUG)
+			fprintf(stderr, "Invalid session key in received packet.\n");
+		return;
+	}
+
 	if (pkthdr.ptype == MT_PTYPE_DATA) {
 		char odata[200];
 		int plen=0,result=0;
 		int rest = 0;
 		unsigned char *p = data;
-		plen = initPacket(odata, MT_PTYPE_ACK, srcmac, dstmac, pkthdr.seskey, pkthdr.counter + (data_len - 22));
-		result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, odata, plen);
+		plen = initPacket(odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, pkthdr.counter + (data_len - 22));
+		result = sendUDP(odata, plen);
 
 		if (DEBUG)
 			printf("ACK: Plen = %d, Send result: %d\n", plen, result);
@@ -165,7 +176,7 @@ void handlePacket(unsigned char *data, int data_len) {
 		char odata[200];
 		int plen=0,result=0;
 		plen = initPacket(odata, MT_PTYPE_END, srcmac, dstmac, pkthdr.seskey, 0);
-		result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, odata, plen);
+		result = sendUDP(odata, plen);
 		fprintf(stderr, "Connection closed.\n");
 		/* exit */
 		running = 0;
@@ -187,9 +198,16 @@ int main (int argc, char **argv) {
 	struct timeval timeout;
 	fd_set read_fds;
 
-
 	if (argc < 4) {
 		fprintf(stderr, "Usage: %s <ifname> <MAC> <username> <password>\n", argv[0]);
+
+		if (argc > 1) {
+			fprintf(stderr, "\nRequired parameters:\n");
+			fprintf(stderr, "  ifname    Network interface that the RouterOS resides on. (ex: eth0)\n");
+			fprintf(stderr, "  MAC       MAC-Address of the RouterOS device. Use mndp to discover them.\n");
+			fprintf(stderr, "  username  Your username.\n");
+			fprintf(stderr, "  password  Your password.\n");
+		}
 		return 1;
 	}
 
@@ -212,9 +230,8 @@ int main (int argc, char **argv) {
 	}
 
 	/*
-	 * Even though we talk to the server without IP address, it makes it much
-	 * easier to read packets when we use our real ip as the sender ip.
-	 * This way we can listen to normal UDP traffic on port 20561
+	 * We want to show who we are (ip), even though the server only cares
+	 * about it's own MAC address in the headers.
 	*/
 	result = getDeviceIp(sockfd, argv[1], &si_me);
 	if (result < 0) {
@@ -229,6 +246,9 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 
+	/* Set source port */
+	sourceport = 1024 + (rand() % 1024);
+
 	/* Set up global info about the connection */
 	inet_pton(AF_INET, (char *)"255.255.255.255", &destip);
 	memcpy(&sourceip, &(si_me.sin_addr), 4);
@@ -236,11 +256,11 @@ int main (int argc, char **argv) {
 	/* Initialize receiving socket on the device chosen */
 	memset((char *) &si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
-	si_me.sin_port = htons(20561);
+	si_me.sin_port = htons(sourceport);
 
 	/* Bind to udp port */
 	if (bind(insockfd, (struct sockaddr *)&si_me, sizeof(si_me))==-1) {
-		fprintf(stderr, "Error binding to %s:20561\n", inet_ntoa(si_me.sin_addr));
+		fprintf(stderr, "Error binding to %s:%d\n", inet_ntoa(si_me.sin_addr), sourceport);
 		return 1;
 	}
 
@@ -253,7 +273,7 @@ int main (int argc, char **argv) {
 	printf("Connecting to %s...", ether_ntoa((struct ether_addr *)dstmac));
 
 	plen = initPacket(data, MT_PTYPE_SESSIONSTART, srcmac, dstmac, sessionkey, 0);
-	result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, data, plen);
+	result = sendUDP(data, plen);
 	if (DEBUG)
 		printf("Plen = %d, Send result: %d\n", plen, result);
 	if (DEBUG)
@@ -283,7 +303,7 @@ int main (int argc, char **argv) {
 	plen += addControlPacket(data + plen, MT_CPTYPE_BEGINAUTH, NULL, 0);
 	outcounter += 9;
 
-	result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, data, plen);
+	result = sendUDP(data, plen);
 	if (DEBUG)
 		printf("Plen = %d, Send result: %d\n", plen, result);
 
@@ -321,7 +341,7 @@ int main (int argc, char **argv) {
 				plen = initPacket(data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
 				outcounter ++;
 				memcpy(data + plen, &key, 1);
-				result = sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip, 20561, &destip, 20561, data, plen + 1);
+				result = sendUDP(data, plen + 1);
 			}
 		}
 	}

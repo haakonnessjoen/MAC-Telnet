@@ -56,7 +56,7 @@ unsigned char password[255];
 
 void sendAuthData(unsigned char *username, unsigned char *password) {
 	unsigned char data[1500];
-	unsigned char *terminal = "linux";
+	unsigned char *terminal = getenv("TERM");
 	int userLen = strlen(username);
 	int terminalLen = strlen(terminal);
 	unsigned short width = 0;
@@ -100,7 +100,6 @@ void sig_winch(int sig) {
 
 void handlePacket(unsigned char *data, int data_len) {
 	struct mt_mactelnet_hdr pkthdr;
-	struct mt_mactelnet_control_hdr cpkthdr;
 	parsePacket(data, &pkthdr);
 
 	if (DEBUG)

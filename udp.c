@@ -5,7 +5,7 @@
 #include <linux/if_packet.h>
 #include <linux/if_ether.h>
 #include <linux/ip.h>
-#include <linux/in.h>
+#include <netinet/in.h>
 #include <linux/udp.h>
 #include <linux/if_arp.h>
 #include <stdlib.h>

@@ -377,19 +377,23 @@ int main (int argc, char **argv) {
 	while (running) {
 		int reads;
 
+		/* Init select */
 		FD_ZERO(&read_fds);
 		FD_SET(0, &read_fds);
 		FD_SET(insockfd, &read_fds);
 		timeout.tv_sec = 1;
 		timeout.tv_usec = 0;
 
+		/* Wait for data or timeout */
 		reads = select(insockfd+1, &read_fds, NULL, NULL, &timeout);
 		if (reads > 0) {
+			/* Handle data from server */
 			if (FD_ISSET(insockfd, &read_fds)) {
 				memset(buff, 0, 1500);
 				result = recvfrom(insockfd, buff, 1500, 0, 0, 0);
 				handlePacket(buff, result);
 			}
+			/* Handle data from keyboard/local terminal */
 			if (FD_ISSET(0, &read_fds)) {
 				unsigned char keydata[100];
 				int datalen;
@@ -400,8 +404,10 @@ int main (int argc, char **argv) {
 				memcpy(data + plen, &keydata, datalen);
 				result = sendUDP(data, plen + datalen);
 			}
+		/* Handle select() timeout */
 		} else {
-			/* keepalive */
+			/* handle keepalive counter, transmit keepalive packet every 10 seconds
+			   of inactivity  */
 			if ((keepalive_counter++ % 10) == 0) {
 				char odata[MT_HEADER_LEN];
 				int plen=0,result=0;
@@ -410,9 +416,12 @@ int main (int argc, char **argv) {
 			}
 		}
 	}
+
 	if (terminalMode) {
+		/* Reset terminal back to old settings */
 		resetTerm();
 	}
+
 	close(sockfd);
 	close(insockfd);
 

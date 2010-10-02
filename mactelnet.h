@@ -19,6 +19,9 @@
 #ifndef _MACTELNET_H
 #define _MACTELNET_H 1
 
+#define MT_HEADER_LEN 22
+#define MT_CPHEADER_LEN 9
+
 /* Packet type */
 #define MT_PTYPE_SESSIONSTART 0
 #define MT_PTYPE_DATA 1

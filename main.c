@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <arpa/inet.h>
@@ -73,15 +74,18 @@ void sendAuthData(unsigned char *username, unsigned char *password) {
 	int databytes;
 	MD5_CTX c;
 
+	/* Concat string of 0 + password + encryptionkey */
 	md5data[0] = 0;
 	strncpy(md5data + 1, password, 82);
 	memcpy(md5data + 1 + strlen(password), encryptionkey, 16);
 
+	/* Generate md5 sum of md5data with a leading 0 */
 	MD5_Init(&c);
 	MD5_Update(&c, md5data, strlen(password) + 17);
 	MD5_Final(md5sum + 1, &c);
 	md5sum[0] = 0;
 
+	/* Send combined packet to server */
 	plen = initPacket(data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
 	databytes = plen;
 	plen += addControlPacket(data + plen, MT_CPTYPE_PASSWORD, md5sum, 17);
@@ -95,6 +99,7 @@ void sendAuthData(unsigned char *username, unsigned char *password) {
 
 	outcounter += plen - databytes;
 
+	/* TODO: handle result */
 	result = sendUDP(data, plen);
 }
 
@@ -103,6 +108,7 @@ void sig_winch(int sig) {
 	unsigned char data[1500];
 	int result,plen,databytes;
 
+	/* terminal height/width has changed, inform server */
 	if (getTerminalSize(&width, &height) > 0) {
 		plen = initPacket(data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
 		databytes = plen;
@@ -112,6 +118,8 @@ void sig_winch(int sig) {
 
 		result = sendUDP(data, plen);
 	}
+
+	/* reinstate signal handler */
 	signal(SIGWINCH, sig_winch);
 }
 
@@ -128,13 +136,15 @@ void handlePacket(unsigned char *data, int data_len) {
 		return;
 	}
 
+	/* Handle data packets */
 	if (pkthdr.ptype == MT_PTYPE_DATA) {
-		char odata[200];
+		unsigned char odata[200];
 		int plen=0,result=0;
 		int rest = 0;
 		unsigned char *p = data;
 
-		plen = initPacket(odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, pkthdr.counter + (data_len - 22));
+		/* Always transmit ACKNOWLEDGE packets in response to DATA packets */
+		plen = initPacket(odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, pkthdr.counter + (data_len - MT_HEADER_LEN));
 		result = sendUDP(odata, plen);
 
 		if (DEBUG)
@@ -142,22 +152,27 @@ void handlePacket(unsigned char *data, int data_len) {
 
 		/* Accept first packet, and all packets greater than incounter, and if counter has
 		wrapped around. */
-		if (incounter == 0 || pkthdr.counter > incounter || incounter - pkthdr.counter > 32768)
+		if (incounter == 0 || pkthdr.counter > incounter || incounter - pkthdr.counter > 32768) {
 			incounter = pkthdr.counter;
-		else {
+		} else {
 			/* Ignore double or old packets */
 			return;
 		}
 
-		rest = data_len - 22;
-		p += 22;
+		/* Calculate how much more there is in the packet */
+		rest = data_len - MT_HEADER_LEN;
+		p += MT_HEADER_LEN;
+
 		while (rest > 0) {
 			int read = 0;
 			struct mt_mactelnet_control_hdr cpkt;
+
+			/* Parse controlpacket data */
 			read = parseControlPacket(p, rest, &cpkt);
 			p += read;
 			rest -= read;
 
+			/* If we receive encryptionkey, transmit auth data back */
 			if (cpkt.cptype == MT_CPTYPE_ENCRYPTIONKEY) {
 				memcpy(encryptionkey, cpkt.data, cpkt.length);
 				sendAuthData(username, password);
@@ -165,14 +180,25 @@ void handlePacket(unsigned char *data, int data_len) {
 					printf("Received encryption key of %d characters\n", cpkt.length);
 				
 			}
-		
+
+			/* If the (remaining) data did not have a control-packet magic byte sequence,
+			   the data is raw terminal data to be outputted to the terminal. */
 			else if (cpkt.cptype == MT_CPTYPE_PLAINDATA) {
 				cpkt.data[cpkt.length] = 0;
 				printf("%s", cpkt.data);
 			}
 
+			/* END_AUTH means that the user/password negotiation is done, and after this point
+			   terminal data may arrive, so we set up the terminal to raw mode. */
 			else if (cpkt.cptype == MT_CPTYPE_END_AUTH) {
+				/* stop input buffering at all levels. Give full control of terminal to RouterOS */
+				rawTerm();
+				setvbuf(stdin,  (char*)NULL, _IONBF, 0);
+
+				/* we have entered "terminal mode" */
 				terminalMode = 1;
+
+				/* Add resize signal handler */
 				signal(SIGWINCH, sig_winch);
 			}
 		}
@@ -180,12 +206,18 @@ void handlePacket(unsigned char *data, int data_len) {
 	else if (pkthdr.ptype == MT_PTYPE_ACK) {
 		/* TODO: If we were resubmitting lost messages, stop resubmitting here if received counter is correct. */
 	}
+
+	/* The server wants to terminate the connection, we have to oblige */
 	else if (pkthdr.ptype == MT_PTYPE_END) {
-		char odata[200];
+		unsigned char odata[200];
 		int plen=0,result=0;
+
+		/* Acknowledge the disconnection by sending a END packet in return */
 		plen = initPacket(odata, MT_PTYPE_END, srcmac, dstmac, pkthdr.seskey, 0);
 		result = sendUDP(odata, plen);
+
 		fprintf(stderr, "Connection closed.\n");
+
 		/* exit */
 		running = 0;
 	} else {
@@ -199,9 +231,9 @@ void handlePacket(unsigned char *data, int data_len) {
 int main (int argc, char **argv) {
 	int insockfd;
 	int result;
-	char data[1500];
+	unsigned char data[1500];
 	struct sockaddr_in si_me;
-	char buff[1500];
+	unsigned char buff[1500];
 	int plen = 0;
 	struct timeval timeout;
 	int keepalive_counter = 0;
@@ -228,17 +260,35 @@ int main (int argc, char **argv) {
 		strncpy(password, argv[4], 254);
 	}
 
+	/* Convert mac address string to ether_addr struct */
 	ether_aton_r(argv[2], (struct ether_addr *)dstmac);
+
+	/* Save username */
 	strncpy(username, argv[3], 254);
 
+	/* Seed randomizer */
 	srand(time(NULL));
+
+	if (geteuid() != 0) {
+		fprintf(stderr, "You need to have superuser abilities to use %s.\n", argv[0]);
+		return 1;
+	}
 
 	/* Transmit raw packets with this socket */
 	sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+	if (sockfd < 0) {
+		perror("sockfd");
+		return 1;
+	}
 
 	/* Receive regular udp packets with this socket */
 	insockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (insockfd < 0) {
+		perror("insockfd");
+		return 1;
+	}
 
+	/* Find device index number for specified interface */
 	deviceIndex = getDeviceIndex(sockfd, argv[1]);
 	if (deviceIndex < 0) {
 		fprintf(stderr, "Device %s not found.\n", argv[1]);
@@ -262,7 +312,7 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 
-	/* Set source port */
+	/* Set random source port */
 	sourceport = 1024 + (rand() % 1024);
 
 	/* Set up global info about the connection */
@@ -276,7 +326,7 @@ int main (int argc, char **argv) {
 
 	/* Bind to udp port */
 	if (bind(insockfd, (struct sockaddr *)&si_me, sizeof(si_me))==-1) {
-		fprintf(stderr, "Error binding to %s:%d\n", inet_ntoa(si_me.sin_addr), sourceport);
+		fprintf(stderr, "Error binding to %s:%d, %s\n", inet_ntoa(si_me.sin_addr), sourceport, strerror(errno));
 		return 1;
 	}
 
@@ -290,11 +340,8 @@ int main (int argc, char **argv) {
 
 	plen = initPacket(data, MT_PTYPE_SESSIONSTART, srcmac, dstmac, sessionkey, 0);
 	result = sendUDP(data, plen);
-	if (DEBUG)
-		printf("Plen = %d, Send result: %d\n", plen, result);
-	if (DEBUG)
-		printf("Sessionkey: %d\n", sessionkey);
 
+	/* Try to connect with a timeout */
 	FD_ZERO(&read_fds);
 	FD_SET(insockfd, &read_fds);
 	timeout.tv_sec = 5;
@@ -307,8 +354,13 @@ int main (int argc, char **argv) {
 	}
 
 	result = recvfrom(insockfd, buff, 1400, 0, 0, 0);
+	if (result < 1) {
+		fprintf(stderr, "Connection failed.\n");
+		return 1;
+	}
 	printf("done\n");
 
+	/* Handle first received packet */
 	handlePacket(buff, result);
 
 	/*
@@ -317,23 +369,10 @@ int main (int argc, char **argv) {
 	*/
 	plen = initPacket(data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, 0);
 	plen += addControlPacket(data + plen, MT_CPTYPE_BEGINAUTH, NULL, 0);
-	outcounter += 9;
+	outcounter += plen - MT_HEADER_LEN;
 
+	/* TODO: handle result of sendUDP */
 	result = sendUDP(data, plen);
-	if (DEBUG)
-		printf("Plen = %d, Send result: %d\n", plen, result);
-
-	memset(buff, 0, 1500);
-	result = recvfrom(insockfd, buff, 1500, 0, 0, 0);
-	if (result < 1) {
-		fprintf(stderr, "Connection failed.\n");
-		return 1;
-	}
-	handlePacket(buff, result);
-
-	/* stop input buffering at all levels. Give full control of terminal to RouterOS */
-	rawTerm();
-	setvbuf(stdin,  (char*)NULL, _IONBF, 0);
 
 	while (running) {
 		int reads;
@@ -364,14 +403,16 @@ int main (int argc, char **argv) {
 		} else {
 			/* keepalive */
 			if ((keepalive_counter++ % 10) == 0) {
-				char odata[22];
+				char odata[MT_HEADER_LEN];
 				int plen=0,result=0;
 				plen = initPacket(odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, 0);
 				result = sendUDP(odata, plen);
 			}
 		}
 	}
-	resetTerm();
+	if (terminalMode) {
+		resetTerm();
+	}
 	close(sockfd);
 	close(insockfd);
 

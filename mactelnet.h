@@ -41,6 +41,7 @@
 struct mt_mactelnet_hdr {
 	unsigned char ver;
 	unsigned char ptype;
+	unsigned int clienttype;
 	unsigned char srcaddr[6];
 	unsigned char dstaddr[6];
 	unsigned short seskey;

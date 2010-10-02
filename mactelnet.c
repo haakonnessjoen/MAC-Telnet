@@ -42,7 +42,7 @@ int initPacket(unsigned char *data, unsigned char ptype, unsigned char *srcmac, 
 	data[14] = sessionkey >> 8;
 	data[15] = sessionkey & 0xff;
 
-	/* Magic number */
+	/* Client type: Mac Telnet */
 	data[16] = 0x00;
 	data[17] = 0x15;
 
@@ -90,6 +90,9 @@ void parsePacket(unsigned char *data, struct mt_mactelnet_hdr *pkthdr) {
 
 	/* dst ethernet addr */
 	memcpy(pkthdr->dstaddr, data+8,6);
+
+	/* server type */
+	memcpy(&(pkthdr->clienttype), data+14, 2);
 
 	/* Session key */
 	pkthdr->seskey = data[16] << 8 | data[17];

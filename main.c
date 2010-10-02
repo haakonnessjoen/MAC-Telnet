@@ -122,6 +122,7 @@ void handlePacket(unsigned char *data, int data_len) {
 		int plen=0,result=0;
 		int rest = 0;
 		unsigned char *p = data;
+
 		plen = initPacket(odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, pkthdr.counter + (data_len - 22));
 		result = sendUDP(odata, plen);
 

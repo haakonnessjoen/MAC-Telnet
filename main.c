@@ -40,6 +40,7 @@
 int sockfd;
 int deviceIndex;
 int outcounter=0;
+int incounter=0;
 int sessionkey=0;
 int running = 1;
 
@@ -128,6 +129,13 @@ void handlePacket(unsigned char *data, int data_len) {
 
 		if (DEBUG)
 			printf("ACK: Plen = %d, Send result: %d\n", plen, result);
+
+		if (incounter == 0 || pkthdr.counter > incounter)
+			incounter = pkthdr.counter;
+		else {
+			/* Ignore double or old packets */
+			return;
+		}
 
 		rest = data_len - 22;
 		p += 22;

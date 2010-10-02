@@ -192,7 +192,7 @@ void handlePacket(unsigned char *data, int data_len) {
 int main (int argc, char **argv) {
 	int insockfd;
 	int result;
-	char data[200];
+	char data[1500];
 	struct sockaddr_in si_me;
 	char buff[1500];
 	int plen = 0;
@@ -345,12 +345,14 @@ int main (int argc, char **argv) {
 				handlePacket(buff, result);
 			}
 			if (FD_ISSET(0, &read_fds)) {
-				unsigned char key = getc(stdin);
+				unsigned char keydata[100];
+				int datalen;
+				datalen = read(STDIN_FILENO, &keydata, 100);
 				memset(data, 0, sizeof(data));
 				plen = initPacket(data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
-				outcounter ++;
-				memcpy(data + plen, &key, 1);
-				result = sendUDP(data, plen + 1);
+				outcounter += datalen;
+				memcpy(data + plen, &keydata, datalen);
+				result = sendUDP(data, plen + datalen);
 			}
 		} else {
 			/* keepalive */

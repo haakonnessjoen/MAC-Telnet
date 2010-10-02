@@ -63,20 +63,30 @@ int sendUDP(const unsigned char *data, int len) {
 
 void sendAuthData(unsigned char *username, unsigned char *password) {
 	unsigned char data[1500];
-	unsigned char *terminal = getenv("TERM");
-	int userLen = strlen(username);
-	int terminalLen = strlen(terminal);
+	unsigned char *terminal = (unsigned char *)getenv("TERM");
 	unsigned short width = 0;
 	unsigned short height = 0;
+	unsigned char md5data[100];
+	unsigned char md5sum[17];
 	int result;
 	int plen;
 	int databytes;
+	MD5_CTX c;
+
+	md5data[0] = 0;
+	strncpy(md5data + 1, password, 82);
+	memcpy(md5data + 1 + strlen(password), encryptionkey, 16);
+
+	MD5_Init(&c);
+	MD5_Update(&c, md5data, strlen(password) + 17);
+	MD5_Final(md5sum + 1, &c);
+	md5sum[0] = 0;
 
 	plen = initPacket(data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
 	databytes = plen;
-	plen += addControlPacket(data + plen, MT_CPTYPE_PASSWORD, password, 17);
-	plen += addControlPacket(data + plen, MT_CPTYPE_USERNAME, username, userLen);
-	plen += addControlPacket(data + plen, MT_CPTYPE_TERM_TYPE, terminal, terminalLen);
+	plen += addControlPacket(data + plen, MT_CPTYPE_PASSWORD, md5sum, 17);
+	plen += addControlPacket(data + plen, MT_CPTYPE_USERNAME, username, strlen(username));
+	plen += addControlPacket(data + plen, MT_CPTYPE_TERM_TYPE, terminal, strlen(terminal));
 
 	if (getTerminalSize(&width, &height) > 0) {
 		plen += addControlPacket(data + plen, MT_CPTYPE_TERM_WIDTH, &width, 2);
@@ -130,7 +140,9 @@ void handlePacket(unsigned char *data, int data_len) {
 		if (DEBUG)
 			printf("ACK: Plen = %d, Send result: %d\n", plen, result);
 
-		if (incounter == 0 || pkthdr.counter > incounter)
+		/* Accept first packet, and all packets greater than incounter, and if counter has
+		wrapped around. */
+		if (incounter == 0 || pkthdr.counter > incounter || incounter - pkthdr.counter > 32768)
 			incounter = pkthdr.counter;
 		else {
 			/* Ignore double or old packets */
@@ -147,22 +159,8 @@ void handlePacket(unsigned char *data, int data_len) {
 			rest -= read;
 
 			if (cpkt.cptype == MT_CPTYPE_ENCRYPTIONKEY) {
-				unsigned char md5data[100];
-				unsigned char md5sum[100];
-				MD5_CTX c;
-
 				memcpy(encryptionkey, cpkt.data, cpkt.length);
-
-				md5data[0] = 0;
-				strcpy(md5data+1, password);
-				strncat(md5data+1, encryptionkey, 16);
-
-				MD5_Init(&c);
-				MD5_Update(&c, md5data, 9+16);
-				MD5_Final(md5sum+1, &c);
-				md5sum[0] = 0;
-
-				sendAuthData(username, md5sum);
+				sendAuthData(username, password);
 				if (DEBUG)
 					printf("Received encryption key of %d characters\n", cpkt.length);
 				

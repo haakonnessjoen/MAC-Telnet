@@ -22,6 +22,8 @@
 #define MT_HEADER_LEN 22
 #define MT_CPHEADER_LEN 9
 
+#define MT_PACKET_LEN 1500
+
 /* Packet type */
 #define MT_PTYPE_SESSIONSTART 0
 #define MT_PTYPE_DATA 1
@@ -58,8 +60,13 @@ struct mt_mactelnet_control_hdr {
 	unsigned char *data;
 };
 
-extern int initPacket(unsigned char *data, unsigned char ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned short counter);
-extern int addControlPacket(unsigned char *data, unsigned char cptype, void *cpdata, int data_len);
+struct mt_packet {
+	int size;
+	unsigned char data[MT_PACKET_LEN];
+};
+
+extern int initPacket(struct mt_packet *packet, unsigned char ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned short counter);
+extern int addControlPacket(struct mt_packet *packet, char cptype, void *cpdata, int data_len);
 extern void parsePacket(unsigned char *data, struct mt_mactelnet_hdr *pkthdr);
 extern int parseControlPacket(unsigned char *data, const int data_len, struct mt_mactelnet_control_hdr *cpkthdr);
 

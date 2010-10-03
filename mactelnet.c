@@ -18,13 +18,16 @@
 */
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <linux/if_ether.h>
 #include "mactelnet.h"
 #include "config.h"
 
 unsigned char mt_mactelnet_cpmagic[4] = { 0x56, 0x34, 0x12, 0xff };
 
-int initPacket(unsigned char *data, unsigned char ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned short counter) {
+
+int initPacket(struct mt_packet *packet, unsigned char ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned short counter) {
+	unsigned char *data = packet->data;
 
 	/* Packet version */
 	data[0] = 1;
@@ -53,10 +56,25 @@ int initPacket(unsigned char *data, unsigned char ptype, unsigned char *srcmac, 
 	data[21] = counter & 0xff;
 
 	/* 22 bytes header */
+	packet->size = 22;
 	return 22;
 }
 
-int addControlPacket(unsigned char *data, unsigned char cptype, void *cpdata, int data_len) {
+int addControlPacket(struct mt_packet *packet, char cptype, void *cpdata, int data_len) {
+	unsigned char *data = packet->data + packet->size;
+
+	/* Something is really wrong. Packets should never become over 1500 bytes */
+	if (packet->size + MT_CPHEADER_LEN + data_len > MT_PACKET_LEN) {
+		fprintf(stderr, "addControlPacket: ERROR, too large packet. Exceeds %d bytes\n", MT_PACKET_LEN);
+		exit(1);
+	}
+
+	if (cptype == MT_CPTYPE_PLAINDATA) {
+		memcpy(data, cpdata, data_len);
+		packet->size += data_len;
+		return data_len;
+	}
+
 	/* Control Packet Magic id */
 	memcpy(data,  mt_mactelnet_cpmagic, sizeof(mt_mactelnet_cpmagic));
 
@@ -71,11 +89,12 @@ int addControlPacket(unsigned char *data, unsigned char cptype, void *cpdata, in
 
 	/* Insert data */
 	if (data_len) {
-		memcpy(data+9, cpdata, data_len);
+		memcpy(data + MT_CPHEADER_LEN, cpdata, data_len);
 	}
 
+	packet->size += MT_CPHEADER_LEN + data_len;
 	/* Control packet header length + data length */
-	return 9+data_len;
+	return MT_CPHEADER_LEN + data_len;
 }
 
 void parsePacket(unsigned char *data, struct mt_mactelnet_hdr *pkthdr) {

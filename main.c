@@ -40,9 +40,9 @@
 
 int sockfd;
 int deviceIndex;
-int outcounter=0;
-int incounter=0;
-int sessionkey=0;
+int outcounter = 0;
+int incounter = 0;
+int sessionkey = 0;
 int running = 1;
 
 unsigned char terminalMode = 0;
@@ -58,12 +58,12 @@ unsigned char encryptionkey[128];
 unsigned char username[255];
 unsigned char password[255];
 
-int sendUDP(const unsigned char *data, int len) {
-	return sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip,  sourceport, &destip, 20561, data, len);
+int sendUDP(struct mt_packet *packet) {
+	return sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip,  sourceport, &destip, 20561, packet->data, packet->size);
 }
 
 void sendAuthData(unsigned char *username, unsigned char *password) {
-	unsigned char data[1500];
+	struct mt_packet data;
 	unsigned char *terminal = (unsigned char *)getenv("TERM");
 	unsigned short width = 0;
 	unsigned short height = 0;
@@ -86,37 +86,37 @@ void sendAuthData(unsigned char *username, unsigned char *password) {
 	md5sum[0] = 0;
 
 	/* Send combined packet to server */
-	plen = initPacket(data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
+	plen = initPacket(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
 	databytes = plen;
-	plen += addControlPacket(data + plen, MT_CPTYPE_PASSWORD, md5sum, 17);
-	plen += addControlPacket(data + plen, MT_CPTYPE_USERNAME, username, strlen(username));
-	plen += addControlPacket(data + plen, MT_CPTYPE_TERM_TYPE, terminal, strlen(terminal));
+	plen += addControlPacket(&data, MT_CPTYPE_PASSWORD, md5sum, 17);
+	plen += addControlPacket(&data, MT_CPTYPE_USERNAME, username, strlen(username));
+	plen += addControlPacket(&data, MT_CPTYPE_TERM_TYPE, terminal, strlen(terminal));
 
 	if (getTerminalSize(&width, &height) > 0) {
-		plen += addControlPacket(data + plen, MT_CPTYPE_TERM_WIDTH, &width, 2);
-		plen += addControlPacket(data + plen, MT_CPTYPE_TERM_HEIGHT, &height, 2);
+		plen += addControlPacket(&data, MT_CPTYPE_TERM_WIDTH, &width, 2);
+		plen += addControlPacket(&data, MT_CPTYPE_TERM_HEIGHT, &height, 2);
 	}
 
 	outcounter += plen - databytes;
 
 	/* TODO: handle result */
-	result = sendUDP(data, plen);
+	result = sendUDP(&data);
 }
 
 void sig_winch(int sig) {
 	unsigned short width,height;
-	unsigned char data[1500];
+	struct mt_packet data;
 	int result,plen,databytes;
 
 	/* terminal height/width has changed, inform server */
 	if (getTerminalSize(&width, &height) > 0) {
-		plen = initPacket(data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
+		plen = initPacket(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
 		databytes = plen;
-		plen += addControlPacket(data + plen, MT_CPTYPE_TERM_WIDTH, &width, 2);
-		plen += addControlPacket(data + plen, MT_CPTYPE_TERM_HEIGHT, &height, 2);
+		plen += addControlPacket(&data, MT_CPTYPE_TERM_WIDTH, &width, 2);
+		plen += addControlPacket(&data, MT_CPTYPE_TERM_HEIGHT, &height, 2);
 		outcounter += plen - databytes;
 
-		result = sendUDP(data, plen);
+		result = sendUDP(&data);
 	}
 
 	/* reinstate signal handler */
@@ -138,14 +138,14 @@ void handlePacket(unsigned char *data, int data_len) {
 
 	/* Handle data packets */
 	if (pkthdr.ptype == MT_PTYPE_DATA) {
-		unsigned char odata[200];
+		struct mt_packet odata;
 		int plen=0,result=0;
 		int rest = 0;
 		unsigned char *p = data;
 
 		/* Always transmit ACKNOWLEDGE packets in response to DATA packets */
-		plen = initPacket(odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, pkthdr.counter + (data_len - MT_HEADER_LEN));
-		result = sendUDP(odata, plen);
+		plen = initPacket(&odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, pkthdr.counter + (data_len - MT_HEADER_LEN));
+		result = sendUDP(&odata);
 
 		if (DEBUG)
 			printf("ACK: Plen = %d, Send result: %d\n", plen, result);
@@ -209,12 +209,12 @@ void handlePacket(unsigned char *data, int data_len) {
 
 	/* The server wants to terminate the connection, we have to oblige */
 	else if (pkthdr.ptype == MT_PTYPE_END) {
-		unsigned char odata[200];
+		struct mt_packet odata;
 		int plen=0,result=0;
 
 		/* Acknowledge the disconnection by sending a END packet in return */
-		plen = initPacket(odata, MT_PTYPE_END, srcmac, dstmac, pkthdr.seskey, 0);
-		result = sendUDP(odata, plen);
+		plen = initPacket(&odata, MT_PTYPE_END, srcmac, dstmac, pkthdr.seskey, 0);
+		result = sendUDP(&odata);
 
 		fprintf(stderr, "Connection closed.\n");
 
@@ -231,7 +231,7 @@ void handlePacket(unsigned char *data, int data_len) {
 int main (int argc, char **argv) {
 	int insockfd;
 	int result;
-	unsigned char data[1500];
+	struct mt_packet data;
 	struct sockaddr_in si_me;
 	unsigned char buff[1500];
 	int plen = 0;
@@ -338,8 +338,8 @@ int main (int argc, char **argv) {
 
 	printf("Connecting to %s...", ether_ntoa((struct ether_addr *)dstmac));
 
-	plen = initPacket(data, MT_PTYPE_SESSIONSTART, srcmac, dstmac, sessionkey, 0);
-	result = sendUDP(data, plen);
+	plen = initPacket(&data, MT_PTYPE_SESSIONSTART, srcmac, dstmac, sessionkey, 0);
+	result = sendUDP(&data);
 
 	/* Try to connect with a timeout */
 	FD_ZERO(&read_fds);
@@ -367,12 +367,12 @@ int main (int argc, char **argv) {
 	 * TODO: Should resubmit whenever a PTYPE_DATA packet is sent, and an ACK packet with correct datacounter is received
 	 * or time out the connection, in all other cases.
 	*/
-	plen = initPacket(data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, 0);
-	plen += addControlPacket(data + plen, MT_CPTYPE_BEGINAUTH, NULL, 0);
-	outcounter += plen - MT_HEADER_LEN;
+	plen = initPacket(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, 0);
+	plen = addControlPacket(&data, MT_CPTYPE_BEGINAUTH, NULL, 0);
+	outcounter += plen;
 
 	/* TODO: handle result of sendUDP */
-	result = sendUDP(data, plen);
+	result = sendUDP(&data);
 
 	while (running) {
 		int reads;
@@ -397,22 +397,23 @@ int main (int argc, char **argv) {
 			if (FD_ISSET(0, &read_fds)) {
 				unsigned char keydata[100];
 				int datalen;
+
 				datalen = read(STDIN_FILENO, &keydata, 100);
-				memset(data, 0, sizeof(data));
-				plen = initPacket(data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
+
+				plen = initPacket(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
+				plen += addControlPacket(&data, MT_CPTYPE_PLAINDATA, &keydata, datalen);
 				outcounter += datalen;
-				memcpy(data + plen, &keydata, datalen);
-				result = sendUDP(data, plen + datalen);
+				result = sendUDP(&data);
 			}
 		/* Handle select() timeout */
 		} else {
 			/* handle keepalive counter, transmit keepalive packet every 10 seconds
 			   of inactivity  */
 			if ((keepalive_counter++ % 10) == 0) {
-				char odata[MT_HEADER_LEN];
+				struct mt_packet odata;
 				int plen=0,result=0;
-				plen = initPacket(odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, 0);
-				result = sendUDP(odata, plen);
+				plen = initPacket(&odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, 0);
+				result = sendUDP(&odata);
 			}
 		}
 	}

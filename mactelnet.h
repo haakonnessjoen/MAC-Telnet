@@ -72,5 +72,5 @@ extern int parseControlPacket(unsigned char *data, const int data_len, struct mt
 
 /* Control packet magic header */
 extern unsigned char mt_mactelnet_cpmagic[4];
-
+extern unsigned char mt_mactelnet_clienttype[2];
 #endif

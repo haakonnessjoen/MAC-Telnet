@@ -24,6 +24,7 @@
 #include "config.h"
 
 unsigned char mt_mactelnet_cpmagic[4] = { 0x56, 0x34, 0x12, 0xff };
+unsigned char mt_mactelnet_clienttype[2] = { 0x00, 0x15 };
 
 
 int initPacket(struct mt_packet *packet, unsigned char ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned int counter) {
@@ -46,8 +47,7 @@ int initPacket(struct mt_packet *packet, unsigned char ptype, unsigned char *src
 	data[15] = sessionkey & 0xff;
 
 	/* Client type: Mac Telnet */
-	data[16] = 0x00;
-	data[17] = 0x15;
+	memcpy(data + 16, &mt_mactelnet_clienttype, sizeof(mt_mactelnet_clienttype));
 
 	/* Received/sent data counter */
 	data[18] = (counter >> 24) & 0xff;

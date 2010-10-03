@@ -9,7 +9,12 @@ NB: Alpha stage code. Do not expect to run flawlessy.
 Installation
 ------------
 
-Download source tarball, extract, compile and install:
+Make sure you have installed openssl development files.
+
+For Ubuntu users:
+    sudo apt-get install libssl-dev
+
+Then download source tarball, extract, compile and install:
 
     wget http://github.com/haakonnessjoen/MAC-Telnet/tarball/master
     tar zxvf haakonness*.tar.gz

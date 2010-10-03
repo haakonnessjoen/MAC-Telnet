@@ -69,6 +69,8 @@ int addControlPacket(struct mt_packet *packet, char cptype, void *cpdata, int da
 		exit(1);
 	}
 
+	/* PLAINDATA isn't really a controlpacket, but we handle it here, since
+	   parseControlPacket also parses raw data as PLAINDATA */
 	if (cptype == MT_CPTYPE_PLAINDATA) {
 		memcpy(data, cpdata, data_len);
 		packet->size += data_len;

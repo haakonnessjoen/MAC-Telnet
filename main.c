@@ -40,8 +40,8 @@
 
 int sockfd;
 int deviceIndex;
-int outcounter = 0;
-int incounter = 0;
+unsigned int outcounter = 0;
+unsigned int incounter = 0;
 int sessionkey = 0;
 int running = 1;
 
@@ -152,7 +152,7 @@ void handlePacket(unsigned char *data, int data_len) {
 
 		/* Accept first packet, and all packets greater than incounter, and if counter has
 		wrapped around. */
-		if (incounter == 0 || pkthdr.counter > incounter || incounter - pkthdr.counter > 32768) {
+		if (incounter == 0 || pkthdr.counter > incounter || (incounter - pkthdr.counter) > 65535) {
 			incounter = pkthdr.counter;
 		} else {
 			/* Ignore double or old packets */

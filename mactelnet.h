@@ -65,7 +65,7 @@ struct mt_packet {
 	unsigned char data[MT_PACKET_LEN];
 };
 
-extern int initPacket(struct mt_packet *packet, unsigned char ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned short counter);
+extern int initPacket(struct mt_packet *packet, unsigned char ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned int counter);
 extern int addControlPacket(struct mt_packet *packet, char cptype, void *cpdata, int data_len);
 extern void parsePacket(unsigned char *data, struct mt_mactelnet_hdr *pkthdr);
 extern int parseControlPacket(unsigned char *data, const int data_len, struct mt_mactelnet_control_hdr *cpkthdr);

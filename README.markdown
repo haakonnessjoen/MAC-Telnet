@@ -26,7 +26,8 @@ Now you're ready.
 Usage
 -----
 
-    $ sudo ./mactelnet eth0 0:c:42:43:58:a5 admin mysecretpass
+    $ ./mactelnet eth0 0:c:42:43:58:a5 -u admin
+    Password: 
     Connecting to 0:c:42:43:58:a5...done
     
     
@@ -42,4 +43,3 @@ Usage
      
      [admin@HMG] >
 
-You can also ommit the password if you don't want to pollute your bash_history with passwords.

@@ -68,5 +68,5 @@ int getTerminalSize(unsigned short *width, unsigned short *height) {
 	*width = ws.ws_col;
 	*height = ws.ws_row;
 
-	return 1;
+	return 0;
 }

@@ -77,6 +77,7 @@ void sendAuthData(unsigned char *username, unsigned char *password) {
 	/* Concat string of 0 + password + encryptionkey */
 	md5data[0] = 0;
 	strncpy(md5data + 1, password, 82);
+	md5data[83] = '\0';
 	memcpy(md5data + 1 + strlen(password), encryptionkey, 16);
 
 	/* Generate md5 sum of md5data with a leading 0 */
@@ -92,7 +93,7 @@ void sendAuthData(unsigned char *username, unsigned char *password) {
 	plen += addControlPacket(&data, MT_CPTYPE_USERNAME, username, strlen(username));
 	plen += addControlPacket(&data, MT_CPTYPE_TERM_TYPE, terminal, strlen(terminal));
 
-	if (getTerminalSize(&width, &height) > 0) {
+	if (getTerminalSize(&width, &height) != -1) {
 		plen += addControlPacket(&data, MT_CPTYPE_TERM_WIDTH, &width, 2);
 		plen += addControlPacket(&data, MT_CPTYPE_TERM_HEIGHT, &height, 2);
 	}
@@ -109,7 +110,7 @@ void sig_winch(int sig) {
 	int result,plen,databytes;
 
 	/* terminal height/width has changed, inform server */
-	if (getTerminalSize(&width, &height) > 0) {
+	if (getTerminalSize(&width, &height) != -1) {
 		plen = initPacket(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
 		databytes = plen;
 		plen += addControlPacket(&data, MT_CPTYPE_TERM_WIDTH, &width, 2);
@@ -253,18 +254,24 @@ int main (int argc, char **argv) {
 	} else if (argc == 4) {
 		char *tmp;
 		tmp = getpass("Passsword: ");
-		strncpy(password, tmp, 254);
+		strncpy(password, tmp, sizeof(password) - 1);
+		password[sizeof(password) - 1] = '\0';
 		/* security */
 		memset(tmp, 0, strlen(tmp));
+#ifdef __GNUC__
+		free(tmp);
+#endif
 	} else {
-		strncpy(password, argv[4], 254);
+		strncpy(password, argv[4], sizeof(password) - 1);
+		password[sizeof(password) - 1] = '\0';
 	}
 
 	/* Convert mac address string to ether_addr struct */
 	ether_aton_r(argv[2], (struct ether_addr *)dstmac);
 
 	/* Save username */
-	strncpy(username, argv[3], 254);
+	strncpy(username, argv[3], sizeof(username) - 1);
+	username[sizeof(username) - 1] = '\0';
 
 	/* Seed randomizer */
 	srand(time(NULL));

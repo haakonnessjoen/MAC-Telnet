@@ -39,12 +39,14 @@
 #include "config.h"
 
 int sockfd;
+int insockfd;
 int deviceIndex;
 unsigned int outcounter = 0;
 unsigned int incounter = 0;
 int sessionkey = 0;
 int running = 1;
 
+unsigned char broadcastMode = 1;
 unsigned char terminalMode = 0;
 
 unsigned char srcmac[ETH_ALEN];
@@ -59,7 +61,19 @@ unsigned char username[255];
 unsigned char password[255];
 
 int sendUDP(struct mt_packet *packet) {
-	return sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip,  sourceport, &destip, 20561, packet->data, packet->size);
+
+	if (broadcastMode) {
+		/* Init SendTo struct */
+		struct sockaddr_in socket_address;
+		socket_address.sin_family = AF_INET;
+		socket_address.sin_port = htons(MT_MACTELNET_PORT);
+		socket_address.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+
+		return sendto(insockfd, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
+	} else {
+		return sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip,  sourceport, &destip, MT_MACTELNET_PORT, packet->data, packet->size);
+	}
+
 }
 
 void sendAuthData(unsigned char *username, unsigned char *password) {
@@ -128,12 +142,8 @@ void handlePacket(unsigned char *data, int data_len) {
 	struct mt_mactelnet_hdr pkthdr;
 	parsePacket(data, &pkthdr);
 
-	if (DEBUG)
-		printf("Received packet:\n\tVersion %d\n\tType: %d\n\tSesskey: %d\n\tCounter: %d\n\n", pkthdr.ver, pkthdr.ptype, pkthdr.seskey, pkthdr.counter);
-
+	/* We only care about packets with correct sessionkey */
 	if (pkthdr.seskey != sessionkey) {
-		if (DEBUG)
-			fprintf(stderr, "Invalid session key in received packet.\n");
 		return;
 	}
 
@@ -147,9 +157,6 @@ void handlePacket(unsigned char *data, int data_len) {
 		/* Always transmit ACKNOWLEDGE packets in response to DATA packets */
 		plen = initPacket(&odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, pkthdr.counter + (data_len - MT_HEADER_LEN));
 		result = sendUDP(&odata);
-
-		if (DEBUG)
-			printf("ACK: Plen = %d, Send result: %d\n", plen, result);
 
 		/* Accept first packet, and all packets greater than incounter, and if counter has
 		wrapped around. */
@@ -177,9 +184,6 @@ void handlePacket(unsigned char *data, int data_len) {
 			if (cpkt.cptype == MT_CPTYPE_ENCRYPTIONKEY) {
 				memcpy(encryptionkey, cpkt.data, cpkt.length);
 				sendAuthData(username, password);
-				if (DEBUG)
-					printf("Received encryption key of %d characters\n", cpkt.length);
-				
 			}
 
 			/* If the (remaining) data did not have a control-packet magic byte sequence,
@@ -230,7 +234,6 @@ void handlePacket(unsigned char *data, int data_len) {
  * TODO: Rewrite main() when all sub-functionality is tested
  */
 int main (int argc, char **argv) {
-	int insockfd;
 	int result;
 	struct mt_packet data;
 	struct sockaddr_in si_me;
@@ -239,53 +242,81 @@ int main (int argc, char **argv) {
 	struct timeval timeout;
 	int keepalive_counter = 0;
 	fd_set read_fds;
+	unsigned char devicename[30];
+	unsigned char printHelp = 0, haveUsername = 0, havePassword = 0;
+	int c;
 
-	if (argc < 4) {
-		fprintf(stderr, "Usage: %s <ifname> <MAC> <username> [password]\n", argv[0]);
+	while (1) {
+		c = getopt(argc, argv, "nu:p:h?");
 
-		if (argc > 1) {
+		if (c == -1)
+			break;
+
+		switch (c) {
+
+			case 'n':
+				broadcastMode = 0;
+				break;
+
+			case 'u':
+				/* Save username */
+				strncpy(username, optarg, sizeof(username) - 1);
+				username[sizeof(username) - 1] = '\0';
+				haveUsername = 1;
+				break;
+
+			case 'p':
+				/* Save password */
+				strncpy(password, optarg, sizeof(password) - 1);
+				password[sizeof(password) - 1] = '\0';
+				havePassword = 1;
+				break;
+
+			case 'h':
+			case '?':
+				printHelp = 1;
+				break;
+
+		}
+	}
+	if (argc - optind < 2 || printHelp) {
+		fprintf(stderr, "Usage: %s <ifname> <MAC> [-h] [-n] [-u <username>] [-p <password>]\n", argv[0]);
+
+		if (printHelp) {
 			fprintf(stderr, "\nParameters:\n");
 			fprintf(stderr, "  ifname    Network interface that the RouterOS resides on. (example: eth0)\n");
 			fprintf(stderr, "  MAC       MAC-Address of the RouterOS device. Use mndp to discover them.\n");
-			fprintf(stderr, "  username  Your username.\n");
-			fprintf(stderr, "  password  Your password.\n");
+			fprintf(stderr, "  -n        Do not use broadcast packets. Less insecure but requires root privileges.\n");
+			fprintf(stderr, "  -u        Specify username on command line.\n");
+			fprintf(stderr, "  -p        Specify password on command line.\n");
+			fprintf(stderr, "  -h        This help.\n");
+			fprintf(stderr, "\n");
 		}
 		return 1;
-	} else if (argc == 4) {
-		char *tmp;
-		tmp = getpass("Passsword: ");
-		strncpy(password, tmp, sizeof(password) - 1);
-		password[sizeof(password) - 1] = '\0';
-		/* security */
-		memset(tmp, 0, strlen(tmp));
-#ifdef __GNUC__
-		free(tmp);
-#endif
-	} else {
-		strncpy(password, argv[4], sizeof(password) - 1);
-		password[sizeof(password) - 1] = '\0';
 	}
 
-	/* Convert mac address string to ether_addr struct */
-	ether_aton_r(argv[2], (struct ether_addr *)dstmac);
+	/* Save device name */
+	strncpy(devicename, argv[optind++], sizeof(devicename) - 1);
+	devicename[sizeof(devicename) - 1] = '\0';
 
-	/* Save username */
-	strncpy(username, argv[3], sizeof(username) - 1);
-	username[sizeof(username) - 1] = '\0';
+	/* Convert mac address string to ether_addr struct */
+	ether_aton_r(argv[optind], (struct ether_addr *)dstmac);
 
 	/* Seed randomizer */
 	srand(time(NULL));
 
-	if (geteuid() != 0) {
-		fprintf(stderr, "You need to have superuser abilities to use %s.\n", argv[0]);
+	if (!broadcastMode && geteuid() != 0) {
+		fprintf(stderr, "You need to have root privileges to use the -n parameter.\n");
 		return 1;
 	}
 
-	/* Transmit raw packets with this socket */
-	sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-	if (sockfd < 0) {
-		perror("sockfd");
-		return 1;
+	if (!broadcastMode) {
+		/* Transmit raw packets with this socket */
+		sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+		if (sockfd < 0) {
+			perror("sockfd");
+			return 1;
+		}
 	}
 
 	/* Receive regular udp packets with this socket */
@@ -295,10 +326,18 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 
+	if (broadcastMode) {
+		int optval = 1;
+		if (setsockopt(insockfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof (optval))==-1) {
+			perror("SO_BROADCAST");
+			return 1;
+		}
+	}
+
 	/* Find device index number for specified interface */
-	deviceIndex = getDeviceIndex(sockfd, argv[1]);
+	deviceIndex = getDeviceIndex(insockfd, devicename);
 	if (deviceIndex < 0) {
-		fprintf(stderr, "Device %s not found.\n", argv[1]);
+		fprintf(stderr, "Device %s not found.\n", devicename);
 		return 1;
 	}
 
@@ -306,18 +345,37 @@ int main (int argc, char **argv) {
 	 * We want to show who we are (ip), even though the server only cares
 	 * about it's own MAC address in the headers.
 	*/
-	result = getDeviceIp(sockfd, argv[1], &si_me);
+	result = getDeviceIp(insockfd, devicename, &si_me);
 	if (result < 0) {
-		fprintf(stderr, "Cannot determine IP of device %s\n", argv[1]);
+		fprintf(stderr, "Cannot determine IP of device %s\n", devicename);
 		return 1;
 	}
 
 	/* Determine source mac address */
-	result = getDeviceMAC(sockfd, argv[1], srcmac);
+	result = getDeviceMAC(insockfd, devicename, srcmac);
 	if (result < 0) {
-		fprintf(stderr, "Cannot determine MAC address of device %s\n", argv[1]);
+		fprintf(stderr, "Cannot determine MAC address of device %s\n", devicename);
 		return 1;
 	}
+
+	if (!haveUsername) {
+		int ret=0;
+		printf("Login: ");
+		scanf("%254s", username);
+	}
+
+	if (!havePassword) {
+		char *tmp;
+		tmp = getpass("Passsword: ");
+		strncpy(password, tmp, sizeof(password) - 1);
+		password[sizeof(password) - 1] = '\0';
+		/* security */
+		memset(tmp, 0, strlen(tmp));
+#ifdef __GNUC__
+		free(tmp);
+#endif
+	}
+
 
 	/* Set random source port */
 	sourceport = 1024 + (rand() % 1024);
@@ -332,7 +390,7 @@ int main (int argc, char **argv) {
 	si_me.sin_port = htons(sourceport);
 
 	/* Bind to udp port */
-	if (bind(insockfd, (struct sockaddr *)&si_me, sizeof(si_me))==-1) {
+	if (bind(insockfd, (struct sockaddr *)&si_me, sizeof(si_me)) == -1) {
 		fprintf(stderr, "Error binding to %s:%d, %s\n", inet_ntoa(si_me.sin_addr), sourceport, strerror(errno));
 		return 1;
 	}

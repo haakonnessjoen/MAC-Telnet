@@ -133,8 +133,6 @@ int parseControlPacket(unsigned char *data, const int data_len, struct mt_mactel
 
 	/* Check for valid minimum packet length & magic header */
 	if (data_len >= 9 && memcmp(data, &mt_mactelnet_cpmagic, 4) == 0) {
-		if (DEBUG)
-			printf("\t----Control packet:\n\t\tType: %d\n\t\tLength: %d\n", data[4], data[5]<<24|data[6]<<16|data[7]<<8|data[8]);
 
 		/* Control packet type */
 		cpkthdr->cptype = data[4];

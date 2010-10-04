@@ -23,12 +23,17 @@
 #include <string.h>
 #include "config.h"
 
+#define MT_PACKET_LEN 1500
+#define MT_MNDP_PORT 5678
+#define MT_MNDP_MAX_NAME_LENGTH 64
+
 int main(int argc, char **argv)  {
 	int sock,result;
-	struct sockaddr_in si_me;
-	unsigned char buff[1500];
+	int optval = 1;
+	struct sockaddr_in si_me, si_remote;
+	unsigned char buff[MT_PACKET_LEN];
 	unsigned short nameLen = 0;
-	unsigned char name[100];
+	unsigned char name[MT_MNDP_MAX_NAME_LENGTH + 1];
 	unsigned char mac[ETH_ALEN];
 
 	/* Open a UDP socket handle */
@@ -37,32 +42,55 @@ int main(int argc, char **argv)  {
 	/* Set initialize address/port */
 	memset((char *) &si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
-	si_me.sin_port = htons(5678);
+	si_me.sin_port = htons(MT_MNDP_PORT);
 	si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	/* Bind to specified address/port */
 	if (bind(sock, (struct sockaddr *)&si_me, sizeof(si_me))==-1) {
-		fprintf(stderr, "Error binding to %s:5678\n", inet_ntoa(si_me.sin_addr));
+		fprintf(stderr, "Error binding to %s:%d\n", inet_ntoa(si_me.sin_addr), MT_MNDP_PORT);
 		return 1;
 	}
 
 	/* Write informative message to STDERR to make it easier to use the output in simple scripts */
 	fprintf(stderr, "Searching for MikroTik routers... Abort with CTRL+C.\n");
 
+	/* Set the socket to allow sending broadcast packets */
+	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &optval, sizeof (optval))==-1) {
+		fprintf(stderr, "Unable to send broadcast packets: Operating in receive only mode.\n");
+	}
+	else
+	{
+		/* Request routers identify themselves */
+		unsigned int message = 0;
+
+		memset((char *) &si_remote, 0, sizeof(si_remote));
+		si_remote.sin_family = AF_INET;
+		si_remote.sin_port = htons(MT_MNDP_PORT);
+		si_remote.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+		if (sendto (sock, &message, sizeof (message), 0, (struct sockaddr *)&si_remote, sizeof(si_remote))==-1) {
+			fprintf(stderr, "Unable to send broadcast packet: Operating in receive only mode.\n");
+		}
+	}
+
 	while(1) {
 		/* Wait for a UDP packet */
-		result = recvfrom(sock, buff, 1500, 0, 0, 0);
+		result = recvfrom(sock, buff, MT_PACKET_LEN, 0, 0, 0);
 		if (result < 0) {
 			fprintf(stderr, "Error occured. aborting\n");
 			exit(1);
+		}
+
+		/* Check for valid packet length */
+		if (result < 18) {
+			continue;
 		}
 
 		/* Fetch length of Identifier string */
 		memcpy(&nameLen, buff+16,2);
 		nameLen = (nameLen >> 8) | ((nameLen&0xff)<<8);
 
-		/* Max name length = 99 */
-		nameLen = nameLen < 100 ? nameLen : 99;
+		/* Enforce maximum name length */
+		nameLen = nameLen < sizeof(name) ? nameLen : MT_MNDP_MAX_NAME_LENGTH;
 
 		/* Read Identifier string */
 		memcpy(&name, buff+18, nameLen);

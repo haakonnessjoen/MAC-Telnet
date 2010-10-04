@@ -24,6 +24,9 @@
 
 #define MT_PACKET_LEN 1500
 
+#define MT_MNDP_PORT 5678
+#define MT_MNDP_MAX_NAME_LENGTH 64
+
 /* Packet type */
 #define MT_PTYPE_SESSIONSTART 0
 #define MT_PTYPE_DATA 1

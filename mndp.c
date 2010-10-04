@@ -21,11 +21,8 @@
 #include <arpa/inet.h>
 #include <netinet/ether.h>
 #include <string.h>
+#include "mactelnet.h"
 #include "config.h"
-
-#define MT_PACKET_LEN 1500
-#define MT_MNDP_PORT 5678
-#define MT_MNDP_MAX_NAME_LENGTH 64
 
 int main(int argc, char **argv)  {
 	int sock,result;
@@ -57,9 +54,7 @@ int main(int argc, char **argv)  {
 	/* Set the socket to allow sending broadcast packets */
 	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &optval, sizeof (optval))==-1) {
 		fprintf(stderr, "Unable to send broadcast packets: Operating in receive only mode.\n");
-	}
-	else
-	{
+	} else {
 		/* Request routers identify themselves */
 		unsigned int message = 0;
 

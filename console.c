@@ -70,3 +70,18 @@ int getTerminalSize(unsigned short *width, unsigned short *height) {
 
 	return 0;
 }
+
+int setTerminalSize(int fd, unsigned short width, unsigned short height) {
+	struct winsize ws;
+
+	ws.ws_col = width;
+	ws.ws_row = height;
+
+	if (ioctl(fd, TIOCSWINSZ, &ws) != 0) {
+		perror("TIOCSWINSZ");
+		return -1;
+	}
+
+	return 0;
+}
+

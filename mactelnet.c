@@ -42,12 +42,21 @@ int initPacket(struct mt_packet *packet, unsigned char ptype, unsigned char *src
 	/* dst ethernet address */
 	memcpy(data + 8, dstmac, ETH_ALEN);
 
-	/* Session key */
-	data[14] = sessionkey >> 8;
-	data[15] = sessionkey & 0xff;
+	if (mt_direction_fromserver) {
+		/* Session key */
+		data[16] = sessionkey >> 8;
+		data[17] = sessionkey & 0xff;
 
-	/* Client type: Mac Telnet */
-	memcpy(data + 16, &mt_mactelnet_clienttype, sizeof(mt_mactelnet_clienttype));
+		/* Client type: Mac Telnet */
+		memcpy(data + 14, &mt_mactelnet_clienttype, sizeof(mt_mactelnet_clienttype));
+	} else {
+		/* Session key */
+		data[14] = sessionkey >> 8;
+		data[15] = sessionkey & 0xff;
+
+		/* Client type: Mac Telnet */
+		memcpy(data + 16, &mt_mactelnet_clienttype, sizeof(mt_mactelnet_clienttype));
+	}
 
 	/* Received/sent data counter */
 	data[18] = (counter >> 24) & 0xff;
@@ -66,7 +75,8 @@ int addControlPacket(struct mt_packet *packet, char cptype, void *cpdata, int da
 	/* Something is really wrong. Packets should never become over 1500 bytes */
 	if (packet->size + MT_CPHEADER_LEN + data_len > MT_PACKET_LEN) {
 		fprintf(stderr, "addControlPacket: ERROR, too large packet. Exceeds %d bytes\n", MT_PACKET_LEN);
-		exit(1);
+		return -1;
+		//exit(1);
 	}
 
 	/* PLAINDATA isn't really a controlpacket, but we handle it here, since
@@ -112,11 +122,19 @@ void parsePacket(unsigned char *data, struct mt_mactelnet_hdr *pkthdr) {
 	/* dst ethernet addr */
 	memcpy(pkthdr->dstaddr, data+8,6);
 
-	/* server type */
-	memcpy(&(pkthdr->clienttype), data+14, 2);
+	if (mt_direction_fromserver) {
+		/* Session key */
+		pkthdr->seskey = data[14] << 8 | data[15];
 
-	/* Session key */
-	pkthdr->seskey = data[16] << 8 | data[17];
+		/* server type */
+		memcpy(&(pkthdr->clienttype), data+16, 2);
+	} else {
+		/* server type */
+		memcpy(&(pkthdr->clienttype), data+14, 2);
+
+		/* Session key */
+		pkthdr->seskey = data[16] << 8 | data[17];
+	}
 
 	/* Received/sent data counter */
 	pkthdr->counter = data[18] << 24 | data[19] << 16 | data[20] << 8 | data[21];

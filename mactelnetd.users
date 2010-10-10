@@ -1,0 +1,5 @@
+# Users file for MAC-Telnetd
+# Use existing usernames from your system
+#
+# Format:
+#username:password

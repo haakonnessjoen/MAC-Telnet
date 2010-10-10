@@ -60,6 +60,9 @@ unsigned char encryptionkey[128];
 unsigned char username[255];
 unsigned char password[255];
 
+/* Protocol data direction */
+unsigned char mt_direction_fromserver = 0;
+
 int sendUDP(struct mt_packet *packet) {
 
 	if (broadcastMode) {

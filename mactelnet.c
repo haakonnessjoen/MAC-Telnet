@@ -16,162 +16,483 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-#include <string.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netinet/ether.h>
+#include <sys/time.h>
+#include <time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <string.h>
 #include <linux/if_ether.h>
-#include "mactelnet.h"
+#include <openssl/md5.h>
+#include "protocol.h"
+#include "udp.h"
+#include "console.h"
+#include "devices.h"
 #include "config.h"
 
-unsigned char mt_mactelnet_cpmagic[4] = { 0x56, 0x34, 0x12, 0xff };
-unsigned char mt_mactelnet_clienttype[2] = { 0x00, 0x15 };
+int sockfd;
+int insockfd;
+int deviceIndex;
+unsigned int outcounter = 0;
+unsigned int incounter = 0;
+int sessionkey = 0;
+int running = 1;
 
+unsigned char broadcastMode = 1;
+unsigned char terminalMode = 0;
 
-int initPacket(struct mt_packet *packet, unsigned char ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned int counter) {
-	unsigned char *data = packet->data;
+unsigned char srcmac[ETH_ALEN];
+unsigned char dstmac[ETH_ALEN];
 
-	/* Packet version */
-	data[0] = 1;
+struct in_addr sourceip; 
+struct in_addr destip;
+int sourceport;
 
-	/* Packet type */
-	data[1] = ptype;
+unsigned char encryptionkey[128];
+unsigned char username[255];
+unsigned char password[255];
 
-	/* src ethernet address */
-	memcpy(data + 2, srcmac, ETH_ALEN);
+/* Protocol data direction */
+unsigned char mt_direction_fromserver = 0;
 
-	/* dst ethernet address */
-	memcpy(data + 8, dstmac, ETH_ALEN);
+int sendUDP(struct mt_packet *packet) {
 
-	if (mt_direction_fromserver) {
-		/* Session key */
-		data[16] = sessionkey >> 8;
-		data[17] = sessionkey & 0xff;
+	if (broadcastMode) {
+		/* Init SendTo struct */
+		struct sockaddr_in socket_address;
+		socket_address.sin_family = AF_INET;
+		socket_address.sin_port = htons(MT_MACTELNET_PORT);
+		socket_address.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 
-		/* Client type: Mac Telnet */
-		memcpy(data + 14, &mt_mactelnet_clienttype, sizeof(mt_mactelnet_clienttype));
+		return sendto(insockfd, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
 	} else {
-		/* Session key */
-		data[14] = sessionkey >> 8;
-		data[15] = sessionkey & 0xff;
-
-		/* Client type: Mac Telnet */
-		memcpy(data + 16, &mt_mactelnet_clienttype, sizeof(mt_mactelnet_clienttype));
+		return sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip,  sourceport, &destip, MT_MACTELNET_PORT, packet->data, packet->size);
 	}
 
-	/* Received/sent data counter */
-	data[18] = (counter >> 24) & 0xff;
-	data[19] = (counter >> 16) & 0xff;
-	data[20] = (counter >> 8) & 0xff;
-	data[21] = counter & 0xff;
-
-	/* 22 bytes header */
-	packet->size = 22;
-	return 22;
 }
 
-int addControlPacket(struct mt_packet *packet, char cptype, void *cpdata, int data_len) {
-	unsigned char *data = packet->data + packet->size;
+void sendAuthData(unsigned char *username, unsigned char *password) {
+	struct mt_packet data;
+	unsigned char *terminal = (unsigned char *)getenv("TERM");
+	unsigned short width = 0;
+	unsigned short height = 0;
+	unsigned char md5data[100];
+	unsigned char md5sum[17];
+	int result;
+	int plen;
+	int databytes;
+	MD5_CTX c;
 
-	/* Something is really wrong. Packets should never become over 1500 bytes */
-	if (packet->size + MT_CPHEADER_LEN + data_len > MT_PACKET_LEN) {
-		fprintf(stderr, "addControlPacket: ERROR, too large packet. Exceeds %d bytes\n", MT_PACKET_LEN);
-		return -1;
-		//exit(1);
+	/* Concat string of 0 + password + encryptionkey */
+	md5data[0] = 0;
+	strncpy(md5data + 1, password, 82);
+	md5data[83] = '\0';
+	memcpy(md5data + 1 + strlen(password), encryptionkey, 16);
+
+	/* Generate md5 sum of md5data with a leading 0 */
+	MD5_Init(&c);
+	MD5_Update(&c, md5data, strlen(password) + 17);
+	MD5_Final(md5sum + 1, &c);
+	md5sum[0] = 0;
+
+	/* Send combined packet to server */
+	plen = initPacket(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
+	databytes = plen;
+	plen += addControlPacket(&data, MT_CPTYPE_PASSWORD, md5sum, 17);
+	plen += addControlPacket(&data, MT_CPTYPE_USERNAME, username, strlen(username));
+	plen += addControlPacket(&data, MT_CPTYPE_TERM_TYPE, terminal, strlen(terminal));
+
+	if (getTerminalSize(&width, &height) != -1) {
+		plen += addControlPacket(&data, MT_CPTYPE_TERM_WIDTH, &width, 2);
+		plen += addControlPacket(&data, MT_CPTYPE_TERM_HEIGHT, &height, 2);
 	}
 
-	/* PLAINDATA isn't really a controlpacket, but we handle it here, since
-	   parseControlPacket also parses raw data as PLAINDATA */
-	if (cptype == MT_CPTYPE_PLAINDATA) {
-		memcpy(data, cpdata, data_len);
-		packet->size += data_len;
-		return data_len;
-	}
+	outcounter += plen - databytes;
 
-	/* Control Packet Magic id */
-	memcpy(data,  mt_mactelnet_cpmagic, sizeof(mt_mactelnet_cpmagic));
-
-	/* Control packet type */
-	data[4] = cptype;
-
-	/* Data length */
-	data[5] = (data_len >> 24) & 0xff;
-	data[6] = (data_len >> 16) & 0xff;
-	data[7] = (data_len >> 8) & 0xff;
-	data[8] = data_len & 0xff;
-
-	/* Insert data */
-	if (data_len) {
-		memcpy(data + MT_CPHEADER_LEN, cpdata, data_len);
-	}
-
-	packet->size += MT_CPHEADER_LEN + data_len;
-	/* Control packet header length + data length */
-	return MT_CPHEADER_LEN + data_len;
+	/* TODO: handle result */
+	result = sendUDP(&data);
 }
 
-void parsePacket(unsigned char *data, struct mt_mactelnet_hdr *pkthdr) {
-	/* Packet version */
-	pkthdr->ver = data[0];
+void sig_winch(int sig) {
+	unsigned short width,height;
+	struct mt_packet data;
+	int result,plen,databytes;
 
-	/* Packet type */
-	pkthdr->ptype = data[1];
+	/* terminal height/width has changed, inform server */
+	if (getTerminalSize(&width, &height) != -1) {
+		plen = initPacket(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
+		databytes = plen;
+		plen += addControlPacket(&data, MT_CPTYPE_TERM_WIDTH, &width, 2);
+		plen += addControlPacket(&data, MT_CPTYPE_TERM_HEIGHT, &height, 2);
+		outcounter += plen - databytes;
 
-	/* src ethernet addr */
-	memcpy(pkthdr->srcaddr, data+2,6);
+		result = sendUDP(&data);
+	}
 
-	/* dst ethernet addr */
-	memcpy(pkthdr->dstaddr, data+8,6);
+	/* reinstate signal handler */
+	signal(SIGWINCH, sig_winch);
+}
 
-	if (mt_direction_fromserver) {
-		/* Session key */
-		pkthdr->seskey = data[14] << 8 | data[15];
+void handlePacket(unsigned char *data, int data_len) {
+	struct mt_mactelnet_hdr pkthdr;
+	parsePacket(data, &pkthdr);
 
-		/* server type */
-		memcpy(&(pkthdr->clienttype), data+16, 2);
+	/* We only care about packets with correct sessionkey */
+	if (pkthdr.seskey != sessionkey) {
+		return;
+	}
+
+	/* Handle data packets */
+	if (pkthdr.ptype == MT_PTYPE_DATA) {
+		struct mt_packet odata;
+		int plen=0,result=0;
+		int rest = 0;
+		unsigned char *p = data;
+
+		/* Always transmit ACKNOWLEDGE packets in response to DATA packets */
+		plen = initPacket(&odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, pkthdr.counter + (data_len - MT_HEADER_LEN));
+		result = sendUDP(&odata);
+
+		/* Accept first packet, and all packets greater than incounter, and if counter has
+		wrapped around. */
+		if (incounter == 0 || pkthdr.counter > incounter || (incounter - pkthdr.counter) > 65535) {
+			incounter = pkthdr.counter;
+		} else {
+			/* Ignore double or old packets */
+			return;
+		}
+
+		/* Calculate how much more there is in the packet */
+		rest = data_len - MT_HEADER_LEN;
+		p += MT_HEADER_LEN;
+
+		while (rest > 0) {
+			int read = 0;
+			struct mt_mactelnet_control_hdr cpkt;
+
+			/* Parse controlpacket data */
+			read = parseControlPacket(p, rest, &cpkt);
+			p += read;
+			rest -= read;
+
+			/* If we receive encryptionkey, transmit auth data back */
+			if (cpkt.cptype == MT_CPTYPE_ENCRYPTIONKEY) {
+				memcpy(encryptionkey, cpkt.data, cpkt.length);
+				sendAuthData(username, password);
+			}
+
+			/* If the (remaining) data did not have a control-packet magic byte sequence,
+			   the data is raw terminal data to be outputted to the terminal. */
+			else if (cpkt.cptype == MT_CPTYPE_PLAINDATA) {
+				cpkt.data[cpkt.length] = 0;
+				printf("%s", cpkt.data);
+			}
+
+			/* END_AUTH means that the user/password negotiation is done, and after this point
+			   terminal data may arrive, so we set up the terminal to raw mode. */
+			else if (cpkt.cptype == MT_CPTYPE_END_AUTH) {
+				/* stop input buffering at all levels. Give full control of terminal to RouterOS */
+				rawTerm();
+				setvbuf(stdin,  (char*)NULL, _IONBF, 0);
+
+				/* we have entered "terminal mode" */
+				terminalMode = 1;
+
+				/* Add resize signal handler */
+				signal(SIGWINCH, sig_winch);
+			}
+		}
+	}
+	else if (pkthdr.ptype == MT_PTYPE_ACK) {
+		/* TODO: If we were resubmitting lost messages, stop resubmitting here if received counter is correct. */
+	}
+
+	/* The server wants to terminate the connection, we have to oblige */
+	else if (pkthdr.ptype == MT_PTYPE_END) {
+		struct mt_packet odata;
+		int plen=0,result=0;
+
+		/* Acknowledge the disconnection by sending a END packet in return */
+		plen = initPacket(&odata, MT_PTYPE_END, srcmac, dstmac, pkthdr.seskey, 0);
+		result = sendUDP(&odata);
+
+		fprintf(stderr, "Connection closed.\n");
+
+		/* exit */
+		running = 0;
 	} else {
-		/* server type */
-		memcpy(&(pkthdr->clienttype), data+14, 2);
-
-		/* Session key */
-		pkthdr->seskey = data[16] << 8 | data[17];
-	}
-
-	/* Received/sent data counter */
-	pkthdr->counter = data[18] << 24 | data[19] << 16 | data[20] << 8 | data[21];
-
-	/* Set pointer to actual data */
-	pkthdr->data = data + 22;
-}
-
-
-int parseControlPacket(unsigned char *data, const int data_len, struct mt_mactelnet_control_hdr *cpkthdr) {
-
-	if (data_len < 0)
-		return 0;
-
-	/* Check for valid minimum packet length & magic header */
-	if (data_len >= 9 && memcmp(data, &mt_mactelnet_cpmagic, 4) == 0) {
-
-		/* Control packet type */
-		cpkthdr->cptype = data[4];
-
-		/* Control packet data length */
-		cpkthdr->length = data[5] << 24 | data[6] << 16 | data[7] << 8 | data[8];
-
-		/* Set pointer to actual data */
-		cpkthdr->data = data + 9;
-
-		/* Return number of bytes in packet */
-		return cpkthdr->length + 9;
-
-	} else {
-		/* Mark data as raw terminal data */
-		cpkthdr->cptype = MT_CPTYPE_PLAINDATA;
-		cpkthdr->length = data_len;
-		cpkthdr->data = data;
-
-		/* Consume the whole rest of the packet */
-		return data_len;
+		fprintf(stderr, "Unhandeled packet type: %d received from server %s\n", pkthdr.ptype, ether_ntoa((struct ether_addr *)dstmac));
 	}
 }
 
+/*
+ * TODO: Rewrite main() when all sub-functionality is tested
+ */
+int main (int argc, char **argv) {
+	int result;
+	struct mt_packet data;
+	struct sockaddr_in si_me;
+	unsigned char buff[1500];
+	int plen = 0;
+	struct timeval timeout;
+	int keepalive_counter = 0;
+	fd_set read_fds;
+	unsigned char devicename[30];
+	unsigned char printHelp = 0, haveUsername = 0, havePassword = 0;
+	int c;
+
+	while (1) {
+		c = getopt(argc, argv, "nu:p:h?");
+
+		if (c == -1)
+			break;
+
+		switch (c) {
+
+			case 'n':
+				broadcastMode = 0;
+				break;
+
+			case 'u':
+				/* Save username */
+				strncpy(username, optarg, sizeof(username) - 1);
+				username[sizeof(username) - 1] = '\0';
+				haveUsername = 1;
+				break;
+
+			case 'p':
+				/* Save password */
+				strncpy(password, optarg, sizeof(password) - 1);
+				password[sizeof(password) - 1] = '\0';
+				havePassword = 1;
+				break;
+
+			case 'h':
+			case '?':
+				printHelp = 1;
+				break;
+
+		}
+	}
+	if (argc - optind < 2 || printHelp) {
+		fprintf(stderr, "Usage: %s <ifname> <MAC> [-h] [-n] [-u <username>] [-p <password>]\n", argv[0]);
+
+		if (printHelp) {
+			fprintf(stderr, "\nParameters:\n");
+			fprintf(stderr, "  ifname    Network interface that the RouterOS resides on. (example: eth0)\n");
+			fprintf(stderr, "  MAC       MAC-Address of the RouterOS device. Use mndp to discover them.\n");
+			fprintf(stderr, "  -n        Do not use broadcast packets. Less insecure but requires root privileges.\n");
+			fprintf(stderr, "  -u        Specify username on command line.\n");
+			fprintf(stderr, "  -p        Specify password on command line.\n");
+			fprintf(stderr, "  -h        This help.\n");
+			fprintf(stderr, "\n");
+		}
+		return 1;
+	}
+
+	/* Save device name */
+	strncpy(devicename, argv[optind++], sizeof(devicename) - 1);
+	devicename[sizeof(devicename) - 1] = '\0';
+
+	/* Convert mac address string to ether_addr struct */
+	ether_aton_r(argv[optind], (struct ether_addr *)dstmac);
+
+	/* Seed randomizer */
+	srand(time(NULL));
+
+	if (!broadcastMode && geteuid() != 0) {
+		fprintf(stderr, "You need to have root privileges to use the -n parameter.\n");
+		return 1;
+	}
+
+	if (!broadcastMode) {
+		/* Transmit raw packets with this socket */
+		sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+		if (sockfd < 0) {
+			perror("sockfd");
+			return 1;
+		}
+	}
+
+	/* Receive regular udp packets with this socket */
+	insockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (insockfd < 0) {
+		perror("insockfd");
+		return 1;
+	}
+
+	if (broadcastMode) {
+		int optval = 1;
+		if (setsockopt(insockfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof (optval))==-1) {
+			perror("SO_BROADCAST");
+			return 1;
+		}
+	}
+
+	/* Find device index number for specified interface */
+	deviceIndex = getDeviceIndex(insockfd, devicename);
+	if (deviceIndex < 0) {
+		fprintf(stderr, "Device %s not found.\n", devicename);
+		return 1;
+	}
+
+	/*
+	 * We want to show who we are (ip), even though the server only cares
+	 * about it's own MAC address in the headers.
+	*/
+	result = getDeviceIp(insockfd, devicename, &si_me);
+	if (result < 0) {
+		fprintf(stderr, "Cannot determine IP of device %s\n", devicename);
+		return 1;
+	}
+
+	/* Determine source mac address */
+	result = getDeviceMAC(insockfd, devicename, srcmac);
+	if (result < 0) {
+		fprintf(stderr, "Cannot determine MAC address of device %s\n", devicename);
+		return 1;
+	}
+
+	if (!haveUsername) {
+		int ret=0;
+		printf("Login: ");
+		scanf("%254s", username);
+	}
+
+	if (!havePassword) {
+		char *tmp;
+		tmp = getpass("Passsword: ");
+		strncpy(password, tmp, sizeof(password) - 1);
+		password[sizeof(password) - 1] = '\0';
+		/* security */
+		memset(tmp, 0, strlen(tmp));
+#ifdef __GNUC__
+		free(tmp);
+#endif
+	}
+
+
+	/* Set random source port */
+	sourceport = 1024 + (rand() % 1024);
+
+	/* Set up global info about the connection */
+	inet_pton(AF_INET, (char *)"255.255.255.255", &destip);
+	memcpy(&sourceip, &(si_me.sin_addr), 4);
+
+	/* Initialize receiving socket on the device chosen */
+	memset((char *) &si_me, 0, sizeof(si_me));
+	si_me.sin_family = AF_INET;
+	si_me.sin_port = htons(sourceport);
+
+	/* Bind to udp port */
+	if (bind(insockfd, (struct sockaddr *)&si_me, sizeof(si_me)) == -1) {
+		fprintf(stderr, "Error binding to %s:%d, %s\n", inet_ntoa(si_me.sin_addr), sourceport, strerror(errno));
+		return 1;
+	}
+
+	/* Sessioon key */
+	sessionkey = rand() % 65535;
+
+	/* stop output buffering */
+	setvbuf(stdout, (char*)NULL, _IONBF, 0);
+
+	printf("Connecting to %s...", ether_ntoa((struct ether_addr *)dstmac));
+
+	plen = initPacket(&data, MT_PTYPE_SESSIONSTART, srcmac, dstmac, sessionkey, 0);
+	result = sendUDP(&data);
+
+	/* Try to connect with a timeout */
+	FD_ZERO(&read_fds);
+	FD_SET(insockfd, &read_fds);
+	timeout.tv_sec = 5;
+	timeout.tv_usec = 0;
+	select(insockfd+1, &read_fds, NULL, NULL, &timeout);
+
+	if (!FD_ISSET(insockfd, &read_fds)) {
+		fprintf(stderr, "Connection timed out\n");
+		exit(1);
+	}
+
+	result = recvfrom(insockfd, buff, 1400, 0, 0, 0);
+	if (result < 1) {
+		fprintf(stderr, "Connection failed.\n");
+		return 1;
+	}
+	printf("done\n");
+
+	/* Handle first received packet */
+	handlePacket(buff, result);
+
+	/*
+	 * TODO: Should resubmit whenever a PTYPE_DATA packet is sent, and an ACK packet with correct datacounter is received
+	 * or time out the connection, in all other cases.
+	*/
+	plen = initPacket(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, 0);
+	plen = addControlPacket(&data, MT_CPTYPE_BEGINAUTH, NULL, 0);
+	outcounter += plen;
+
+	/* TODO: handle result of sendUDP */
+	result = sendUDP(&data);
+
+	while (running) {
+		int reads;
+
+		/* Init select */
+		FD_ZERO(&read_fds);
+		FD_SET(0, &read_fds);
+		FD_SET(insockfd, &read_fds);
+		timeout.tv_sec = 1;
+		timeout.tv_usec = 0;
+
+		/* Wait for data or timeout */
+		reads = select(insockfd+1, &read_fds, NULL, NULL, &timeout);
+		if (reads > 0) {
+			/* Handle data from server */
+			if (FD_ISSET(insockfd, &read_fds)) {
+				memset(buff, 0, 1500);
+				result = recvfrom(insockfd, buff, 1500, 0, 0, 0);
+				handlePacket(buff, result);
+			}
+			/* Handle data from keyboard/local terminal */
+			if (FD_ISSET(0, &read_fds)) {
+				unsigned char keydata[100];
+				int datalen;
+
+				datalen = read(STDIN_FILENO, &keydata, 100);
+
+				plen = initPacket(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
+				plen += addControlPacket(&data, MT_CPTYPE_PLAINDATA, &keydata, datalen);
+				outcounter += datalen;
+				result = sendUDP(&data);
+			}
+		/* Handle select() timeout */
+		} else {
+			/* handle keepalive counter, transmit keepalive packet every 10 seconds
+			   of inactivity  */
+			if ((keepalive_counter++ % 10) == 0) {
+				struct mt_packet odata;
+				int plen=0,result=0;
+				plen = initPacket(&odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, 0);
+				result = sendUDP(&odata);
+			}
+		}
+	}
+
+	if (terminalMode) {
+		/* Reset terminal back to old settings */
+		resetTerm();
+	}
+
+	close(sockfd);
+	close(insockfd);
+
+	return 0;
+}

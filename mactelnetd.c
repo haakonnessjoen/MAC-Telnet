@@ -35,7 +35,7 @@
 #include <openssl/md5.h>
 #include <pwd.h>
 #include <sys/ioctl.h>
-#include "mactelnet.h"
+#include "protocol.h"
 #include "udp.h"
 #include "console.h"
 #include "devices.h"
@@ -312,14 +312,14 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 
 						if (doLogin == 1 && memcmp(md5sum, trypassword, 17) == 0) {
 							initPacket(&pdata, MT_PTYPE_DATA, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, curconn->outcounter);
-							plen = addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Login OK!\n", 10);
+							plen = addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Login OK!\r\n", 11);
 							sendUDP(curconn, &pdata);
 							curconn->outcounter += plen;
 							curconn->state = STATE_ACTIVE;
 							curconn->terminalMode = 1;
 						} else {
 							initPacket(&pdata, MT_PTYPE_DATA, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, curconn->outcounter);
-							plen = addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Login FAILED!\n", 14);
+							plen = addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Login FAILED!\r\n", 15);
 							sendUDP(curconn, &pdata);
 							curconn->outcounter += plen;
 							curconn->state = STATE_CLOSED;
@@ -334,7 +334,7 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 					if (curconn->ptsfd == -1 || grantpt(curconn->ptsfd) == -1 || unlockpt(curconn->ptsfd) == -1) {
 							perror("openpt");
 							initPacket(&pdata, MT_PTYPE_DATA, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, curconn->outcounter);
-							addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Terminal error\n", 14);
+							addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Terminal error\r\n", 15);
 							sendUDP(curconn, &pdata);
 							curconn->state = STATE_CLOSED;
 							initPacket(&pdata, MT_PTYPE_END, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, curconn->outcounter);
@@ -355,7 +355,7 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 							struct passwd *user = (struct passwd *)getpwnam(curconn->username);
 							if (user == NULL) {
 								initPacket(&pdata, MT_PTYPE_DATA, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, curconn->outcounter);
-								addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "User not found\n", 15);
+								addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "User not found\r\n", 16);
 								sendUDP(curconn, &pdata);
 								curconn->state = STATE_CLOSED;
 								initPacket(&pdata, MT_PTYPE_END, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, curconn->outcounter);

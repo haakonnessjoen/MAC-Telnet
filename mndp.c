@@ -21,7 +21,7 @@
 #include <arpa/inet.h>
 #include <netinet/ether.h>
 #include <string.h>
-#include "mactelnet.h"
+#include "protocol.h"
 #include "config.h"
 
 int main(int argc, char **argv)  {

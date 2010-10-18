@@ -393,10 +393,8 @@ int main (int argc, char **argv) {
 		password[sizeof(password) - 1] = '\0';
 		/* security */
 		memset(tmp, 0, strlen(tmp));
-#ifdef __GNUC__
-#ifndef __APPLE_CC__
+#ifdef __gnu_linux__
 		free(tmp);
-#endif
 #endif
 	}
 

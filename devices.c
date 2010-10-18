@@ -30,8 +30,8 @@
 
 
 
-#if ! defined(IFT_ETHER)
-#define IFT_ETHER 0x6/* Ethernet CSMACD */
+#ifndef IFT_ETHER
+#define IFT_ETHER 0x6 /* Ethernet CSMACD */
 #endif
 
 int getDeviceMAC(const int sockfd, const unsigned char *deviceName, unsigned char *mac) {

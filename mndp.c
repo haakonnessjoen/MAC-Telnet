@@ -19,7 +19,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <arpa/inet.h>
+#ifndef __APPLE_CC__
 #include <netinet/ether.h>
+#else
+#define ETH_ALEN 6
+#include <net/ethernet.h>
+#endif
 #include <string.h>
 #include "protocol.h"
 #include "config.h"

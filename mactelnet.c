@@ -23,14 +23,19 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netinet/ether.h>
 #include <sys/time.h>
 #include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <string.h>
+#ifndef __APPLE_CC__
 #include <linux/if_ether.h>
+#include <netinet/in.h>
+#include <netinet/ether.h>
+#else
+#define ETH_ALEN 6
+#include <net/ethernet.h>
+#endif
 #include <openssl/md5.h>
 #include "protocol.h"
 #include "udp.h"
@@ -74,7 +79,9 @@ int sendUDP(struct mt_packet *packet) {
 
 		return sendto(insockfd, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
 	} else {
+#ifndef __APPLE_CC__
 		return sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip,  sourceport, &destip, MT_MACTELNET_PORT, packet->data, packet->size);
+#endif
 	}
 
 }
@@ -238,6 +245,7 @@ void handlePacket(unsigned char *data, int data_len) {
  */
 int main (int argc, char **argv) {
 	int result;
+	struct ether_addr *tmpaddr;
 	struct mt_packet data;
 	struct sockaddr_in si_me;
 	unsigned char buff[1500];
@@ -289,7 +297,9 @@ int main (int argc, char **argv) {
 			fprintf(stderr, "\nParameters:\n");
 			fprintf(stderr, "  ifname    Network interface that the RouterOS resides on. (example: eth0)\n");
 			fprintf(stderr, "  MAC       MAC-Address of the RouterOS device. Use mndp to discover them.\n");
+#ifndef __APPLE_CC__
 			fprintf(stderr, "  -n        Do not use broadcast packets. Less insecure but requires root privileges.\n");
+#endif
 			fprintf(stderr, "  -u        Specify username on command line.\n");
 			fprintf(stderr, "  -p        Specify password on command line.\n");
 			fprintf(stderr, "  -h        This help.\n");
@@ -303,7 +313,12 @@ int main (int argc, char **argv) {
 	devicename[sizeof(devicename) - 1] = '\0';
 
 	/* Convert mac address string to ether_addr struct */
-	ether_aton_r(argv[optind], (struct ether_addr *)dstmac);
+	tmpaddr = ether_aton(argv[optind]);
+	if (tmpaddr == NULL) {
+		fprintf(stderr, "Invalid MAC address\n");
+		exit(1);
+	}
+	memcpy(dstmac, tmpaddr, sizeof(struct ether_addr));
 
 	/* Seed randomizer */
 	srand(time(NULL));
@@ -313,6 +328,7 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 
+#ifndef __APPLE_CC__
 	if (!broadcastMode) {
 		/* Transmit raw packets with this socket */
 		sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
@@ -321,6 +337,7 @@ int main (int argc, char **argv) {
 			return 1;
 		}
 	}
+#endif
 
 	/* Receive regular udp packets with this socket */
 	insockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -337,6 +354,7 @@ int main (int argc, char **argv) {
 		}
 	}
 
+#ifndef __APPLE_CC__
 	/* Find device index number for specified interface */
 	deviceIndex = getDeviceIndex(insockfd, devicename);
 	if (deviceIndex < 0) {
@@ -353,6 +371,7 @@ int main (int argc, char **argv) {
 		fprintf(stderr, "Cannot determine IP of device %s\n", devicename);
 		return 1;
 	}
+#endif
 
 	/* Determine source mac address */
 	result = getDeviceMAC(insockfd, devicename, srcmac);
@@ -375,7 +394,9 @@ int main (int argc, char **argv) {
 		/* security */
 		memset(tmp, 0, strlen(tmp));
 #ifdef __GNUC__
+#ifndef __APPLE_CC__
 		free(tmp);
+#endif
 #endif
 	}
 

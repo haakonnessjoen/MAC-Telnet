@@ -19,8 +19,45 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
 #include <unistd.h>
+#ifdef __APPLE_CC__
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <ifaddrs.h>
+
+#include <net/if_dl.h>
+
+
+
+#if ! defined(IFT_ETHER)
+#define IFT_ETHER 0x6/* Ethernet CSMACD */
+#endif
+
+int getDeviceMAC(const int sockfd, const unsigned char *deviceName, unsigned char *mac) {
+	struct ifaddrs * addrs;
+	const struct ifaddrs * cursor;
+	const struct sockaddr_dl * dlAddr;
+	
+	if (getifaddrs(&addrs) == 0) {
+		cursor = addrs;
+		while (cursor != NULL) {
+			dlAddr = (const struct sockaddr_dl *) cursor->ifa_addr;
+			if ( (cursor->ifa_addr->sa_family == AF_LINK) && (dlAddr->sdl_type == IFT_ETHER) ) {
+				if (strcmp(cursor->ifa_name, deviceName) == 0) {
+					memcpy(mac, dlAddr->sdl_data + dlAddr->sdl_nlen, 6);
+					return 1;
+				}
+			}
+			cursor = cursor->ifa_next;
+		}
+		freeifaddrs(addrs);
+	}
+	return -1;
+}
+
+#else
+#include <malloc.h>
 #include <netinet/in.h>
 #include <linux/if_ether.h>
 #include <sys/ioctl.h>
@@ -98,3 +135,4 @@ int getDeviceIp(const int sockfd, const unsigned char *deviceName, struct sockad
 	free(ifr);
 	return -1;
 }
+#endif

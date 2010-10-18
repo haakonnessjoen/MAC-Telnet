@@ -1,7 +1,8 @@
-#include <malloc.h>
+#ifndef __APPLE_CC__
 #include <string.h>
 #include <math.h>
 #include <sys/socket.h>
+#include <malloc.h>
 #include <linux/if_packet.h>
 #include <linux/if_ether.h>
 #include <linux/ip.h>
@@ -104,3 +105,4 @@ int sendCustomUDP(const int socket, const int ifindex, const unsigned char *sour
 	/* Return amount of _data_ bytes sent */
 	return send_result-8-14-20;
 }
+#endif

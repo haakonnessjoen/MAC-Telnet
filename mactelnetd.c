@@ -24,14 +24,16 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netinet/ether.h>
 #include <sys/time.h>
 #include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <string.h>
+#ifndef __APPLE_CC__
 #include <linux/if_ether.h>
+#include <netinet/in.h>
+#include <netinet/ether.h>
+#endif
 #include <openssl/md5.h>
 #include <pwd.h>
 #include <sys/ioctl.h>
@@ -147,7 +149,9 @@ struct mt_connection *findConnection(unsigned short seskey, unsigned char *srcma
 }
 
 int sendUDP(const struct mt_connection *conn, const struct mt_packet *data) {
+#ifndef __APPLE_CC__
 	return sendCustomUDP(sockfd, 2, conn->dstmac, conn->srcmac, &sourceip, sourceport, &destip, conn->srcport, data->data, data->size);
+#endif
 }
 
 void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *address) {
@@ -412,6 +416,10 @@ int main (int argc, char **argv) {
 	struct mt_packet pdata;
 	fd_set read_fds;
 
+#ifdef __APPLE_CC__
+	fprintf(stderr, "No support for mactelnetd in OS X yet.\n");
+	exit(1);
+#else
 	/* Try to read user file */
 	readUserfile();
 
@@ -540,6 +548,7 @@ int main (int argc, char **argv) {
 
 	close(sockfd);
 	close(insockfd);
+#endif
 
 	return 0;
 }

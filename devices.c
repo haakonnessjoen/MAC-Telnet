@@ -20,28 +20,39 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#ifdef __APPLE_CC__
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <ifaddrs.h>
 
+#ifdef __APPLE_CC__
 #include <net/if_dl.h>
-
-
+#else
+#include <malloc.h>
+#include <ifaddrs.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <netpacket/packet.h>
+#include <netinet/in.h>
+#endif
 
 #ifndef IFT_ETHER
 #define IFT_ETHER 0x6 /* Ethernet CSMACD */
 #endif
 
 int getDeviceMAC(const int sockfd, const unsigned char *deviceName, unsigned char *mac) {
-	struct ifaddrs * addrs;
-	const struct ifaddrs * cursor;
-	const struct sockaddr_dl * dlAddr;
+	struct ifaddrs *addrs;
+	const struct ifaddrs *cursor;
+#ifdef __APPLE_CC__
+	const struct sockaddr_dl *dlAddr;
+#else
+	const struct sockaddr_ll *dlAddr;
+#endif
 	
 	if (getifaddrs(&addrs) == 0) {
 		cursor = addrs;
 		while (cursor != NULL) {
+#ifdef __APPLE_CC__
 			dlAddr = (const struct sockaddr_dl *) cursor->ifa_addr;
 			if ( (cursor->ifa_addr->sa_family == AF_LINK) && (dlAddr->sdl_type == IFT_ETHER) ) {
 				if (strcmp(cursor->ifa_name, deviceName) == 0) {
@@ -49,6 +60,15 @@ int getDeviceMAC(const int sockfd, const unsigned char *deviceName, unsigned cha
 					return 1;
 				}
 			}
+#else
+			dlAddr = (const struct sockaddr_ll *) cursor->ifa_addr;
+			if (cursor->ifa_addr->sa_family == PF_PACKET) {
+				if (strcmp(cursor->ifa_name, deviceName) == 0) {
+					memcpy(mac, dlAddr->sll_addr, 6);
+					return 1;
+				}
+			}
+#endif
 			cursor = cursor->ifa_next;
 		}
 		freeifaddrs(addrs);
@@ -56,13 +76,7 @@ int getDeviceMAC(const int sockfd, const unsigned char *deviceName, unsigned cha
 	return -1;
 }
 
-#else
-#include <malloc.h>
-#include <netinet/in.h>
-#include <linux/if_ether.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
-
+#ifndef __APPLE_CC__
 /* Functions using NETDEVICE api */
 
 int getDeviceIndex(int sockfd, unsigned char *deviceName) {
@@ -76,20 +90,6 @@ int getDeviceIndex(int sockfd, unsigned char *deviceName) {
 
 	/* Return interface index */
 	return ifr.ifr_ifindex;
-}
-
-int getDeviceMAC(const int sockfd, const unsigned char *deviceName, unsigned char *mac) {
-	struct ifreq ifr;
-
-	/* Find interface hardware address from deviceName */
-	strncpy(ifr.ifr_name, deviceName, 16);
-	if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) != 0) {
-		return -1;
-	}
-
-	/* Fetch mac address */
-	memcpy(mac, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
-	return 1;
 }
 
 int getDeviceIp(const int sockfd, const unsigned char *deviceName, struct sockaddr_in *ip) {

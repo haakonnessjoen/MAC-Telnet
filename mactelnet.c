@@ -463,10 +463,10 @@ int main (int argc, char **argv) {
 			}
 			/* Handle data from keyboard/local terminal */
 			if (FD_ISSET(0, &read_fds)) {
-				unsigned char keydata[100];
+				unsigned char keydata[512];
 				int datalen;
 
-				datalen = read(STDIN_FILENO, &keydata, 100);
+				datalen = read(STDIN_FILENO, &keydata, 512);
 
 				plen = initPacket(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
 				plen += addControlPacket(&data, MT_CPTYPE_PLAINDATA, &keydata, datalen);

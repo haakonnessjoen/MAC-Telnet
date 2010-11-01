@@ -21,4 +21,4 @@ mactelnetd: config.h mactelnetd.c udp.h udp.c protocol.c protocol.h console.c co
 	gcc -g -DUSERSFILE='"/etc/mactelnetd.users"' -o mactelnetd -lcrypto mactelnetd.c udp.c protocol.c console.c users.c
 
 mndp: config.h mndp.c protocol.h
-	gcc -g -o mndp mndp.c
+	gcc -g -o mndp mndp.c protocol.c

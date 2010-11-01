@@ -283,12 +283,13 @@ int main (int argc, char **argv) {
 		}
 	}
 	if (argc - optind < 2 || printHelp) {
-		fprintf(stderr, "Usage: %s <ifname> <MAC> [-h] [-n] [-u <username>] [-p <password>]\n", argv[0]);
+		fprintf(stderr, "Usage: %s <ifname> <MAC|identity> [-h] [-n] [-u <username>] [-p <password>]\n", argv[0]);
 
 		if (printHelp) {
 			fprintf(stderr, "\nParameters:\n");
 			fprintf(stderr, "  ifname    Network interface that the RouterOS resides on. (example: eth0)\n");
 			fprintf(stderr, "  MAC       MAC-Address of the RouterOS device. Use mndp to discover them.\n");
+			fprintf(stderr, "  identity  The identity/name of your RouterOS device. Uses MNDP protocol to find it.\n");
 			fprintf(stderr, "  -n        Do not use broadcast packets. Less insecure but requires root privileges.\n");
 			fprintf(stderr, "  -u        Specify username on command line.\n");
 			fprintf(stderr, "  -p        Specify password on command line.\n");
@@ -302,8 +303,33 @@ int main (int argc, char **argv) {
 	strncpy(devicename, argv[optind++], sizeof(devicename) - 1);
 	devicename[sizeof(devicename) - 1] = '\0';
 
-	/* Convert mac address string to ether_addr struct */
-	ether_aton_r(argv[optind], (struct ether_addr *)dstmac);
+	/* Check for identity name or mac address */
+	{
+		unsigned char *p = argv[optind];
+		int colons = 0;
+		while (*p++) {
+			if (*p == ':') {
+				colons++;
+			}
+		}
+
+		if (colons != 5) {
+			fprintf(stderr, "Searching for '%s'...", argv[optind]);
+
+			/* Search for Router by identity name, using MNDP */
+			if (!queryMNDP(argv[optind], dstmac)) {
+				fprintf(stderr, "not found.\n");
+				return 1;
+			}
+
+			/* Router found, display mac and continue */
+			fprintf(stderr, "%s\n", ether_ntoa((struct ether_addr *)dstmac));
+
+		} else {
+			/* Convert mac address string to ether_addr struct */
+			ether_aton_r(argv[optind], (struct ether_addr *)dstmac);
+		}
+	}
 
 	/* Seed randomizer */
 	srand(time(NULL));

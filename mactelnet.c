@@ -303,34 +303,6 @@ int main (int argc, char **argv) {
 	strncpy(devicename, argv[optind++], sizeof(devicename) - 1);
 	devicename[sizeof(devicename) - 1] = '\0';
 
-	/* Check for identity name or mac address */
-	{
-		unsigned char *p = argv[optind];
-		int colons = 0;
-		while (*p++) {
-			if (*p == ':') {
-				colons++;
-			}
-		}
-
-		if (colons != 5) {
-			fprintf(stderr, "Searching for '%s'...", argv[optind]);
-
-			/* Search for Router by identity name, using MNDP */
-			if (!queryMNDP(argv[optind], dstmac)) {
-				fprintf(stderr, "not found.\n");
-				return 1;
-			}
-
-			/* Router found, display mac and continue */
-			fprintf(stderr, "%s\n", ether_ntoa((struct ether_addr *)dstmac));
-
-		} else {
-			/* Convert mac address string to ether_addr struct */
-			ether_aton_r(argv[optind], (struct ether_addr *)dstmac);
-		}
-	}
-
 	/* Seed randomizer */
 	srand(time(NULL));
 
@@ -385,6 +357,34 @@ int main (int argc, char **argv) {
 	if (result < 0) {
 		fprintf(stderr, "Cannot determine MAC address of device %s\n", devicename);
 		return 1;
+	}
+
+	/* Check for identity name or mac address */
+	{
+		unsigned char *p = argv[optind];
+		int colons = 0;
+		while (*p++) {
+			if (*p == ':') {
+				colons++;
+			}
+		}
+
+		if (colons != 5) {
+			fprintf(stderr, "Searching for '%s'...", argv[optind]);
+
+			/* Search for Router by identity name, using MNDP */
+			if (!queryMNDP(argv[optind], dstmac)) {
+				fprintf(stderr, "not found.\n");
+				return 1;
+			}
+
+			/* Router found, display mac and continue */
+			fprintf(stderr, "%s\n", ether_ntoa((struct ether_addr *)dstmac));
+
+		} else {
+			/* Convert mac address string to ether_addr struct */
+			ether_aton_r(argv[optind], (struct ether_addr *)dstmac);
+		}
 	}
 
 	if (!haveUsername) {

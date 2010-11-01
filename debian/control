@@ -2,13 +2,13 @@ Source: mactelnet
 Section: net
 Priority: extra
 Maintainer: Haakon Nessjoen <haakon.nessjoen@gmail.com>
-Build-Depends: debhelper (>= 7), linux-libc-dev (>= 2.6), libssl-dev (>= 0.9.8g-9) 
+Build-Depends: debhelper (>= 7), linux-libc-dev (>= 2.6) 
 Standards-Version: 3.8.0
 Homepage: http://github.com/haakonnessjoen/MAC-Telnet/
 
 Package: mactelnet
 Architecture: any
-Depends: libssl0.9.8 (>= 0.9.8g-9), libc6 (>= 2.9) 
+Depends: libc6 (>= 2.9) 
 Description: MAC-Telnet client for Linux
  A linux console tool for connecting to MikroTik RouterOS devices via their ethernet address.
 

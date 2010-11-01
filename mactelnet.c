@@ -31,7 +31,7 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <linux/if_ether.h>
-#include <openssl/md5.h>
+#include "md5.h"
 #include "protocol.h"
 #include "udp.h"
 #include "console.h"
@@ -89,7 +89,7 @@ void sendAuthData(unsigned char *username, unsigned char *password) {
 	int result;
 	int plen;
 	int databytes;
-	MD5_CTX c;
+	md5_state_t state;
 
 	/* Concat string of 0 + password + encryptionkey */
 	md5data[0] = 0;
@@ -98,9 +98,9 @@ void sendAuthData(unsigned char *username, unsigned char *password) {
 	memcpy(md5data + 1 + strlen(password), encryptionkey, 16);
 
 	/* Generate md5 sum of md5data with a leading 0 */
-	MD5_Init(&c);
-	MD5_Update(&c, md5data, strlen(password) + 17);
-	MD5_Final(md5sum + 1, &c);
+	md5_init(&state);
+	md5_append(&state, (const md5_byte_t *)md5data, strlen(password) + 17);
+	md5_finish(&state, (md5_byte_t *)md5sum + 1);
 	md5sum[0] = 0;
 
 	/* Send combined packet to server */

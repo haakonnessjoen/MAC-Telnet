@@ -32,9 +32,9 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <linux/if_ether.h>
-#include <openssl/md5.h>
-#include <pwd.h>
 #include <sys/ioctl.h>
+#include <pwd.h>
+#include "md5.h"
 #include "protocol.h"
 #include "udp.h"
 #include "console.h"
@@ -301,16 +301,16 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 					readUserfile();
 
 					if ((user = findUser(curconn->username)) != NULL) {
-						MD5_CTX c;
+						md5_state_t state;
 						/* Concat string of 0 + password + encryptionkey */
 						md5data[0] = 0;
 						strncpy(md5data + 1, user->password, 82);
 						memcpy(md5data + 1 + strlen(user->password), curconn->enckey, 16);
 
 						/* Generate md5 sum of md5data with a leading 0 */
-						MD5_Init(&c);
-						MD5_Update(&c, md5data, strlen(user->password) + 17);
-						MD5_Final(md5sum + 1, &c);
+						md5_init(&state);
+						md5_append(&state, (const md5_byte_t *)md5data, strlen(user->password) + 17);
+						md5_finish(&state, (md5_byte_t *)md5sum + 1);
 						md5sum[0] = 0;
 
 						initPacket(&pdata, MT_PTYPE_DATA, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, curconn->outcounter);

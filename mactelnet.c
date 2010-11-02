@@ -153,9 +153,9 @@ void handlePacket(unsigned char *data, int data_len) {
 	/* Handle data packets */
 	if (pkthdr.ptype == MT_PTYPE_DATA) {
 		struct mt_packet odata;
+		struct mt_mactelnet_control_hdr cpkt;
 		int plen=0,result=0;
-		int rest = 0;
-		unsigned char *p = data;
+		int success = 0;
 
 		/* Always transmit ACKNOWLEDGE packets in response to DATA packets */
 		plen = initPacket(&odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, pkthdr.counter + (data_len - MT_HEADER_LEN));
@@ -170,18 +170,10 @@ void handlePacket(unsigned char *data, int data_len) {
 			return;
 		}
 
-		/* Calculate how much more there is in the packet */
-		rest = data_len - MT_HEADER_LEN;
-		p += MT_HEADER_LEN;
+		/* Parse controlpacket data */
+		success = parseControlPacket(data + MT_HEADER_LEN, data_len - MT_HEADER_LEN, &cpkt);
 
-		while (rest > 0) {
-			int read = 0;
-			struct mt_mactelnet_control_hdr cpkt;
-
-			/* Parse controlpacket data */
-			read = parseControlPacket(p, rest, &cpkt);
-			p += read;
-			rest -= read;
+		while (success) {
 
 			/* If we receive encryptionkey, transmit auth data back */
 			if (cpkt.cptype == MT_CPTYPE_ENCRYPTIONKEY) {
@@ -209,6 +201,9 @@ void handlePacket(unsigned char *data, int data_len) {
 				/* Add resize signal handler */
 				signal(SIGWINCH, sig_winch);
 			}
+
+			/* Parse next controlpacket */
+			success = parseControlPacket(NULL, 0, &cpkt);
 		}
 	}
 	else if (pkthdr.ptype == MT_PTYPE_ACK) {

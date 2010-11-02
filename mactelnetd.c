@@ -212,8 +212,8 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 		case MT_PTYPE_DATA:
 			curconn = findConnection(pkthdr.seskey, (unsigned char *)&(pkthdr.srcaddr));
 			if (curconn != NULL) {
-				unsigned char *p = data;
-				int rest;
+				int success;
+				struct mt_mactelnet_control_hdr cpkt;
 				char doLogin = 0;
 
 				curconn->lastdata = time(NULL);
@@ -232,18 +232,10 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 				}
 
 				/* Calculate how much more there is in the packet */
-				rest = data_len - MT_HEADER_LEN;
-				p += MT_HEADER_LEN;
+				success = parseControlPacket(data + MT_HEADER_LEN, data_len - MT_HEADER_LEN, &cpkt);
 
-				while (rest > 0) {
-					int read;
-					struct mt_mactelnet_control_hdr cpkt;
-
-					/* Parse controlpacket data */
-					read = parseControlPacket(p, rest, &cpkt);
-					p += read;
-					rest -= read;
-
+				while (success) {
+printf("Type: %d\n", cpkt.cptype);
 					if (cpkt.cptype == MT_CPTYPE_BEGINAUTH) {
 						int plen,i;
 						for (i = 0; i < 16; ++i) {
@@ -291,6 +283,9 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 					} else {
 						printf("Unhandeled CPTYPE: %d\n", cpkt.cptype);
 					}
+
+					/* Parse next controlpacket */
+					success = parseControlPacket(NULL, 0, &cpkt);
 				}
 				if (doLogin) {
 					int plen = 0;
@@ -301,6 +296,7 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 					readUserfile();
 
 					if ((user = findUser(curconn->username)) != NULL) {
+						printf("User %s is logging in.\n", curconn->username);
 						md5_state_t state;
 						/* Concat string of 0 + password + encryptionkey */
 						md5data[0] = 0;
@@ -321,6 +317,7 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 						if (curconn->state == STATE_ACTIVE)
 							return;
 					} else {
+						printf("User %s not found\n", curconn->username);
 						doLogin = 0;
 					}
 
@@ -398,7 +395,7 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 							chdir(user->pw_dir);
 							/* Spawn shell */
 							execl (user->pw_shell, user->pw_shell, (char *) 0);
-							//exit(0);
+							exit(0); // just to be sure.
 						}
 						close(curconn->slavefd);
 						curconn->pid = pid;

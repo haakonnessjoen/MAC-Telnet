@@ -147,13 +147,33 @@ void parsePacket(unsigned char *data, struct mt_mactelnet_hdr *pkthdr) {
 }
 
 
-int parseControlPacket(unsigned char *data, const int data_len, struct mt_mactelnet_control_hdr *cpkthdr) {
+int parseControlPacket(unsigned char *packetdata, int data_len, struct mt_mactelnet_control_hdr *cpkthdr) {
+	static unsigned char *int_data;
+	static unsigned int int_data_len;
+	static unsigned int int_pos;
+	unsigned char *data;
 
-	if (data_len < 0)
+	/* Store info so we can call this function once with data,
+	   and then several times for each control packets. Letting this function
+	   control the data position. */
+	if (packetdata != NULL) {
+		if (data_len <= 0)
+			return 0;
+
+		int_data = packetdata;
+		int_data_len = data_len;
+		int_pos = 0;
+	}
+
+	/* No more data to parse? */
+	if (int_pos >= int_data_len)
 		return 0;
 
+	/* Set current position in data buffer */
+	data = int_data + int_pos;
+
 	/* Check for valid minimum packet length & magic header */
-	if (data_len >= 9 && memcmp(data, &mt_mactelnet_cpmagic, 4) == 0) {
+	if (int_data_len >= 9 && memcmp(data, &mt_mactelnet_cpmagic, 4) == 0) {
 
 		/* Control packet type */
 		cpkthdr->cptype = data[4];
@@ -164,17 +184,23 @@ int parseControlPacket(unsigned char *data, const int data_len, struct mt_mactel
 		/* Set pointer to actual data */
 		cpkthdr->data = data + 9;
 
-		/* Return number of bytes in packet */
-		return cpkthdr->length + 9;
+		/* Remember old position, for next call */
+		int_pos += cpkthdr->length + 9;
+
+		/* Read data successfully */
+		return 1;
 
 	} else {
 		/* Mark data as raw terminal data */
 		cpkthdr->cptype = MT_CPTYPE_PLAINDATA;
-		cpkthdr->length = data_len;
+		cpkthdr->length = int_data_len - int_pos;
 		cpkthdr->data = data;
 
 		/* Consume the whole rest of the packet */
-		return data_len;
+		int_pos = int_data_len;
+
+		/* Read data successfully */
+		return 1;
 	}
 }
 

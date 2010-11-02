@@ -29,14 +29,14 @@
 #include "protocol.h"
 #include "config.h"
 
+/* Protocol data direction, not used here, but obligatory for protocol.c */
+unsigned char mt_direction_fromserver = 0;
+
 int main(int argc, char **argv)  {
 	int sock,result;
 	int optval = 1;
 	struct sockaddr_in si_me, si_remote;
 	unsigned char buff[MT_PACKET_LEN];
-	unsigned short nameLen = 0;
-	unsigned char name[MT_MNDP_MAX_NAME_LENGTH + 1];
-	unsigned char mac[ETH_ALEN];
 
 	/* Open a UDP socket handle */
 	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -73,6 +73,7 @@ int main(int argc, char **argv)  {
 	}
 
 	while(1) {
+		struct mt_mndp_packet *packet;
 		/* Wait for a UDP packet */
 		result = recvfrom(sock, buff, MT_PACKET_LEN, 0, 0, 0);
 		if (result < 0) {
@@ -80,29 +81,13 @@ int main(int argc, char **argv)  {
 			exit(1);
 		}
 
-		/* Check for valid packet length */
-		if (result < 18) {
-			continue;
+		/* Parse MNDP packet */
+		packet = parseMNDP(buff, result);
+
+		if (packet != NULL) {
+			/* Print it */
+			printf("%17s %s\n", ether_ntoa((struct ether_addr *)packet->address), packet->identity);
 		}
-
-		/* Fetch length of Identifier string */
-		memcpy(&nameLen, buff+16,2);
-		nameLen = (nameLen >> 8) | ((nameLen&0xff)<<8);
-
-		/* Enforce maximum name length */
-		nameLen = nameLen < sizeof(name) ? nameLen : MT_MNDP_MAX_NAME_LENGTH;
-
-		/* Read Identifier string */
-		memcpy(&name, buff+18, nameLen);
-
-		/* Append zero */
-		name[nameLen] = 0;
-
-		/* Read source MAC address */
-		memcpy(&mac, buff+8, ETH_ALEN);
-
-		/* Print it */
-		printf("%17s %s\n", ether_ntoa((struct ether_addr *)mac), name);
 	}
 
 	/* We'll never get here.. */

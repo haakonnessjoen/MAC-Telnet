@@ -36,7 +36,7 @@
 #define ETH_ALEN 6
 #include <net/ethernet.h>
 #endif
-#include <openssl/md5.h>
+#include "md5.h"
 #include "protocol.h"
 #include "udp.h"
 #include "console.h"
@@ -96,7 +96,7 @@ void sendAuthData(unsigned char *username, unsigned char *password) {
 	int result;
 	int plen;
 	int databytes;
-	MD5_CTX c;
+	md5_state_t state;
 
 	/* Concat string of 0 + password + encryptionkey */
 	md5data[0] = 0;
@@ -105,9 +105,9 @@ void sendAuthData(unsigned char *username, unsigned char *password) {
 	memcpy(md5data + 1 + strlen(password), encryptionkey, 16);
 
 	/* Generate md5 sum of md5data with a leading 0 */
-	MD5_Init(&c);
-	MD5_Update(&c, md5data, strlen(password) + 17);
-	MD5_Final(md5sum + 1, &c);
+	md5_init(&state);
+	md5_append(&state, (const md5_byte_t *)md5data, strlen(password) + 17);
+	md5_finish(&state, (md5_byte_t *)md5sum + 1);
 	md5sum[0] = 0;
 
 	/* Send combined packet to server */
@@ -291,12 +291,13 @@ int main (int argc, char **argv) {
 		}
 	}
 	if (argc - optind < 2 || printHelp) {
-		fprintf(stderr, "Usage: %s <ifname> <MAC> [-h] [-n] [-u <username>] [-p <password>]\n", argv[0]);
+		fprintf(stderr, "Usage: %s <ifname> <MAC|identity> [-h] [-n] [-u <username>] [-p <password>]\n", argv[0]);
 
 		if (printHelp) {
 			fprintf(stderr, "\nParameters:\n");
 			fprintf(stderr, "  ifname    Network interface that the RouterOS resides on. (example: eth0)\n");
 			fprintf(stderr, "  MAC       MAC-Address of the RouterOS device. Use mndp to discover them.\n");
+			fprintf(stderr, "  identity  The identity/name of your RouterOS device. Uses MNDP protocol to find it.\n");
 #ifndef __APPLE_CC__
 			fprintf(stderr, "  -n        Do not use broadcast packets. Less insecure but requires root privileges.\n");
 #endif
@@ -311,14 +312,6 @@ int main (int argc, char **argv) {
 	/* Save device name */
 	strncpy(devicename, argv[optind++], sizeof(devicename) - 1);
 	devicename[sizeof(devicename) - 1] = '\0';
-
-	/* Convert mac address string to ether_addr struct */
-	tmpaddr = ether_aton(argv[optind]);
-	if (tmpaddr == NULL) {
-		fprintf(stderr, "Invalid MAC address\n");
-		exit(1);
-	}
-	memcpy(dstmac, tmpaddr, sizeof(struct ether_addr));
 
 	/* Seed randomizer */
 	srand(time(NULL));
@@ -378,6 +371,39 @@ int main (int argc, char **argv) {
 	if (result < 0) {
 		fprintf(stderr, "Cannot determine MAC address of device %s\n", devicename);
 		return 1;
+	}
+
+	/* Check for identity name or mac address */
+	{
+		unsigned char *p = argv[optind];
+		int colons = 0;
+		while (*p++) {
+			if (*p == ':') {
+				colons++;
+			}
+		}
+
+		if (colons != 5) {
+			fprintf(stderr, "Searching for '%s'...", argv[optind]);
+
+			/* Search for Router by identity name, using MNDP */
+			if (!queryMNDP(argv[optind], dstmac)) {
+				fprintf(stderr, "not found.\n");
+				return 1;
+			}
+
+			/* Router found, display mac and continue */
+			fprintf(stderr, "%s\n", ether_ntoa((struct ether_addr *)dstmac));
+
+		} else {
+			/* Convert mac address string to ether_addr struct */
+			tmpaddr = ether_aton(argv[optind]);
+			if (tmpaddr == NULL) {
+				fprintf(stderr, "Invalid MAC address\n");
+				exit(1);
+			}
+			memcpy(dstmac, tmpaddr, sizeof(struct ether_addr));
+		}
 	}
 
 	if (!haveUsername) {
@@ -482,10 +508,10 @@ int main (int argc, char **argv) {
 			}
 			/* Handle data from keyboard/local terminal */
 			if (FD_ISSET(0, &read_fds)) {
-				unsigned char keydata[100];
+				unsigned char keydata[512];
 				int datalen;
 
-				datalen = read(STDIN_FILENO, &keydata, 100);
+				datalen = read(STDIN_FILENO, &keydata, 512);
 
 				plen = initPacket(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
 				plen += addControlPacket(&data, MT_CPTYPE_PLAINDATA, &keydata, datalen);

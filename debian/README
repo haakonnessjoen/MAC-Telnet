@@ -4,15 +4,10 @@ MAC-Telnet for Linux
 A linux console tool for connecting to MikroTik RouterOS devices via their
 ethernet address.
 
-NB: Alpha stage code. Do not expect to run flawlessy.
+NB: Beta stage code. Do not expect to run flawlessy.
 
 Installation
 ------------
-
-Make sure you have installed openssl development files.
-
-For Ubuntu users:
-    sudo apt-get install libssl-dev
 
 Then download source tarball, extract, compile and install:
 
@@ -25,6 +20,21 @@ Now you're ready.
 
 Usage
 -----
+
+    # mactelnet -h
+    Usage: ./mactelnet <ifname> <MAC|identity> [-h] [-n] [-u <username>] [-p <password>]
+    
+    Parameters:
+      ifname    Network interface that the RouterOS resides on. (example: eth0)
+      MAC       MAC-Address of the RouterOS device. Use mndp to discover them.
+      identity  The identity/name of your RouterOS device. Uses MNDP protocol to find it..
+      -n        Do not use broadcast packets. Less insecure but requires root privileges.
+      -u        Specify username on command line.
+      -p        Specify password on command line.
+      -h        This help.
+
+
+    Example:
 
     $ ./mactelnet eth0 0:c:42:43:58:a5 -u admin
     Password: 

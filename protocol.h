@@ -27,7 +27,9 @@
 #define MT_MACTELNET_PORT 20561
 
 #define MT_MNDP_PORT 5678
-#define MT_MNDP_MAX_NAME_LENGTH 64
+#define MT_MNDP_MAX_IDENTITY_LENGTH 64
+#define MT_MNDP_TIMEOUT 5
+#define MT_MNDP_LONGTIMEOUT 120
 
 /* Packet type */
 #define MT_PTYPE_SESSIONSTART 0
@@ -65,15 +67,26 @@ struct mt_mactelnet_control_hdr {
 	unsigned char *data;
 };
 
+/* TODO: Add all the other information obtainable from mndp */
+struct mt_mndp_packet {
+	unsigned char address[ETH_ALEN];
+	unsigned char identity[MT_MNDP_MAX_IDENTITY_LENGTH];
+};
+
 struct mt_packet {
 	int size;
 	unsigned char data[MT_PACKET_LEN];
 };
 
+/* MacTelnet/Winbox packets */
 extern int initPacket(struct mt_packet *packet, unsigned char ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned int counter);
 extern int addControlPacket(struct mt_packet *packet, char cptype, void *cpdata, int data_len);
 extern void parsePacket(unsigned char *data, struct mt_mactelnet_hdr *pkthdr);
 extern int parseControlPacket(unsigned char *data, const int data_len, struct mt_mactelnet_control_hdr *cpkthdr);
+
+/* MNDP packets */
+struct mt_mndp_packet *parseMNDP(const char *data, const int packetLen);
+int queryMNDP(const unsigned char *identity, unsigned char *mac);
 
 /* Control packet magic header */
 extern unsigned char mt_mactelnet_cpmagic[4];

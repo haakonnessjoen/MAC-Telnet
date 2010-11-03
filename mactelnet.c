@@ -37,6 +37,7 @@
 #include "console.h"
 #include "devices.h"
 #include "config.h"
+#include "mactelnet.h"
 
 int sockfd;
 int insockfd;
@@ -56,12 +57,16 @@ struct in_addr sourceip;
 struct in_addr destip;
 int sourceport;
 
+int connect_timeout = CONNECT_TIMEOUT;
+
 unsigned char encryptionkey[128];
 unsigned char username[255];
 unsigned char password[255];
 
 /* Protocol data direction */
 unsigned char mt_direction_fromserver = 0;
+
+unsigned int sendSocket;
 
 int sendUDP(struct mt_packet *packet) {
 
@@ -72,7 +77,7 @@ int sendUDP(struct mt_packet *packet) {
 		socket_address.sin_port = htons(MT_MACTELNET_PORT);
 		socket_address.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 
-		return sendto(insockfd, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
+		return sendto(sendSocket, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
 	} else {
 		return sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip,  sourceport, &destip, MT_MACTELNET_PORT, packet->data, packet->size);
 	}
@@ -228,6 +233,63 @@ void handlePacket(unsigned char *data, int data_len) {
 	}
 }
 
+int findInterface() {
+	struct mt_packet data;
+	struct sockaddr_in myip;
+	int success;
+	unsigned char devicename[128];
+	int testsocket;
+	fd_set read_fds;
+	struct timeval timeout;
+	int optval = 1;
+	int i,ii, selected;
+	
+	while (success = getIps(devicename, 128, &myip)) {
+		char str[INET_ADDRSTRLEN];
+
+		inet_ntop(AF_INET, &(myip.sin_addr), str, INET_ADDRSTRLEN);
+
+		/* Initialize receiving socket on the device chosen */
+		myip.sin_port = htons(sourceport);
+	
+		/* Bind to udp port */
+		if ((testsocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
+			continue;
+		}
+
+		setsockopt(testsocket, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval));
+		setsockopt(testsocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+
+		if (bind(testsocket, (struct sockaddr *)&myip, sizeof(struct sockaddr_in)) == -1) {
+			close(testsocket);
+			continue;
+		}
+
+		if (getDeviceMAC(testsocket, devicename, srcmac) < 0) {
+			close(testsocket);
+			continue;
+		}
+
+		sendSocket = testsocket;
+		initPacket(&data, MT_PTYPE_SESSIONSTART, srcmac, dstmac, sessionkey, 0);
+		sendUDP(&data);
+
+		timeout.tv_sec = connect_timeout;
+		timeout.tv_usec = 0;
+
+		FD_ZERO(&read_fds);
+		FD_SET(insockfd, &read_fds);
+		select(insockfd + 1, &read_fds, NULL, NULL, &timeout);
+		if (FD_ISSET(insockfd, &read_fds)) {
+			return 1;
+		}
+
+		close(testsocket);
+	}
+
+	return 0;
+}
+
 /*
  * TODO: Rewrite main() when all sub-functionality is tested
  */
@@ -243,9 +305,10 @@ int main (int argc, char **argv) {
 	unsigned char devicename[30];
 	unsigned char printHelp = 0, haveUsername = 0, havePassword = 0;
 	int c;
+	int optval = 1;
 
 	while (1) {
-		c = getopt(argc, argv, "nu:p:h?");
+		c = getopt(argc, argv, "nt:u:p:h?");
 
 		if (c == -1)
 			break;
@@ -270,6 +333,10 @@ int main (int argc, char **argv) {
 				havePassword = 1;
 				break;
 
+			case 't':
+				connect_timeout = atoi(optarg);
+				break;
+
 			case 'h':
 			case '?':
 				printHelp = 1;
@@ -277,8 +344,8 @@ int main (int argc, char **argv) {
 
 		}
 	}
-	if (argc - optind < 2 || printHelp) {
-		fprintf(stderr, "Usage: %s <ifname> <MAC|identity> [-h] [-n] [-u <username>] [-p <password>]\n", argv[0]);
+	if (argc - optind < 1 || printHelp) {
+		fprintf(stderr, "Usage: %s <MAC|identity> [-h] [-n] [-t <timeout>] [-u <username>] [-p <password>]\n", argv[0]);
 
 		if (printHelp) {
 			fprintf(stderr, "\nParameters:\n");
@@ -286,6 +353,7 @@ int main (int argc, char **argv) {
 			fprintf(stderr, "  MAC       MAC-Address of the RouterOS device. Use mndp to discover them.\n");
 			fprintf(stderr, "  identity  The identity/name of your RouterOS device. Uses MNDP protocol to find it.\n");
 			fprintf(stderr, "  -n        Do not use broadcast packets. Less insecure but requires root privileges.\n");
+			fprintf(stderr, "  -t        Amount of seconds to wait for a response on each interface.\n");
 			fprintf(stderr, "  -u        Specify username on command line.\n");
 			fprintf(stderr, "  -p        Specify password on command line.\n");
 			fprintf(stderr, "  -h        This help.\n");
@@ -293,10 +361,6 @@ int main (int argc, char **argv) {
 		}
 		return 1;
 	}
-
-	/* Save device name */
-	strncpy(devicename, argv[optind++], sizeof(devicename) - 1);
-	devicename[sizeof(devicename) - 1] = '\0';
 
 	/* Seed randomizer */
 	srand(time(NULL));
@@ -323,36 +387,14 @@ int main (int argc, char **argv) {
 	}
 
 	if (broadcastMode) {
-		int optval = 1;
 		if (setsockopt(insockfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof (optval))==-1) {
 			perror("SO_BROADCAST");
 			return 1;
 		}
 	}
 
-	/* Find device index number for specified interface */
-	deviceIndex = getDeviceIndex(insockfd, devicename);
-	if (deviceIndex < 0) {
-		fprintf(stderr, "Device %s not found.\n", devicename);
-		return 1;
-	}
-
-	/*
-	 * We want to show who we are (ip), even though the server only cares
-	 * about it's own MAC address in the headers.
-	*/
-	result = getDeviceIp(insockfd, devicename, &si_me);
-	if (result < 0) {
-		fprintf(stderr, "Cannot determine IP of device %s\n", devicename);
-		return 1;
-	}
-
-	/* Determine source mac address */
-	result = getDeviceMAC(insockfd, devicename, srcmac);
-	if (result < 0) {
-		fprintf(stderr, "Cannot determine MAC address of device %s\n", devicename);
-		return 1;
-	}
+	/* Need to use, to be able to autodetect which interface to use */
+	setsockopt(insockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval));
 
 	/* Check for identity name or mac address */
 	{
@@ -369,12 +411,12 @@ int main (int argc, char **argv) {
 
 			/* Search for Router by identity name, using MNDP */
 			if (!queryMNDP(argv[optind], dstmac)) {
-				fprintf(stderr, "not found.\n");
+				fprintf(stderr, "not found\n");
 				return 1;
 			}
 
 			/* Router found, display mac and continue */
-			fprintf(stderr, "%s\n", ether_ntoa((struct ether_addr *)dstmac));
+			fprintf(stderr, "found\n");
 
 		} else {
 			/* Convert mac address string to ether_addr struct */
@@ -408,6 +450,14 @@ int main (int argc, char **argv) {
 	inet_pton(AF_INET, (char *)"255.255.255.255", &destip);
 	memcpy(&sourceip, &(si_me.sin_addr), 4);
 
+	/* Sessioon key */
+	sessionkey = rand() % 65535;
+
+	/* stop output buffering */
+	setvbuf(stdout, (char*)NULL, _IONBF, 0);
+
+	printf("Connecting to %s...", ether_ntoa((struct ether_addr *)dstmac));
+
 	/* Initialize receiving socket on the device chosen */
 	memset((char *) &si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
@@ -419,31 +469,7 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 
-	/* Sessioon key */
-	sessionkey = rand() % 65535;
-
-	/* stop output buffering */
-	setvbuf(stdout, (char*)NULL, _IONBF, 0);
-
-	printf("Connecting to %s...", ether_ntoa((struct ether_addr *)dstmac));
-
-	plen = initPacket(&data, MT_PTYPE_SESSIONSTART, srcmac, dstmac, sessionkey, 0);
-	result = sendUDP(&data);
-
-	/* Try to connect with a timeout */
-	FD_ZERO(&read_fds);
-	FD_SET(insockfd, &read_fds);
-	timeout.tv_sec = 5;
-	timeout.tv_usec = 0;
-	select(insockfd+1, &read_fds, NULL, NULL, &timeout);
-
-	if (!FD_ISSET(insockfd, &read_fds)) {
-		fprintf(stderr, "Connection timed out\n");
-		exit(1);
-	}
-
-	result = recvfrom(insockfd, buff, 1400, 0, 0, 0);
-	if (result < 1) {
+	if (!findInterface() || recvfrom(insockfd, buff, 1400, 0, 0, 0) < 1) {
 		fprintf(stderr, "Connection failed.\n");
 		return 1;
 	}

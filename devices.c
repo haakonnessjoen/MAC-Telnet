@@ -19,12 +19,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
 #include <unistd.h>
 #include <netinet/in.h>
 #include <linux/if_ether.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+
+#include <malloc.h>
+#include <ifaddrs.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <netpacket/packet.h>
+#include <netinet/in.h>
+
 
 /* Functions using NETDEVICE api */
 
@@ -97,4 +104,41 @@ int getDeviceIp(const int sockfd, const unsigned char *deviceName, struct sockad
 	}
 	free(ifr);
 	return -1;
+}
+
+int getIps(char *name, int nameLen, struct sockaddr_in *ip) {
+	static int first = 1;
+	static struct ifaddrs *int_addrs;
+	static const struct ifaddrs *int_cursor;
+	const struct sockaddr_in *dlAddr;
+
+	if (first == 1) {
+		first = 0;
+		if (getifaddrs(&int_addrs) == 0) {
+			int_cursor = int_addrs;
+		} else {
+			first = 1;
+			return 0;
+		}
+	}
+	if (int_cursor != NULL) {
+		while (int_cursor != NULL) {
+			dlAddr = (const struct sockaddr_in *) int_cursor->ifa_addr;
+			if (dlAddr->sin_family == AF_INET) {
+				memcpy(ip, dlAddr, sizeof(struct sockaddr_in));
+				strncpy(name, int_cursor->ifa_name, nameLen - 1);
+				name[nameLen - 1] = '\0';
+				int_cursor = int_cursor->ifa_next;
+				return 1;
+			}
+			int_cursor = int_cursor->ifa_next;
+		}
+	}
+	if (int_cursor == NULL) {
+		if (int_addrs != NULL) {
+			freeifaddrs(int_addrs);
+			int_addrs = NULL;
+		}
+		return 0;
+	}
 }

@@ -22,13 +22,13 @@ Usage
 -----
 
     # mactelnet -h
-    Usage: ./mactelnet <ifname> <MAC|identity> [-h] [-n] [-u <username>] [-p <password>]
+    Usage: ./mactelnet <MAC|identity> [-h] [-n] [-t <timeout>] [-u <username>] [-p <password>]
     
     Parameters:
-      ifname    Network interface that the RouterOS resides on. (example: eth0)
       MAC       MAC-Address of the RouterOS device. Use mndp to discover them.
       identity  The identity/name of your RouterOS device. Uses MNDP protocol to find it..
       -n        Do not use broadcast packets. Less insecure but requires root privileges.
+      -t        Amount of seconds to wait for a response on each interface.
       -u        Specify username on command line.
       -p        Specify password on command line.
       -h        This help.
@@ -36,7 +36,7 @@ Usage
 
     Example:
 
-    $ ./mactelnet eth0 0:c:42:43:58:a5 -u admin
+    $ ./mactelnet 0:c:42:43:58:a5 -u admin
     Password: 
     Connecting to 0:c:42:43:58:a5...done
     

@@ -1,0 +1,1 @@
+#define CONNECT_TIMEOUT 2

@@ -247,6 +247,11 @@ int findInterface() {
 	while (success = getIps(devicename, 128, &myip)) {
 		char str[INET_ADDRSTRLEN];
 
+		/* Skip loopback interfaces */
+		if (memcmp("lo", devicename, 2) == 0) {
+			continue;
+		}
+
 		inet_ntop(AF_INET, &(myip.sin_addr), str, INET_ADDRSTRLEN);
 
 		/* Initialize receiving socket on the device chosen */

@@ -124,7 +124,7 @@ int getIps(char *name, int nameLen, struct sockaddr_in *ip) {
 	if (int_cursor != NULL) {
 		while (int_cursor != NULL) {
 			dlAddr = (const struct sockaddr_in *) int_cursor->ifa_addr;
-			if (dlAddr->sin_family == AF_INET) {
+			if (dlAddr != NULL && dlAddr->sin_family == AF_INET) {
 				memcpy(ip, dlAddr, sizeof(struct sockaddr_in));
 				strncpy(name, int_cursor->ifa_name, nameLen - 1);
 				name[nameLen - 1] = '\0';

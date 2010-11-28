@@ -257,7 +257,7 @@ int findInterface() {
 		/* Initialize receiving socket on the device chosen */
 		myip.sin_port = htons(sourceport);
 	
-		/* Bind to udp port */
+		/* Initialize socket and bind to udp port */
 		if ((testsocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
 			continue;
 		}
@@ -270,12 +270,16 @@ int findInterface() {
 			continue;
 		}
 
+		/* Find the mac address for the current device */
 		if (getDeviceMAC(testsocket, devicename, srcmac) < 0) {
 			close(testsocket);
 			continue;
 		}
 
+		/* Set the global socket handle for sendUDP() */
 		sendSocket = testsocket;
+
+		/* Send a SESSIONSTART message with the current device */
 		initPacket(&data, MT_PTYPE_SESSIONSTART, srcmac, dstmac, sessionkey, 0);
 		sendUDP(&data);
 
@@ -286,12 +290,14 @@ int findInterface() {
 		FD_SET(insockfd, &read_fds);
 		select(insockfd + 1, &read_fds, NULL, NULL, &timeout);
 		if (FD_ISSET(insockfd, &read_fds)) {
+			/* We got a response, this is the correct device to use */
 			return 1;
 		}
 
 		close(testsocket);
 	}
 
+	/* We didn't find anything */
 	return 0;
 }
 

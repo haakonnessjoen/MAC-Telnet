@@ -114,7 +114,7 @@ void sendAuthData(unsigned char *username, unsigned char *password) {
 	plen += addControlPacket(&data, MT_CPTYPE_PASSWORD, md5sum, 17);
 	plen += addControlPacket(&data, MT_CPTYPE_USERNAME, username, strlen(username));
 	plen += addControlPacket(&data, MT_CPTYPE_TERM_TYPE, terminal, strlen(terminal));
-
+	
 	if (getTerminalSize(&width, &height) != -1) {
 		plen += addControlPacket(&data, MT_CPTYPE_TERM_WIDTH, &width, 2);
 		plen += addControlPacket(&data, MT_CPTYPE_TERM_HEIGHT, &height, 2);

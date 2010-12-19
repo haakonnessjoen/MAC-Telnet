@@ -63,6 +63,7 @@ unsigned char mt_direction_fromserver = 1;
 #define STATE_CLOSED 2
 #define STATE_ACTIVE 3
 
+/** Connection struct */
 struct mt_connection {
 	unsigned short seskey;
 	unsigned short incounter;
@@ -90,7 +91,7 @@ struct mt_connection {
 
 struct mt_connection *connections_head = NULL;
 
-void addConnection(struct mt_connection *conn) {
+void list_addConnection(struct mt_connection *conn) {
 	struct mt_connection *p;
 	struct mt_connection *last;
 	if (connections_head == NULL) {
@@ -103,7 +104,7 @@ void addConnection(struct mt_connection *conn) {
 	conn->next = NULL;
 }
 
-void removeConnection(struct mt_connection *conn) {
+void list_removeConnection(struct mt_connection *conn) {
 	struct mt_connection *p;
 	struct mt_connection *last;
 	if (connections_head == NULL)
@@ -133,7 +134,7 @@ void removeConnection(struct mt_connection *conn) {
 	}
 }
 
-struct mt_connection *findConnection(unsigned short seskey, unsigned char *srcmac) {
+struct mt_connection *list_findConnection(unsigned short seskey, unsigned char *srcmac) {
 	struct mt_connection *p;
 
 	if (connections_head == NULL)
@@ -152,6 +153,204 @@ int sendUDP(const struct mt_connection *conn, const struct mt_packet *data) {
 	return sendCustomUDP(sockfd, 2, conn->dstmac, conn->srcmac, &sourceip, sourceport, &destip, conn->srcport, data->data, data->size);
 }
 
+void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
+	struct mt_packet pdata;
+	unsigned char md5sum[17];
+	unsigned char md5data[100];
+	struct mt_credentials *user;
+	char shouldDoLogin = 0;
+	char *slavename;
+
+	/* Reparse user file before each login */
+	readUserfile();
+
+	if ((user = findUser(curconn->username)) != NULL) {
+		md5_state_t state;
+		/* Concat string of 0 + password + encryptionkey */
+		md5data[0] = 0;
+		strncpy(md5data + 1, user->password, 82);
+		memcpy(md5data + 1 + strlen(user->password), curconn->enckey, 16);
+
+		/* Generate md5 sum of md5data with a leading 0 */
+		md5_init(&state);
+		md5_append(&state, (const md5_byte_t *)md5data, strlen(user->password) + 17);
+		md5_finish(&state, (md5_byte_t *)md5sum + 1);
+		md5sum[0] = 0;
+
+		initPacket(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+		curconn->outcounter += addControlPacket(&pdata, MT_CPTYPE_END_AUTH, NULL, 0);
+		sendUDP(curconn, &pdata);
+
+		if (curconn->state == STATE_ACTIVE)
+			return;
+	} else {
+		//printf("User %s not found\n", curconn->username);
+	}
+
+	if (user != NULL && memcmp(md5sum, trypassword, 17) == 0) {
+		/* TODO: syslog */
+		printf("(%d) User %s logged in.\n", curconn->seskey, curconn->username);
+		initPacket(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+		curconn->outcounter += addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Login OK!\r\n", 11);
+		sendUDP(curconn, &pdata);
+		curconn->state = STATE_ACTIVE;
+	} else {
+		/* TODO: syslog */
+		printf("(%d) Invalid login by %s.\n", curconn->seskey, curconn->username);
+		initPacket(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+		curconn->outcounter += addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Login FAILED!\r\n", 15);
+		sendUDP(curconn, &pdata);
+		curconn->state = STATE_CLOSED;
+
+		/* Should acctually wait for ACK of the previous packet before sending this */
+		initPacket(&pdata, MT_PTYPE_END, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+		sendUDP(curconn, &pdata);
+		/* TODO: should wait some time (not with sleep) before returning, to minimalize brute force attacks */
+		return;
+	}
+
+	/* Enter terminal mode */
+	curconn->terminalMode = 1;
+	
+	/* Open pts handle */
+	curconn->ptsfd = posix_openpt(O_RDWR);
+	if (curconn->ptsfd == -1 || grantpt(curconn->ptsfd) == -1 || unlockpt(curconn->ptsfd) == -1) {
+			perror("openpt");
+			initPacket(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+			addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Terminal error\r\n", 15);
+			sendUDP(curconn, &pdata);
+			curconn->state = STATE_CLOSED;
+			initPacket(&pdata, MT_PTYPE_END, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+			sendUDP(curconn, &pdata);
+			return;
+	}
+
+	/* Get file path for our pts */
+	slavename = ptsname(curconn->ptsfd);
+	if (slavename != NULL) {
+		int pid;
+		curconn->slavefd = open(slavename, O_RDWR);
+		if (curconn->slavefd == -1) {
+			perror ("Error opening the slave");
+			list_removeConnection(curconn);
+			return;
+		}
+
+		/* Don't let child process inherit slavefd */
+		fcntl (curconn->ptsfd, F_SETFD, FD_CLOEXEC);
+		if ((pid = fork()) == 0) {
+			struct passwd *user = (struct passwd *)getpwnam(curconn->username);
+			if (user == NULL) {
+				printf("(%d) Login ok, but local user not accessible (%s).\n", curconn->seskey, curconn->username);
+				initPacket(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+				addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "User not found\r\n", 16);
+				sendUDP(curconn, &pdata);
+				curconn->state = STATE_CLOSED;
+				initPacket(&pdata, MT_PTYPE_END, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+				sendUDP(curconn, &pdata);
+				return;
+			}
+			setuid(user->pw_uid);
+			setgid(user->pw_gid);
+			setenv("USER", user->pw_name,1);
+			setenv("HOME", user->pw_dir, 1);
+			setenv("SHELL", user->pw_shell, 1);
+			setenv("TERM", curconn->terminal_type, 1);
+			close(sockfd);
+			close(insockfd);
+			setsid();
+			close(0);
+			dup(curconn->slavefd);
+			close(1);
+			dup(curconn->slavefd);
+			close(2);
+			dup(curconn->slavefd);
+			close(curconn->ptsfd);
+			/* Set controlling terminal */
+			ioctl (0, TIOCSCTTY, 1);
+			close(curconn->slavefd);
+			chdir(user->pw_dir);
+			/* Spawn shell */
+			execl (user->pw_shell, user->pw_shell, (char *) 0);
+			exit(0); // just to be sure.
+		}
+		close(curconn->slavefd);
+		curconn->pid = pid;
+		setTerminalSize(curconn->ptsfd, curconn->terminal_width, curconn->terminal_height);
+	}
+	
+}
+
+void handleDataPacket(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr, int data_len) {
+	struct mt_mactelnet_control_hdr cpkt;
+	struct mt_packet pdata;
+	unsigned char *data = pkthdr->data;
+	int gotUserPacket = 0;
+	int gotPassPacket = 0;
+	int success;
+
+	/* Calculate how much more there is in the packet */
+	success = parseControlPacket(data, data_len - MT_HEADER_LEN, &cpkt);
+
+	while (success) {
+		if (cpkt.cptype == MT_CPTYPE_BEGINAUTH) {
+			int plen,i;
+			for (i = 0; i < 16; ++i) {
+				curconn->enckey[i] = rand() % 256;
+			}
+			initPacket(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+			plen = addControlPacket(&pdata, MT_CPTYPE_ENCRYPTIONKEY, (curconn->enckey), 16);
+			curconn->outcounter += plen;
+			sendUDP(curconn, &pdata);
+			memset(trypassword, 0, sizeof(trypassword));
+
+		} else if (cpkt.cptype == MT_CPTYPE_USERNAME) {
+
+			memcpy(curconn->username, cpkt.data, cpkt.length > 29 ? 29 : cpkt.length);
+			curconn->username[cpkt.length > 29 ? 29 : cpkt.length] = 0;
+			gotUserPacket = 1;
+
+		} else if (cpkt.cptype == MT_CPTYPE_TERM_WIDTH) {
+
+			curconn->terminal_width = cpkt.data[0] | (cpkt.data[1]<<8);
+			if (curconn->state == STATE_ACTIVE) {
+				setTerminalSize(curconn->ptsfd, curconn->terminal_width, curconn->terminal_height);
+			}
+
+		} else if (cpkt.cptype == MT_CPTYPE_TERM_HEIGHT) {
+
+			curconn->terminal_height = cpkt.data[0] | (cpkt.data[1]<<8);
+			if (curconn->state == STATE_ACTIVE) {
+				setTerminalSize(curconn->ptsfd, curconn->terminal_width, curconn->terminal_height);
+			}
+
+		} else if (cpkt.cptype == MT_CPTYPE_TERM_TYPE) {
+
+			memcpy(curconn->terminal_type, cpkt.data, cpkt.length > 29 ? 29 : cpkt.length);
+			curconn->terminal_type[cpkt.length > 29 ? 29 : cpkt.length] = 0;
+
+		} else if (cpkt.cptype == MT_CPTYPE_PASSWORD) {
+
+			memcpy(trypassword, cpkt.data, 17);
+			gotPassPacket = 1;
+
+		} else if (cpkt.cptype == MT_CPTYPE_PLAINDATA) {
+			/* relay data from client to bash */
+			if (curconn->state == STATE_ACTIVE && curconn->ptsfd != -1) {
+				write(curconn->ptsfd, cpkt.data, cpkt.length);
+			}
+		} else {
+			printf("(%d) Unhandeled CPTYPE: %d\n", curconn->seskey, cpkt.cptype);
+		}
+
+		/* Parse next controlpacket */
+		success = parseControlPacket(NULL, 0, &cpkt);
+	}
+	if (gotUserPacket && gotPassPacket) {
+		doLogin(curconn, pkthdr);
+	}	
+}
+
 void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *address) {
 	struct mt_mactelnet_hdr pkthdr;
 	struct mt_connection *curconn;
@@ -162,7 +361,7 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 	switch (pkthdr.ptype) {
 
 		case MT_PTYPE_SESSIONSTART:
-			printf("Adding connection with sessionid %d\n", pkthdr.seskey);
+			printf("(%d) New connection\n", pkthdr.seskey);
 			curconn = calloc(1, sizeof(struct mt_connection));
 			curconn->seskey = pkthdr.seskey;
 			curconn->lastdata = time(NULL);
@@ -172,245 +371,72 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 			curconn->srcport = htons(address->sin_port);
 			memcpy(curconn->dstmac, pkthdr.dstaddr, 6);
 
-			addConnection(curconn);
+			list_addConnection(curconn);
 
 			initPacket(&pdata, MT_PTYPE_ACK, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter);
 			sendUDP(curconn, &pdata);
 			break;
 
 		case MT_PTYPE_END:
-			curconn = findConnection(pkthdr.seskey, (unsigned char *)&(pkthdr.srcaddr));
-			if (curconn != NULL) {
-				if (curconn->state != STATE_CLOSED) {
-					initPacket(&pdata, MT_PTYPE_END, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter);
-					sendUDP(curconn, &pdata);
-				}
-				printf("Connection with sessionid %d closed.\n", curconn->seskey);
-				removeConnection(curconn);
-				return;
+			curconn = list_findConnection(pkthdr.seskey, (unsigned char *)&(pkthdr.srcaddr));
+			if (curconn == NULL) {
+				break;
 			}
-			break;
+			if (curconn->state != STATE_CLOSED) {
+				initPacket(&pdata, MT_PTYPE_END, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter);
+				sendUDP(curconn, &pdata);
+			}
+			printf("(%d) Connection closed.\n", curconn->seskey);
+			list_removeConnection(curconn);
+			return;
 
 		case MT_PTYPE_ACK:
-			curconn = findConnection(pkthdr.seskey, (unsigned char *)&(pkthdr.srcaddr));
-			if (curconn != NULL) {
-				curconn->lastdata = time(NULL);
-
-				if (pkthdr.counter <= curconn->outcounter) {
-					curconn->waitForAck = 0;
-				}
-
-				if (pkthdr.counter == curconn->outcounter) {
-					// Answer to anti-timeout packet
-					initPacket(&pdata, MT_PTYPE_ACK, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter);
-					sendUDP(curconn, &pdata);
-				}
-				return;
+			curconn = list_findConnection(pkthdr.seskey, (unsigned char *)&(pkthdr.srcaddr));
+			if (curconn == NULL) {
+				break;
 			}
+			curconn->lastdata = time(NULL);
+
+			if (pkthdr.counter <= curconn->outcounter) {
+				curconn->waitForAck = 0;
+			}
+
+			if (pkthdr.counter == curconn->outcounter) {
+				// Answer to anti-timeout packet
+				initPacket(&pdata, MT_PTYPE_ACK, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter);
+				sendUDP(curconn, &pdata);
+			}
+				return;
 			break;
 
 		case MT_PTYPE_DATA:
-			curconn = findConnection(pkthdr.seskey, (unsigned char *)&(pkthdr.srcaddr));
-			if (curconn != NULL) {
-				int success;
-				struct mt_mactelnet_control_hdr cpkt;
-				char doLogin = 0;
-
-				curconn->lastdata = time(NULL);
-
-				/* ack the data packet */
-				initPacket(&pdata, MT_PTYPE_ACK, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter + (data_len - MT_HEADER_LEN));
-				sendUDP(curconn, &pdata);
-
-				/* Accept first packet, and all packets greater than incounter, and if counter has
-				wrapped around. */
-				if (curconn->incounter == 0 || pkthdr.counter > curconn->incounter || (curconn->incounter - pkthdr.counter) > 65535) {
-					curconn->incounter = pkthdr.counter;
-				} else {
-					/* Ignore double or old packets */
-					return;
-				}
-
-				/* Calculate how much more there is in the packet */
-				success = parseControlPacket(data + MT_HEADER_LEN, data_len - MT_HEADER_LEN, &cpkt);
-
-				while (success) {
-printf("Type: %d\n", cpkt.cptype);
-					if (cpkt.cptype == MT_CPTYPE_BEGINAUTH) {
-						int plen,i;
-						for (i = 0; i < 16; ++i) {
-							curconn->enckey[i] = rand() % 256;
-						}
-						initPacket(&pdata, MT_PTYPE_DATA, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, curconn->outcounter);
-						plen = addControlPacket(&pdata, MT_CPTYPE_ENCRYPTIONKEY, (curconn->enckey), 16);
-						curconn->outcounter += plen;
-						sendUDP(curconn, &pdata);
-						memset(trypassword, 0, sizeof(trypassword));
-
-					} else if (cpkt.cptype == MT_CPTYPE_USERNAME) {
-
-						memcpy(curconn->username, cpkt.data, cpkt.length > 29 ? 29 : cpkt.length);
-						curconn->username[cpkt.length > 29 ? 29 : cpkt.length] = 0;
-
-					} else if (cpkt.cptype == MT_CPTYPE_TERM_WIDTH) {
-
-						curconn->terminal_width = cpkt.data[0] | (cpkt.data[1]<<8);
-						if (curconn->state == STATE_ACTIVE) {
-							setTerminalSize(curconn->ptsfd, curconn->terminal_width, curconn->terminal_height);
-						}
-
-					} else if (cpkt.cptype == MT_CPTYPE_TERM_HEIGHT) {
-
-						curconn->terminal_height = cpkt.data[0] | (cpkt.data[1]<<8);
-						if (curconn->state == STATE_ACTIVE) {
-							setTerminalSize(curconn->ptsfd, curconn->terminal_width, curconn->terminal_height);
-						}
-
-					} else if (cpkt.cptype == MT_CPTYPE_TERM_TYPE) {
-
-						memcpy(curconn->terminal_type, cpkt.data, cpkt.length > 29 ? 29 : cpkt.length);
-						curconn->terminal_type[cpkt.length > 29 ? 29 : cpkt.length] = 0;
-
-					} else if (cpkt.cptype == MT_CPTYPE_PASSWORD) {
-
-						memcpy(trypassword, cpkt.data, 17);
-						doLogin = 1;
-
-					} else if (cpkt.cptype == MT_CPTYPE_PLAINDATA) {
-						if (curconn->state == STATE_ACTIVE && curconn->ptsfd != -1) {
-							write(curconn->ptsfd, cpkt.data, cpkt.length);
-						}
-					} else {
-						printf("Unhandeled CPTYPE: %d\n", cpkt.cptype);
-					}
-
-					/* Parse next controlpacket */
-					success = parseControlPacket(NULL, 0, &cpkt);
-				}
-				if (doLogin) {
-					int plen = 0;
-					unsigned char md5sum[17];
-					unsigned char md5data[100];
-					struct mt_credentials *user;
-
-					readUserfile();
-
-					if ((user = findUser(curconn->username)) != NULL) {
-						printf("User %s is logging in.\n", curconn->username);
-						md5_state_t state;
-						/* Concat string of 0 + password + encryptionkey */
-						md5data[0] = 0;
-						strncpy(md5data + 1, user->password, 82);
-						memcpy(md5data + 1 + strlen(user->password), curconn->enckey, 16);
-
-						/* Generate md5 sum of md5data with a leading 0 */
-						md5_init(&state);
-						md5_append(&state, (const md5_byte_t *)md5data, strlen(user->password) + 17);
-						md5_finish(&state, (md5_byte_t *)md5sum + 1);
-						md5sum[0] = 0;
-
-						initPacket(&pdata, MT_PTYPE_DATA, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, curconn->outcounter);
-						plen = addControlPacket(&pdata, MT_CPTYPE_END_AUTH, NULL, 0);
-						curconn->outcounter += plen;
-						sendUDP(curconn, &pdata);
-
-						if (curconn->state == STATE_ACTIVE)
-							return;
-					} else {
-						printf("User %s not found\n", curconn->username);
-						doLogin = 0;
-					}
-
-					if (doLogin == 1 && memcmp(md5sum, trypassword, 17) == 0) {
-						initPacket(&pdata, MT_PTYPE_DATA, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, curconn->outcounter);
-						plen = addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Login OK!\r\n", 11);
-						sendUDP(curconn, &pdata);
-						curconn->outcounter += plen;
-						curconn->state = STATE_ACTIVE;
-						curconn->terminalMode = 1;
-					} else {
-						initPacket(&pdata, MT_PTYPE_DATA, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, curconn->outcounter);
-						plen = addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Login FAILED!\r\n", 15);
-						sendUDP(curconn, &pdata);
-						curconn->outcounter += plen;
-						curconn->state = STATE_CLOSED;
-						initPacket(&pdata, MT_PTYPE_END, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, curconn->outcounter);
-						sendUDP(curconn, &pdata);
-						/* TODO: should wait some time (not with sleep) before returning, to minimalize brute force attacks */
-						return;
-					}
-
-					char *slavename;
-					curconn->ptsfd = posix_openpt(O_RDWR);
-					if (curconn->ptsfd == -1 || grantpt(curconn->ptsfd) == -1 || unlockpt(curconn->ptsfd) == -1) {
-							perror("openpt");
-							initPacket(&pdata, MT_PTYPE_DATA, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, curconn->outcounter);
-							addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Terminal error\r\n", 15);
-							sendUDP(curconn, &pdata);
-							curconn->state = STATE_CLOSED;
-							initPacket(&pdata, MT_PTYPE_END, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, curconn->outcounter);
-							sendUDP(curconn, &pdata);
-							return;
-					}
-					slavename = ptsname(curconn->ptsfd);
-					if (slavename != NULL) {
-						int pid;
-						curconn->slavefd = open(slavename, O_RDWR);
-						if (curconn->slavefd == -1) {
-							perror ("Error opening the slave");
-							removeConnection(curconn);
-							return;
-						}
-						fcntl (curconn->slavefd, F_SETFD, FD_CLOEXEC);
-						if ((pid = fork()) == 0) {
-							struct passwd *user = (struct passwd *)getpwnam(curconn->username);
-							if (user == NULL) {
-								initPacket(&pdata, MT_PTYPE_DATA, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, curconn->outcounter);
-								addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "User not found\r\n", 16);
-								sendUDP(curconn, &pdata);
-								curconn->state = STATE_CLOSED;
-								initPacket(&pdata, MT_PTYPE_END, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, curconn->outcounter);
-								sendUDP(curconn, &pdata);
-								return;
-							}
-							setuid(user->pw_uid);
-							setgid(user->pw_gid);
-							setenv("USER", user->pw_name,1);
-							setenv("HOME", user->pw_dir, 1);
-							setenv("SHELL", user->pw_shell, 1);
-							setenv("TERM", curconn->terminal_type, 1);
-							close(sockfd);
-							close(insockfd);
-							setsid();
-							close(0);
-							dup(curconn->slavefd);
-							close(1);
-							dup(curconn->slavefd);
-							close(2);
-							dup(curconn->slavefd);
-							close(curconn->ptsfd);
-							/* Set controlling terminal */
-							ioctl (0, TIOCSCTTY, 1);
-							close(curconn->slavefd);
-							chdir(user->pw_dir);
-							/* Spawn shell */
-							execl (user->pw_shell, user->pw_shell, (char *) 0);
-							exit(0); // just to be sure.
-						}
-						close(curconn->slavefd);
-						curconn->pid = pid;
-						setTerminalSize(curconn->ptsfd, curconn->terminal_width, curconn->terminal_height);
-					}
-				}
+			curconn = list_findConnection(pkthdr.seskey, (unsigned char *)&(pkthdr.srcaddr));
+			if (curconn == NULL) {
+				break;
 			}
-			break;
+			curconn->lastdata = time(NULL);
 
+			/* ack the data packet */
+			initPacket(&pdata, MT_PTYPE_ACK, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter + (data_len - MT_HEADER_LEN));
+			sendUDP(curconn, &pdata);
+
+			/* Accept first packet, and all packets greater than incounter, and if counter has
+			wrapped around. */
+			if (curconn->incounter == 0 || pkthdr.counter > curconn->incounter || (curconn->incounter - pkthdr.counter) > 65535) {
+				curconn->incounter = pkthdr.counter;
+			} else {
+				/* Ignore double or old packets */
+				return;
+			}
+
+			handleDataPacket(curconn, &pkthdr, data_len);
+			break;
 		default:
-			printf("Unhandeled packet type: %d\n", pkthdr.ptype);
+			printf("(%d) Unhandeled packet type: %d\n", curconn->seskey, pkthdr.ptype);
 			initPacket(&pdata, MT_PTYPE_ACK, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter);
 			sendUDP(curconn, &pdata);
 	}
-	if (curconn != NULL) {
+	if (0 && curconn != NULL) {
 		printf("Packet, incounter %d, outcounter %d\n", curconn->incounter, curconn->outcounter);
 	}
 }
@@ -507,7 +533,7 @@ int main (int argc, char **argv) {
 				result = recvfrom(insockfd, buff, 1500, 0, (struct sockaddr *)&saddress, &slen);
 				handlePacket(buff, result, &saddress);
 			}
-
+			/* Handle data from terminal sessions */
 			for (p = connections_head; p != NULL; p = p->next) {
 				/* Check if we have data ready in the pty buffer for the active session */
 				if (p->state == STATE_ACTIVE && p->ptsfd > 0 && p->waitForAck == 0 && FD_ISSET(p->ptsfd, &read_fds)) {
@@ -525,14 +551,21 @@ int main (int argc, char **argv) {
 						result = sendUDP(p, &pdata);
 					} else {
 						/* Bash exited */
+						struct mt_connection tmp;
 						initPacket(&pdata, MT_PTYPE_END, p->dstmac, p->srcmac, p->seskey, p->outcounter);
 						sendUDP(p, &pdata);
-						printf("Connection with sessionid %d closed.\n", p->seskey);
-						removeConnection(p);
+						if (p->username != NULL) {
+							printf("(%d) Connection to user %s closed.\n", p->seskey, p->username);
+						} else {
+							printf("(%d) Connection closed.\n", p->seskey);
+						}
+						tmp.next = p->next;
+						list_removeConnection(p);
+						p = &tmp;
 					}
 				}
 				else if (p->state == STATE_ACTIVE && p->ptsfd > 0 && p->waitForAck == 1 && FD_ISSET(p->ptsfd, &read_fds)) {
-					printf("Waiting for ack on %d\n", p->seskey);
+					printf("(%d) Waiting for ack\n", p->seskey);
 				}
 			}
 		/* Handle select() timeout */
@@ -542,13 +575,13 @@ int main (int argc, char **argv) {
 				struct mt_connection *p;
 				for (p = connections_head; p != NULL; p = p->next) {
 					if (time(NULL) - p->lastdata >= MT_CONNECTION_TIMEOUT) {
-						printf("Sessionid %d timed out\n", p->seskey);
+						printf("(%d) Session timed out\n", p->seskey);
 						initPacket(&pdata, MT_PTYPE_DATA, p->dstmac, p->srcmac, p->seskey, p->outcounter);
 						addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Timeout\r\n", 9);
 						sendUDP(p, &pdata);
 						initPacket(&pdata, MT_PTYPE_END, p->dstmac, p->srcmac, p->seskey, p->outcounter);
 						sendUDP(p, &pdata);
-						removeConnection(p);
+						list_removeConnection(p);
 						//break;
 					}
 				}
@@ -558,6 +591,5 @@ int main (int argc, char **argv) {
 
 	close(sockfd);
 	close(insockfd);
-
 	return 0;
 }

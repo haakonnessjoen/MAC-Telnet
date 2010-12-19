@@ -41,6 +41,7 @@
 #include "devices.h"
 #include "users.h"
 #include "config.h"
+#include <utmp.h>
 
 int sockfd;
 int insockfd;
@@ -153,6 +154,45 @@ int sendUDP(const struct mt_connection *conn, const struct mt_packet *data) {
 	return sendCustomUDP(sockfd, 2, conn->dstmac, conn->srcmac, &sourceip, sourceport, &destip, conn->srcport, data->data, data->size);
 }
 
+void motd() {
+	FILE *fp;
+	int c;
+	
+	if ((fp = fopen("/etc/motd", "r"))) {
+		while ((c = getc(fp)) != EOF) {
+			putchar(c);
+		}
+		fclose(fp);
+	}
+}
+
+void adduwtmp(struct mt_connection *curconn) {
+	struct utmp utent;
+	pid_t pid;
+
+	pid = getpid();
+	
+	char *line = ttyname(curconn->slavefd);
+	if (strncmp(line, "/dev/", 5) == 0)
+		line += 5;
+
+	/* Setup utmp struct */
+	memset((void *) &utent, 0, sizeof(utent));
+	utent.ut_type = USER_PROCESS;
+	utent.ut_pid = pid;
+	strncpy(utent.ut_user, curconn->username, sizeof(utent.ut_user));
+	strncpy(utent.ut_line, line, sizeof(utent.ut_line));
+	strncpy(utent.ut_id, utent.ut_line + 3, sizeof(utent.ut_id));
+	strncpy(utent.ut_host,ether_ntoa((const struct ether_addr *)curconn->dstmac), sizeof(utent.ut_host));
+	time(&utent.ut_time);
+	
+	/* Update utmp and/or wtmp */
+	setutent();
+	pututline(&utent);
+	endutent();
+	updwtmp(_PATH_WTMP, &utent);
+}
+
 void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 	struct mt_packet pdata;
 	unsigned char md5sum[17];
@@ -188,23 +228,21 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 	}
 
 	if (user != NULL && memcmp(md5sum, trypassword, 17) == 0) {
-		/* TODO: syslog */
-		printf("(%d) User %s logged in.\n", curconn->seskey, curconn->username);
-		initPacket(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
-		curconn->outcounter += addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Login OK!\r\n", 11);
-		sendUDP(curconn, &pdata);
 		curconn->state = STATE_ACTIVE;
 	} else {
 		/* TODO: syslog */
 		printf("(%d) Invalid login by %s.\n", curconn->seskey, curconn->username);
+
 		initPacket(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
 		curconn->outcounter += addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Login FAILED!\r\n", 15);
+
 		sendUDP(curconn, &pdata);
 		curconn->state = STATE_CLOSED;
 
 		/* Should acctually wait for ACK of the previous packet before sending this */
 		initPacket(&pdata, MT_PTYPE_END, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
 		sendUDP(curconn, &pdata);
+
 		/* TODO: should wait some time (not with sleep) before returning, to minimalize brute force attacks */
 		return;
 	}
@@ -228,7 +266,7 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 	/* Get file path for our pts */
 	slavename = ptsname(curconn->ptsfd);
 	if (slavename != NULL) {
-		int pid;
+		pid_t pid;
 		curconn->slavefd = open(slavename, O_RDWR);
 		if (curconn->slavefd == -1) {
 			perror ("Error opening the slave");
@@ -237,8 +275,8 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 		}
 
 		/* Don't let child process inherit slavefd */
-		fcntl (curconn->ptsfd, F_SETFD, FD_CLOEXEC);
-		if ((pid = fork()) == 0) {
+		fcntl (curconn->slavefd, F_SETFD, FD_CLOEXEC);
+		if ((pid = fork()) == 0) {			
 			struct passwd *user = (struct passwd *)getpwnam(curconn->username);
 			if (user == NULL) {
 				printf("(%d) Login ok, but local user not accessible (%s).\n", curconn->seskey, curconn->username);
@@ -250,8 +288,26 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 				sendUDP(curconn, &pdata);
 				return;
 			}
-			setuid(user->pw_uid);
-			setgid(user->pw_gid);
+
+			/* Add login information to utmp/wtmp */
+			adduwtmp(curconn);
+
+			/* Set user id/group id */
+			if ((setgid(user->pw_gid) != 0) || (setuid(user->pw_uid) != 0)) {
+				printf("(%d) Could not log in %s (%d:%d): setuid/setgid: %s\n", curconn->seskey, curconn->username, user->pw_uid, user->pw_gid, strerror(errno));
+				initPacket(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+				addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Internal error\r\n", 16);
+				sendUDP(curconn, &pdata);
+				curconn->state = STATE_CLOSED;
+				initPacket(&pdata, MT_PTYPE_END, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+				sendUDP(curconn, &pdata);
+				return;
+			}
+
+			/* TODO: syslog */
+			printf("(%d) User %s logged in.\n", curconn->seskey, curconn->username);
+
+			/* Initialize terminal environment */			
 			setenv("USER", user->pw_name,1);
 			setenv("HOME", user->pw_dir, 1);
 			setenv("SHELL", user->pw_shell, 1);
@@ -259,18 +315,25 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 			close(sockfd);
 			close(insockfd);
 			setsid();
+
+			/* Redirect STDIN/STDIO/STDERR */
 			close(0);
 			dup(curconn->slavefd);
 			close(1);
 			dup(curconn->slavefd);
 			close(2);
 			dup(curconn->slavefd);
+			close(curconn->slavefd);
 			close(curconn->ptsfd);
+
 			/* Set controlling terminal */
 			ioctl (0, TIOCSCTTY, 1);
-			close(curconn->slavefd);
-			chdir(user->pw_dir);
+
+			/* Display MOTD */
+			motd();
+
 			/* Spawn shell */
+			chdir(user->pw_dir);
 			execl (user->pw_shell, user->pw_shell, (char *) 0);
 			exit(0); // just to be sure.
 		}
@@ -287,6 +350,8 @@ void handleDataPacket(struct mt_connection *curconn, struct mt_mactelnet_hdr *pk
 	unsigned char *data = pkthdr->data;
 	int gotUserPacket = 0;
 	int gotPassPacket = 0;
+	int gotWidthPacket = 0;
+	int gotHeightPacket = 0;
 	int success;
 
 	/* Calculate how much more there is in the packet */
@@ -294,14 +359,18 @@ void handleDataPacket(struct mt_connection *curconn, struct mt_mactelnet_hdr *pk
 
 	while (success) {
 		if (cpkt.cptype == MT_CPTYPE_BEGINAUTH) {
+
 			int plen,i;
 			for (i = 0; i < 16; ++i) {
 				curconn->enckey[i] = rand() % 256;
 			}
+
 			initPacket(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
 			plen = addControlPacket(&pdata, MT_CPTYPE_ENCRYPTIONKEY, (curconn->enckey), 16);
 			curconn->outcounter += plen;
+
 			sendUDP(curconn, &pdata);
+
 			memset(trypassword, 0, sizeof(trypassword));
 
 		} else if (cpkt.cptype == MT_CPTYPE_USERNAME) {
@@ -313,16 +382,12 @@ void handleDataPacket(struct mt_connection *curconn, struct mt_mactelnet_hdr *pk
 		} else if (cpkt.cptype == MT_CPTYPE_TERM_WIDTH) {
 
 			curconn->terminal_width = cpkt.data[0] | (cpkt.data[1]<<8);
-			if (curconn->state == STATE_ACTIVE) {
-				setTerminalSize(curconn->ptsfd, curconn->terminal_width, curconn->terminal_height);
-			}
+			gotWidthPacket = 1;
 
 		} else if (cpkt.cptype == MT_CPTYPE_TERM_HEIGHT) {
 
 			curconn->terminal_height = cpkt.data[0] | (cpkt.data[1]<<8);
-			if (curconn->state == STATE_ACTIVE) {
-				setTerminalSize(curconn->ptsfd, curconn->terminal_width, curconn->terminal_height);
-			}
+			gotHeightPacket = 1;
 
 		} else if (cpkt.cptype == MT_CPTYPE_TERM_TYPE) {
 
@@ -335,20 +400,28 @@ void handleDataPacket(struct mt_connection *curconn, struct mt_mactelnet_hdr *pk
 			gotPassPacket = 1;
 
 		} else if (cpkt.cptype == MT_CPTYPE_PLAINDATA) {
-			/* relay data from client to bash */
+
+			/* relay data from client to shell */
 			if (curconn->state == STATE_ACTIVE && curconn->ptsfd != -1) {
 				write(curconn->ptsfd, cpkt.data, cpkt.length);
 			}
+
 		} else {
-			printf("(%d) Unhandeled CPTYPE: %d\n", curconn->seskey, cpkt.cptype);
+			printf("(%d) Unhandeled control packet type: %d\n", curconn->seskey, cpkt.cptype);
 		}
 
 		/* Parse next controlpacket */
 		success = parseControlPacket(NULL, 0, &cpkt);
 	}
+	
 	if (gotUserPacket && gotPassPacket) {
 		doLogin(curconn, pkthdr);
-	}	
+	}
+	
+	if (curconn->state == STATE_ACTIVE && (gotWidthPacket || gotHeightPacket)) {
+		setTerminalSize(curconn->ptsfd, curconn->terminal_width, curconn->terminal_height);
+
+	}
 }
 
 void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *address) {
@@ -550,7 +623,7 @@ int main (int argc, char **argv) {
 						p->waitForAck = 1;
 						result = sendUDP(p, &pdata);
 					} else {
-						/* Bash exited */
+						/* Shell exited */
 						struct mt_connection tmp;
 						initPacket(&pdata, MT_PTYPE_END, p->dstmac, p->srcmac, p->seskey, p->outcounter);
 						sendUDP(p, &pdata);
@@ -572,7 +645,7 @@ int main (int argc, char **argv) {
 		} else {
 			/* TODO: Kill timed out sessions */
 			if (connections_head != NULL) {
-				struct mt_connection *p;
+				struct mt_connection *p,tmp;
 				for (p = connections_head; p != NULL; p = p->next) {
 					if (time(NULL) - p->lastdata >= MT_CONNECTION_TIMEOUT) {
 						printf("(%d) Session timed out\n", p->seskey);
@@ -581,8 +654,10 @@ int main (int argc, char **argv) {
 						sendUDP(p, &pdata);
 						initPacket(&pdata, MT_PTYPE_END, p->dstmac, p->srcmac, p->seskey, p->outcounter);
 						sendUDP(p, &pdata);
+
+						tmp.next = p->next;
 						list_removeConnection(p);
-						//break;
+						p = &tmp;
 					}
 				}
 			}

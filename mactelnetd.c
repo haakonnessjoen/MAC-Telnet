@@ -155,7 +155,7 @@ int sendUDP(const struct mt_connection *conn, const struct mt_packet *data) {
 	return sendCustomUDP(sockfd, 2, conn->dstmac, conn->srcmac, &sourceip, sourceport, &destip, conn->srcport, data->data, data->size);
 }
 
-void motd() {
+void displayMotd() {
 	FILE *fp;
 	int c;
 	
@@ -165,6 +165,18 @@ void motd() {
 		}
 		fclose(fp);
 	}
+}
+
+void displayNologin() {
+	FILE *fp;
+	int c;
+	
+	if ((fp = fopen("/etc/nologin", "r"))) {
+		while ((c = getc(fp)) != EOF) {
+			putchar(c);
+		}
+		fclose(fp);
+	}	
 }
 
 void adduwtmp(struct mt_connection *curconn) {
@@ -192,6 +204,19 @@ void adduwtmp(struct mt_connection *curconn) {
 	pututline(&utent);
 	endutent();
 	updwtmp(_PATH_WTMP, &utent);
+}
+
+void abortConnection(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr, char *message) {
+	struct mt_packet pdata;
+	
+	initPacket(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+	addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, message, strlen(message));
+	sendUDP(curconn, &pdata);
+
+	/* Make connection time out; lets the previous message get acked before disconnecting */
+	curconn->state = STATE_CLOSED;
+	initPacket(&pdata, MT_PTYPE_END, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+	sendUDP(curconn, &pdata);
 }
 
 void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
@@ -234,15 +259,7 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 		/* TODO: syslog */
 		printf("(%d) Invalid login by %s.\n", curconn->seskey, curconn->username);
 
-		initPacket(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
-		curconn->outcounter += addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Login FAILED!\r\n", 15);
-
-		sendUDP(curconn, &pdata);
-		curconn->state = STATE_CLOSED;
-
-		/* Should acctually wait for ACK of the previous packet before sending this */
-		initPacket(&pdata, MT_PTYPE_END, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
-		sendUDP(curconn, &pdata);
+		abortConnection(curconn, pkthdr, "Login FAILED!\r\n");
 
 		/* TODO: should wait some time (not with sleep) before returning, to minimalize brute force attacks */
 		return;
@@ -255,12 +272,7 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 	curconn->ptsfd = posix_openpt(O_RDWR);
 	if (curconn->ptsfd == -1 || grantpt(curconn->ptsfd) == -1 || unlockpt(curconn->ptsfd) == -1) {
 			perror("openpt");
-			initPacket(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
-			addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Terminal error\r\n", 15);
-			sendUDP(curconn, &pdata);
-			curconn->state = STATE_CLOSED;
-			initPacket(&pdata, MT_PTYPE_END, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
-			sendUDP(curconn, &pdata);
+			abortConnection(curconn, pkthdr, "Terminal error\r\n");
 			return;
 	}
 
@@ -268,9 +280,12 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 	slavename = ptsname(curconn->ptsfd);
 	if (slavename != NULL) {
 		pid_t pid;
+		struct stat sb;
+		
 		curconn->slavefd = open(slavename, O_RDWR);
 		if (curconn->slavefd == -1) {
 			perror ("Error opening the slave");
+			abortConnection(curconn, pkthdr, "Error opening terminal\r\n");
 			list_removeConnection(curconn);
 			return;
 		}
@@ -281,27 +296,17 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 			struct passwd *user = (struct passwd *)getpwnam(curconn->username);
 			if (user == NULL) {
 				printf("(%d) Login ok, but local user not accessible (%s).\n", curconn->seskey, curconn->username);
-				initPacket(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
-				addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "User not found\r\n", 16);
-				sendUDP(curconn, &pdata);
-				curconn->state = STATE_CLOSED;
-				initPacket(&pdata, MT_PTYPE_END, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
-				sendUDP(curconn, &pdata);
+				abortConnection(curconn, pkthdr, "Local user not accessible\r\n");
 				return;
 			}
-
+			
 			/* Add login information to utmp/wtmp */
 			adduwtmp(curconn);
 
 			/* Set user id/group id */
 			if ((setgid(user->pw_gid) != 0) || (setuid(user->pw_uid) != 0)) {
 				printf("(%d) Could not log in %s (%d:%d): setuid/setgid: %s\n", curconn->seskey, curconn->username, user->pw_uid, user->pw_gid, strerror(errno));
-				initPacket(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
-				addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Internal error\r\n", 16);
-				sendUDP(curconn, &pdata);
-				curconn->state = STATE_CLOSED;
-				initPacket(&pdata, MT_PTYPE_END, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
-				sendUDP(curconn, &pdata);
+				abortConnection(curconn, pkthdr, "Internal error\r\n");
 				return;
 			}
 
@@ -330,8 +335,18 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 			/* Set controlling terminal */
 			ioctl (0, TIOCSCTTY, 1);
 
+			if (stat(_PATH_NOLOGIN, &sb) == 0 && getuid() != 0) {
+				/* TODO: syslog about nologin file */
+				displayNologin();
+				curconn->state = STATE_CLOSED;
+				initPacket(&pdata, MT_PTYPE_END, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+				sendUDP(curconn, &pdata);
+				exit(0);
+			}
+
+			
 			/* Display MOTD */
-			motd();
+			displayMotd();
 
 			/* Spawn shell */
 			chdir(user->pw_dir);
@@ -477,6 +492,7 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 
 			if (pkthdr.counter == curconn->outcounter) {
 				// Answer to anti-timeout packet
+				/* TODO: only answer if time() - lastpacket is somewhat high.. */
 				initPacket(&pdata, MT_PTYPE_ACK, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter);
 				sendUDP(curconn, &pdata);
 			}
@@ -599,7 +615,9 @@ int main (int argc, char **argv) {
 		/* Wait for data or timeout */
 		reads = select(maxfd+1, &read_fds, NULL, NULL, &timeout);
 		if (reads > 0) {
-			/* Handle data from clients */
+			/* Handle data from clients
+			 TODO: Check if packet is for us. And enable broadcast support (without raw sockets)
+			 */
 			if (FD_ISSET(insockfd, &read_fds)) {
 				unsigned char buff[1500];
 				struct sockaddr_in saddress;
@@ -644,7 +662,6 @@ int main (int argc, char **argv) {
 			}
 		/* Handle select() timeout */
 		} else {
-			/* TODO: Kill timed out sessions */
 			if (connections_head != NULL) {
 				struct mt_connection *p,tmp;
 				for (p = connections_head; p != NULL; p = p->next) {

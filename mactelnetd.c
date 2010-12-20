@@ -24,6 +24,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <arpa/inet.h>
+#include <net/ethernet.h>
 #include <netinet/in.h>
 #include <netinet/ether.h>
 #include <sys/time.h>
@@ -34,6 +35,7 @@
 #include <linux/if_ether.h>
 #include <sys/ioctl.h>
 #include <pwd.h>
+#include <utmp.h>
 #include "md5.h"
 #include "protocol.h"
 #include "udp.h"
@@ -41,7 +43,6 @@
 #include "devices.h"
 #include "users.h"
 #include "config.h"
-#include <utmp.h>
 
 int sockfd;
 int insockfd;

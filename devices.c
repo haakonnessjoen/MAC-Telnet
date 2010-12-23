@@ -35,7 +35,7 @@
 
 /* Functions using NETDEVICE api */
 
-int getDeviceIndex(int sockfd, unsigned char *deviceName) {
+int getDeviceIndex(int sockfd, char *deviceName) {
 	struct ifreq ifr;
 
 	/* Find interface index from deviceName */
@@ -48,7 +48,7 @@ int getDeviceIndex(int sockfd, unsigned char *deviceName) {
 	return ifr.ifr_ifindex;
 }
 
-int getDeviceMAC(const int sockfd, const unsigned char *deviceName, unsigned char *mac) {
+int getDeviceMAC(const int sockfd, const char *deviceName, unsigned char *mac) {
 	struct ifreq ifr;
 
 	/* Find interface hardware address from deviceName */
@@ -62,7 +62,7 @@ int getDeviceMAC(const int sockfd, const unsigned char *deviceName, unsigned cha
 	return 1;
 }
 
-int getDeviceIp(const int sockfd, const unsigned char *deviceName, struct sockaddr_in *ip) {
+int getDeviceIp(const int sockfd, const char *deviceName, struct sockaddr_in *ip) {
 	struct ifconf ifc;
 	struct ifreq *ifr;
 	int i,numDevices;
@@ -134,11 +134,10 @@ int getIps(char *name, int nameLen, struct sockaddr_in *ip) {
 			int_cursor = int_cursor->ifa_next;
 		}
 	}
-	if (int_cursor == NULL) {
-		if (int_addrs != NULL) {
-			freeifaddrs(int_addrs);
-			int_addrs = NULL;
-		}
-		return 0;
+	if (int_addrs != NULL) {
+		freeifaddrs(int_addrs);
+		int_addrs = NULL;
 	}
+	return 0;
+
 }

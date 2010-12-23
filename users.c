@@ -27,7 +27,7 @@ struct mt_credentials mt_users[MT_CRED_MAXNUM];
 
 void readUserfile() {
 	FILE *file = fopen(USERSFILE, "r");
-	unsigned char line [BUFSIZ];
+	char line [BUFSIZ];
 	int i = 0;
 
 	if (file == NULL) {
@@ -36,11 +36,11 @@ void readUserfile() {
 	}
 
 	while ( fgets(line, sizeof line, file) ) {
-		unsigned char *user;
-		unsigned char *password;
+		char *user;
+		char *password;
 
-		user = (unsigned char *)strtok(line, ":");
-		password = (unsigned char *)strtok(NULL, "\n");
+		user = strtok(line, ":");
+		password = strtok(NULL, "\n");
 
 		if (user == NULL || password == NULL) {
 			continue;
@@ -60,7 +60,7 @@ void readUserfile() {
 	fclose(file);
 }
 
-struct mt_credentials* findUser(unsigned char *username) {
+struct mt_credentials* findUser(char *username) {
 	int i = 0;
 
 	while (i < MT_CRED_MAXNUM && mt_users[i].username[0] != 0) {

@@ -35,6 +35,7 @@
 #include <string.h>
 #include <linux/if_ether.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <pwd.h>
 #include <utmp.h>
 #include <syslog.h>
@@ -81,7 +82,7 @@ struct mt_connection {
 	int pid;
 	int waitForAck;
 
-	unsigned char username[30];
+	char username[30];
 	unsigned char srcip[4];
 	unsigned char srcmac[6];
 	unsigned short srcport;
@@ -89,17 +90,17 @@ struct mt_connection {
 	unsigned char enckey[16];
 	unsigned short terminal_width;
 	unsigned short terminal_height;
-	unsigned char terminal_type[30];
+	char terminal_type[30];
 
 	struct mt_connection *next;
 };
 
-void uwtmp_login(struct mt_connection *);
-void uwtmp_logout(struct mt_connection *);
+static void uwtmp_login(struct mt_connection *);
+static void uwtmp_logout(struct mt_connection *);
 
 struct mt_connection *connections_head = NULL;
 
-void list_addConnection(struct mt_connection *conn) {
+static void list_addConnection(struct mt_connection *conn) {
 	struct mt_connection *p;
 	struct mt_connection *last;
 	if (connections_head == NULL) {
@@ -112,7 +113,7 @@ void list_addConnection(struct mt_connection *conn) {
 	conn->next = NULL;
 }
 
-void list_removeConnection(struct mt_connection *conn) {
+static void list_removeConnection(struct mt_connection *conn) {
 	struct mt_connection *p;
 	struct mt_connection *last;
 	if (connections_head == NULL)
@@ -143,7 +144,7 @@ void list_removeConnection(struct mt_connection *conn) {
 	}
 }
 
-struct mt_connection *list_findConnection(unsigned short seskey, unsigned char *srcmac) {
+static struct mt_connection *list_findConnection(unsigned short seskey, unsigned char *srcmac) {
 	struct mt_connection *p;
 
 	if (connections_head == NULL)
@@ -158,11 +159,11 @@ struct mt_connection *list_findConnection(unsigned short seskey, unsigned char *
 	return NULL;
 }
 
-int sendUDP(const struct mt_connection *conn, const struct mt_packet *data) {
+static int sendUDP(const struct mt_connection *conn, const struct mt_packet *data) {
 	return sendCustomUDP(sockfd, 2, conn->dstmac, conn->srcmac, &sourceip, sourceport, &destip, conn->srcport, data->data, data->size);
 }
 
-void displayMotd() {
+static void displayMotd() {
 	FILE *fp;
 	int c;
 
@@ -174,7 +175,7 @@ void displayMotd() {
 	}
 }
 
-void displayNologin() {
+static void displayNologin() {
 	FILE *fp;
 	int c;
 
@@ -186,7 +187,7 @@ void displayNologin() {
 	}	
 }
 
-void uwtmp_login(struct mt_connection *conn) {
+static void uwtmp_login(struct mt_connection *conn) {
 	struct utmp utent;
 	pid_t pid;
 
@@ -213,7 +214,7 @@ void uwtmp_login(struct mt_connection *conn) {
 	updwtmp(_PATH_WTMP, &utent);
 }
 
-void uwtmp_logout(struct mt_connection *conn) {
+static void uwtmp_logout(struct mt_connection *conn) {
 	if (conn->pid > 0) {
 		struct utmp *utentp;
 		struct utmp utent;
@@ -238,7 +239,7 @@ void uwtmp_logout(struct mt_connection *conn) {
 	}
 }
 
-void abortConnection(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr, char *message) {
+static void abortConnection(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr, char *message) {
 	struct mt_packet pdata;
 	
 	initPacket(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
@@ -251,12 +252,11 @@ void abortConnection(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkt
 	sendUDP(curconn, &pdata);
 }
 
-void userLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
+static void userLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 	struct mt_packet pdata;
 	unsigned char md5sum[17];
-	unsigned char md5data[100];
+	char md5data[100];
 	struct mt_credentials *user;
-	char shouldDoLogin = 0;
 	char *slavename;
 
 	/* Reparse user file before each login */
@@ -390,7 +390,7 @@ void userLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 
 }
 
-void handleDataPacket(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr, int data_len) {
+static void handleDataPacket(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr, int data_len) {
 	struct mt_mactelnet_control_hdr cpkt;
 	struct mt_packet pdata;
 	unsigned char *data = pkthdr->data;
@@ -470,14 +470,14 @@ void handleDataPacket(struct mt_connection *curconn, struct mt_mactelnet_hdr *pk
 	}
 }
 
-void terminate() {
+static void terminate() {
 	syslog(LOG_NOTICE, "Exiting.");
 	exit(0);
 }
 
-void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *address) {
+static void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *address) {
 	struct mt_mactelnet_hdr pkthdr;
-	struct mt_connection *curconn;
+	struct mt_connection *curconn = NULL;
 	struct mt_packet pdata;
 
 	parsePacket(data, &pkthdr);
@@ -557,16 +557,18 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 			handleDataPacket(curconn, &pkthdr, data_len);
 			break;
 		default:
-			syslog(LOG_WARNING, "(%d) Unhandeled packet type: %d", curconn->seskey, pkthdr.ptype);
-			initPacket(&pdata, MT_PTYPE_ACK, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter);
-			sendUDP(curconn, &pdata);
-	}
+			if (curconn) {
+				syslog(LOG_WARNING, "(%d) Unhandeled packet type: %d", curconn->seskey, pkthdr.ptype);
+				initPacket(&pdata, MT_PTYPE_ACK, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter);
+				sendUDP(curconn, &pdata);
+			}
+		}
 	if (0 && curconn != NULL) {
 		printf("Packet, incounter %d, outcounter %d\n", curconn->incounter, curconn->outcounter);
 	}
 }
 
-void daemonize() {
+static void daemonize() {
 	int pid,fd;
 
 	pid = fork();
@@ -601,7 +603,6 @@ int main (int argc, char **argv) {
 	int result;
 	struct sockaddr_in si_me;
 	struct timeval timeout;
-	int keepalive_counter = 0;
 	struct mt_packet pdata;
 	fd_set read_fds;
 
@@ -690,7 +691,7 @@ int main (int argc, char **argv) {
 			if (FD_ISSET(insockfd, &read_fds)) {
 				unsigned char buff[1500];
 				struct sockaddr_in saddress;
-				int slen = sizeof(saddress);
+				unsigned int slen = sizeof(saddress);
 				result = recvfrom(insockfd, buff, 1500, 0, (struct sockaddr *)&saddress, &slen);
 				handlePacket(buff, result, &saddress);
 			}

@@ -23,6 +23,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/ether.h>
+#include <time.h>
 #include "protocol.h"
 #include "config.h"
 
@@ -30,7 +31,7 @@ unsigned char mt_mactelnet_cpmagic[4] = { 0x56, 0x34, 0x12, 0xff };
 unsigned char mt_mactelnet_clienttype[2] = { 0x00, 0x15 };
 
 
-int initPacket(struct mt_packet *packet, unsigned char ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned int counter) {
+int initPacket(struct mt_packet *packet, enum mt_ptype ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned int counter) {
 	unsigned char *data = packet->data;
 
 	/* Packet version */
@@ -72,7 +73,7 @@ int initPacket(struct mt_packet *packet, unsigned char ptype, unsigned char *src
 	return 22;
 }
 
-int addControlPacket(struct mt_packet *packet, char cptype, void *cpdata, int data_len) {
+int addControlPacket(struct mt_packet *packet, enum mt_cptype cptype, void *cpdata, int data_len) {
 	unsigned char *data = packet->data + packet->size;
 
 	/* Something is really wrong. Packets should never become over 1500 bytes */
@@ -204,7 +205,7 @@ int parseControlPacket(unsigned char *packetdata, int data_len, struct mt_mactel
 	}
 }
 
-struct mt_mndp_packet *parseMNDP(const char *data, const int packetLen) {
+struct mt_mndp_packet *parseMNDP(const unsigned char *data, const int packetLen) {
 	static struct mt_mndp_packet packet;
 	unsigned short nameLen = 0;
 
@@ -232,7 +233,7 @@ struct mt_mndp_packet *parseMNDP(const char *data, const int packetLen) {
 	return &packet;
 }
 
-int queryMNDP(const unsigned char *identity, unsigned char *mac) {
+int queryMNDP(const char *identity, unsigned char *mac) {
 	int fastlookup = 0;
 	int sock, length;
 	int optval = 1;

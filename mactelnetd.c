@@ -69,8 +69,8 @@ unsigned char mt_direction_fromserver = 1;
 /** Connection struct */
 struct mt_connection {
 	unsigned short seskey;
-	unsigned short incounter;
-	unsigned short outcounter;
+	unsigned int incounter;
+	unsigned int outcounter;
 	time_t lastdata;
 	int terminalMode;
 	unsigned char username[30];
@@ -302,7 +302,7 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 			syslog(LOG_INFO, "(%d) User %s logged in.", curconn->seskey, curconn->username);
 
 			/* Initialize terminal environment */			
-			setenv("USER", user->pw_name,1);
+			setenv("USER", user->pw_name, 1);
 			setenv("HOME", user->pw_dir, 1);
 			setenv("SHELL", user->pw_shell, 1);
 			setenv("TERM", curconn->terminal_type, 1);
@@ -515,7 +515,7 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 
 			/* Accept first packet, and all packets greater than incounter, and if counter has
 			wrapped around. */
-			if (curconn->incounter == 0 || pkthdr.counter > curconn->incounter || (curconn->incounter - pkthdr.counter) > 65535) {
+			if (curconn->incounter == 0 || pkthdr.counter > curconn->incounter || (curconn->incounter - pkthdr.counter) > 16777216) {
 				curconn->incounter = pkthdr.counter;
 			} else {
 				/* Ignore double or old packets */

@@ -36,6 +36,7 @@
 #include <sys/ioctl.h>
 #include <pwd.h>
 #include <utmp.h>
+#include <syslog.h>
 #include "md5.h"
 #include "protocol.h"
 #include "udp.h"
@@ -171,7 +172,7 @@ void displayNologin() {
 	FILE *fp;
 	int c;
 	
-	if ((fp = fopen("/etc/nologin", "r"))) {
+	if ((fp = fopen(_PATH_NOLOGIN, "r"))) {
 		while ((c = getc(fp)) != EOF) {
 			putchar(c);
 		}
@@ -249,15 +250,12 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 
 		if (curconn->state == STATE_ACTIVE)
 			return;
-	} else {
-		//printf("User %s not found\n", curconn->username);
 	}
 
 	if (user != NULL && memcmp(md5sum, trypassword, 17) == 0) {
 		curconn->state = STATE_ACTIVE;
 	} else {
-		/* TODO: syslog */
-		printf("(%d) Invalid login by %s.\n", curconn->seskey, curconn->username);
+		syslog(LOG_NOTICE, "(%d) Invalid login by %s.", curconn->seskey, curconn->username);
 
 		abortConnection(curconn, pkthdr, "Login FAILED!\r\n");
 
@@ -271,7 +269,7 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 	/* Open pts handle */
 	curconn->ptsfd = posix_openpt(O_RDWR);
 	if (curconn->ptsfd == -1 || grantpt(curconn->ptsfd) == -1 || unlockpt(curconn->ptsfd) == -1) {
-			perror("openpt");
+			syslog(LOG_ERR, "posix_openpt: %s", strerror(errno));
 			abortConnection(curconn, pkthdr, "Terminal error\r\n");
 			return;
 	}
@@ -284,18 +282,16 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 		
 		curconn->slavefd = open(slavename, O_RDWR);
 		if (curconn->slavefd == -1) {
-			perror ("Error opening the slave");
+			syslog(LOG_ERR, "Error opening %s: %s", slavename, strerror(errno));
 			abortConnection(curconn, pkthdr, "Error opening terminal\r\n");
 			list_removeConnection(curconn);
 			return;
 		}
 
-		/* Don't let child process inherit slavefd */
-		fcntl (curconn->slavefd, F_SETFD, FD_CLOEXEC);
 		if ((pid = fork()) == 0) {			
 			struct passwd *user = (struct passwd *)getpwnam(curconn->username);
 			if (user == NULL) {
-				printf("(%d) Login ok, but local user not accessible (%s).\n", curconn->seskey, curconn->username);
+				syslog(LOG_WARNING, "(%d) Login ok, but local user not accessible (%s).", curconn->seskey, curconn->username);
 				abortConnection(curconn, pkthdr, "Local user not accessible\r\n");
 				return;
 			}
@@ -303,15 +299,7 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 			/* Add login information to utmp/wtmp */
 			adduwtmp(curconn);
 
-			/* Set user id/group id */
-			if ((setgid(user->pw_gid) != 0) || (setuid(user->pw_uid) != 0)) {
-				printf("(%d) Could not log in %s (%d:%d): setuid/setgid: %s\n", curconn->seskey, curconn->username, user->pw_uid, user->pw_gid, strerror(errno));
-				abortConnection(curconn, pkthdr, "Internal error\r\n");
-				return;
-			}
-
-			/* TODO: syslog */
-			printf("(%d) User %s logged in.\n", curconn->seskey, curconn->username);
+			syslog(LOG_INFO, "(%d) User %s logged in.", curconn->seskey, curconn->username);
 
 			/* Initialize terminal environment */			
 			setenv("USER", user->pw_name,1);
@@ -322,6 +310,10 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 			close(insockfd);
 			setsid();
 
+			/* Don't let shell process inherit slavefd */
+			fcntl (curconn->slavefd, F_SETFD, FD_CLOEXEC);
+			close(curconn->ptsfd);
+			
 			/* Redirect STDIN/STDIO/STDERR */
 			close(0);
 			dup(curconn->slavefd);
@@ -329,14 +321,21 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 			dup(curconn->slavefd);
 			close(2);
 			dup(curconn->slavefd);
-			close(curconn->slavefd);
-			close(curconn->ptsfd);
 
 			/* Set controlling terminal */
-			ioctl (0, TIOCSCTTY, 1);
+			ioctl(0, TIOCSCTTY, 1);
+			tcsetpgrp(0, getpid());
 
+			/* Set user id/group id */
+			if ((setgid(user->pw_gid) != 0) || (setuid(user->pw_uid) != 0)) {
+				syslog(LOG_ERR, "(%d) Could not log in %s (%d:%d): setuid/setgid: %s", curconn->seskey, curconn->username, user->pw_uid, user->pw_gid, strerror(errno));
+				abortConnection(curconn, pkthdr, "Internal error\r\n");
+				exit(0);
+			}
+
+			/* Abort login if /etc/nologin exists */
 			if (stat(_PATH_NOLOGIN, &sb) == 0 && getuid() != 0) {
-				/* TODO: syslog about nologin file */
+				syslog(LOG_NOTICE, "(%d) User %s disconnected with " _PATH_NOLOGIN " message.", curconn->seskey, curconn->username);
 				displayNologin();
 				curconn->state = STATE_CLOSED;
 				initPacket(&pdata, MT_PTYPE_END, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
@@ -344,20 +343,19 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 				exit(0);
 			}
 
-			
 			/* Display MOTD */
 			displayMotd();
 
 			/* Spawn shell */
 			chdir(user->pw_dir);
-			execl (user->pw_shell, user->pw_shell, (char *) 0);
+			execl(user->pw_shell, user->pw_shell, (char *) 0);
 			exit(0); // just to be sure.
 		}
 		close(curconn->slavefd);
 		curconn->pid = pid;
 		setTerminalSize(curconn->ptsfd, curconn->terminal_width, curconn->terminal_height);
 	}
-	
+
 }
 
 void handleDataPacket(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr, int data_len) {
@@ -370,7 +368,7 @@ void handleDataPacket(struct mt_connection *curconn, struct mt_mactelnet_hdr *pk
 	int gotHeightPacket = 0;
 	int success;
 
-	/* Calculate how much more there is in the packet */
+	/* Parse first control packet */
 	success = parseControlPacket(data, data_len - MT_HEADER_LEN, &cpkt);
 
 	while (success) {
@@ -423,10 +421,10 @@ void handleDataPacket(struct mt_connection *curconn, struct mt_mactelnet_hdr *pk
 			}
 
 		} else {
-			printf("(%d) Unhandeled control packet type: %d\n", curconn->seskey, cpkt.cptype);
+			syslog(LOG_WARNING, "(%d) Unhandeled control packet type: %d", curconn->seskey, cpkt.cptype);
 		}
 
-		/* Parse next controlpacket */
+		/* Parse next control packet */
 		success = parseControlPacket(NULL, 0, &cpkt);
 	}
 	
@@ -440,6 +438,11 @@ void handleDataPacket(struct mt_connection *curconn, struct mt_mactelnet_hdr *pk
 	}
 }
 
+void terminate() {
+	syslog(LOG_NOTICE, "Exiting.");
+	exit(0);
+}
+
 void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *address) {
 	struct mt_mactelnet_hdr pkthdr;
 	struct mt_connection *curconn;
@@ -450,7 +453,7 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 	switch (pkthdr.ptype) {
 
 		case MT_PTYPE_SESSIONSTART:
-			printf("(%d) New connection\n", pkthdr.seskey);
+			syslog(LOG_DEBUG, "(%d) New connection.", pkthdr.seskey);
 			curconn = calloc(1, sizeof(struct mt_connection));
 			curconn->seskey = pkthdr.seskey;
 			curconn->lastdata = time(NULL);
@@ -475,7 +478,7 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 				initPacket(&pdata, MT_PTYPE_END, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter);
 				sendUDP(curconn, &pdata);
 			}
-			printf("(%d) Connection closed.\n", curconn->seskey);
+			syslog(LOG_DEBUG, "(%d) Connection closed.", curconn->seskey);
 			list_removeConnection(curconn);
 			return;
 
@@ -522,13 +525,41 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 			handleDataPacket(curconn, &pkthdr, data_len);
 			break;
 		default:
-			printf("(%d) Unhandeled packet type: %d\n", curconn->seskey, pkthdr.ptype);
+			syslog(LOG_WARNING, "(%d) Unhandeled packet type: %d", curconn->seskey, pkthdr.ptype);
 			initPacket(&pdata, MT_PTYPE_ACK, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter);
 			sendUDP(curconn, &pdata);
 	}
 	if (0 && curconn != NULL) {
 		printf("Packet, incounter %d, outcounter %d\n", curconn->incounter, curconn->outcounter);
 	}
+}
+
+void daemonize() {
+	int pid,fd;
+
+	pid = fork();
+
+	/* Error? */
+	if (pid < 0)
+		exit(1);
+
+	/* Parent exit */
+	if (pid > 0)
+		exit(0);
+
+	setsid();
+	close(0);
+	close(1);
+	close(2);
+	
+	fd = open("/dev/null",O_RDWR);
+	dup(fd);
+	dup(fd);
+
+	signal(SIGCHLD,SIG_IGN);
+	signal(SIGTSTP,SIG_IGN);
+	signal(SIGTTOU,SIG_IGN);
+	signal(SIGTTIN,SIG_IGN);	
 }
 
 /*
@@ -588,8 +619,13 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 
-	printf("Bound to %s:%d\n", inet_ntoa(si_me.sin_addr), sourceport);
-
+	daemonize();
+	openlog("mactelnetd", LOG_PID, LOG_DAEMON);
+	
+	syslog(LOG_NOTICE, "Bound to %s:%d", inet_ntoa(si_me.sin_addr), sourceport);
+	
+	signal(SIGTERM, terminate);
+	
 	while (1) {
 		int reads;
 		struct mt_connection *p;
@@ -647,9 +683,9 @@ int main (int argc, char **argv) {
 						initPacket(&pdata, MT_PTYPE_END, p->dstmac, p->srcmac, p->seskey, p->outcounter);
 						sendUDP(p, &pdata);
 						if (p->username != NULL) {
-							printf("(%d) Connection to user %s closed.\n", p->seskey, p->username);
+							syslog(LOG_INFO, "(%d) Connection to user %s closed.", p->seskey, p->username);
 						} else {
-							printf("(%d) Connection closed.\n", p->seskey);
+							syslog(LOG_INFO, "(%d) Connection closed.", p->seskey);
 						}
 						tmp.next = p->next;
 						list_removeConnection(p);
@@ -666,7 +702,7 @@ int main (int argc, char **argv) {
 				struct mt_connection *p,tmp;
 				for (p = connections_head; p != NULL; p = p->next) {
 					if (time(NULL) - p->lastdata >= MT_CONNECTION_TIMEOUT) {
-						printf("(%d) Session timed out\n", p->seskey);
+						syslog(LOG_INFO, "(%d) Session timed out", p->seskey);
 						initPacket(&pdata, MT_PTYPE_DATA, p->dstmac, p->srcmac, p->seskey, p->outcounter);
 						addControlPacket(&pdata, MT_CPTYPE_PLAINDATA, "Timeout\r\n", 9);
 						sendUDP(p, &pdata);
@@ -684,5 +720,6 @@ int main (int argc, char **argv) {
 
 	close(sockfd);
 	close(insockfd);
+	closelog();
 	return 0;
 }

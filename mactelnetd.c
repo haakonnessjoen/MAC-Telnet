@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <time.h>
 #include <arpa/inet.h>
 #include <net/ethernet.h>
 #include <netinet/in.h>
@@ -72,25 +73,29 @@ struct mt_connection {
 	unsigned int incounter;
 	unsigned int outcounter;
 	time_t lastdata;
+
 	int terminalMode;
+	int state;
+	int ptsfd;
+	int slavefd;
+	int pid;
+	int waitForAck;
+
 	unsigned char username[30];
 	unsigned char srcip[4];
 	unsigned char srcmac[6];
 	unsigned short srcport;
 	unsigned char dstmac[6];
 	unsigned char enckey[16];
-	int state;
-	int ptsfd;
-	int slavefd;
-	int pid;
 	unsigned short terminal_width;
 	unsigned short terminal_height;
 	unsigned char terminal_type[30];
 
-	int waitForAck;
-
 	struct mt_connection *next;
 };
+
+void uwtmp_login(struct mt_connection *);
+void uwtmp_logout(struct mt_connection *);
 
 struct mt_connection *connections_head = NULL;
 
@@ -120,6 +125,7 @@ void list_removeConnection(struct mt_connection *conn) {
 		close(conn->slavefd);
 	}
 
+	uwtmp_logout(conn);
 
 	if (connections_head == conn) {
 		connections_head = conn->next;
@@ -159,7 +165,7 @@ int sendUDP(const struct mt_connection *conn, const struct mt_packet *data) {
 void displayMotd() {
 	FILE *fp;
 	int c;
-	
+
 	if ((fp = fopen("/etc/motd", "r"))) {
 		while ((c = getc(fp)) != EOF) {
 			putchar(c);
@@ -171,7 +177,7 @@ void displayMotd() {
 void displayNologin() {
 	FILE *fp;
 	int c;
-	
+
 	if ((fp = fopen(_PATH_NOLOGIN, "r"))) {
 		while ((c = getc(fp)) != EOF) {
 			putchar(c);
@@ -180,13 +186,13 @@ void displayNologin() {
 	}	
 }
 
-void adduwtmp(struct mt_connection *curconn) {
+void uwtmp_login(struct mt_connection *conn) {
 	struct utmp utent;
 	pid_t pid;
 
 	pid = getpid();
 	
-	char *line = ttyname(curconn->slavefd);
+	char *line = ttyname(conn->slavefd);
 	if (strncmp(line, "/dev/", 5) == 0)
 		line += 5;
 
@@ -194,10 +200,10 @@ void adduwtmp(struct mt_connection *curconn) {
 	memset((void *) &utent, 0, sizeof(utent));
 	utent.ut_type = USER_PROCESS;
 	utent.ut_pid = pid;
-	strncpy(utent.ut_user, curconn->username, sizeof(utent.ut_user));
+	strncpy(utent.ut_user, conn->username, sizeof(utent.ut_user));
 	strncpy(utent.ut_line, line, sizeof(utent.ut_line));
 	strncpy(utent.ut_id, utent.ut_line + 3, sizeof(utent.ut_id));
-	strncpy(utent.ut_host,ether_ntoa((const struct ether_addr *)curconn->srcmac), sizeof(utent.ut_host));
+	strncpy(utent.ut_host,ether_ntoa((const struct ether_addr *)conn->srcmac), sizeof(utent.ut_host));
 	time(&utent.ut_time);
 	
 	/* Update utmp and/or wtmp */
@@ -205,6 +211,31 @@ void adduwtmp(struct mt_connection *curconn) {
 	pututline(&utent);
 	endutent();
 	updwtmp(_PATH_WTMP, &utent);
+}
+
+void uwtmp_logout(struct mt_connection *conn) {
+	if (conn->pid > 0) {
+		struct utmp *utentp;
+		struct utmp utent;
+		setutent();
+
+		while ((utentp = getutent()) != NULL) {
+			if (utentp->ut_pid == conn->pid && utentp->ut_id) {
+				break;
+			}
+		}
+
+		if (utentp) {
+			utent = *utentp;
+
+			utent.ut_type = DEAD_PROCESS;
+			utent.ut_tv.tv_sec = time(NULL);
+
+			pututline(&utent);
+			endutent();
+			updwtmp(_PATH_WTMP, &utent);
+		}
+	}
 }
 
 void abortConnection(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr, char *message) {
@@ -220,7 +251,7 @@ void abortConnection(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkt
 	sendUDP(curconn, &pdata);
 }
 
-void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
+void userLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 	struct mt_packet pdata;
 	unsigned char md5sum[17];
 	unsigned char md5data[100];
@@ -252,20 +283,21 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 			return;
 	}
 
-	if (user != NULL && memcmp(md5sum, trypassword, 17) == 0) {
-		curconn->state = STATE_ACTIVE;
-	} else {
+	if (user == NULL || memcmp(md5sum, trypassword, 17) != 0) {
 		syslog(LOG_NOTICE, "(%d) Invalid login by %s.", curconn->seskey, curconn->username);
 
-		abortConnection(curconn, pkthdr, "Login FAILED!\r\n");
+		abortConnection(curconn, pkthdr, "Login failed, incorrect username or password\r\n");
 
 		/* TODO: should wait some time (not with sleep) before returning, to minimalize brute force attacks */
 		return;
 	}
 
+	/* User is logged in */
+	curconn->state = STATE_ACTIVE;
+
 	/* Enter terminal mode */
 	curconn->terminalMode = 1;
-	
+
 	/* Open pts handle */
 	curconn->ptsfd = posix_openpt(O_RDWR);
 	if (curconn->ptsfd == -1 || grantpt(curconn->ptsfd) == -1 || unlockpt(curconn->ptsfd) == -1) {
@@ -279,7 +311,7 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 	if (slavename != NULL) {
 		pid_t pid;
 		struct stat sb;
-		
+
 		curconn->slavefd = open(slavename, O_RDWR);
 		if (curconn->slavefd == -1) {
 			syslog(LOG_ERR, "Error opening %s: %s", slavename, strerror(errno));
@@ -295,9 +327,9 @@ void doLogin(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 				abortConnection(curconn, pkthdr, "Local user not accessible\r\n");
 				return;
 			}
-			
+
 			/* Add login information to utmp/wtmp */
-			adduwtmp(curconn);
+			uwtmp_login(curconn);
 
 			syslog(LOG_INFO, "(%d) User %s logged in.", curconn->seskey, curconn->username);
 
@@ -429,7 +461,7 @@ void handleDataPacket(struct mt_connection *curconn, struct mt_mactelnet_hdr *pk
 	}
 	
 	if (gotUserPacket && gotPassPacket) {
-		doLogin(curconn, pkthdr);
+		userLogin(curconn, pkthdr);
 	}
 	
 	if (curconn->state == STATE_ACTIVE && (gotWidthPacket || gotHeightPacket)) {
@@ -620,12 +652,13 @@ int main (int argc, char **argv) {
 	}
 
 	daemonize();
+
 	openlog("mactelnetd", LOG_PID, LOG_DAEMON);
-	
+
 	syslog(LOG_NOTICE, "Bound to %s:%d", inet_ntoa(si_me.sin_addr), sourceport);
-	
+
 	signal(SIGTERM, terminate);
-	
+
 	while (1) {
 		int reads;
 		struct mt_connection *p;
@@ -645,8 +678,8 @@ int main (int argc, char **argv) {
 			}
 		}
 
-		timeout.tv_sec = 0;
-		timeout.tv_usec = 100000;
+		timeout.tv_sec = 1;
+		timeout.tv_usec = 0;
 
 		/* Wait for data or timeout */
 		reads = select(maxfd+1, &read_fds, NULL, NULL, &timeout);

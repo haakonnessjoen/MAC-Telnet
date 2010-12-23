@@ -197,7 +197,7 @@ void adduwtmp(struct mt_connection *curconn) {
 	strncpy(utent.ut_user, curconn->username, sizeof(utent.ut_user));
 	strncpy(utent.ut_line, line, sizeof(utent.ut_line));
 	strncpy(utent.ut_id, utent.ut_line + 3, sizeof(utent.ut_id));
-	strncpy(utent.ut_host,ether_ntoa((const struct ether_addr *)curconn->dstmac), sizeof(utent.ut_host));
+	strncpy(utent.ut_host,ether_ntoa((const struct ether_addr *)curconn->srcmac), sizeof(utent.ut_host));
 	time(&utent.ut_time);
 	
 	/* Update utmp and/or wtmp */
@@ -453,7 +453,7 @@ void handlePacket(unsigned char *data, int data_len, const struct sockaddr_in *a
 	switch (pkthdr.ptype) {
 
 		case MT_PTYPE_SESSIONSTART:
-			syslog(LOG_DEBUG, "(%d) New connection.", pkthdr.seskey);
+			syslog(LOG_DEBUG, "(%d) New connection from %s.", pkthdr.seskey, ether_ntoa((struct ether_addr*)&(pkthdr.srcaddr)));
 			curconn = calloc(1, sizeof(struct mt_connection));
 			curconn->seskey = pkthdr.seskey;
 			curconn->lastdata = time(NULL);

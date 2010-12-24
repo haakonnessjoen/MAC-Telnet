@@ -19,6 +19,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <linux/if_ether.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -250,6 +251,9 @@ int queryMNDP(const char *identity, unsigned char *mac) {
 	/* Open a UDP socket handle */
 	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
+	/* Allow to share socket */
+	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+
 	/* Set initialize address/port */
 	memset((char *) &si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
@@ -259,6 +263,7 @@ int queryMNDP(const char *identity, unsigned char *mac) {
 	/* Bind to specified address/port */
 	if (bind(sock, (struct sockaddr *)&si_me, sizeof(si_me)) == -1) {
 		fprintf(stderr, "Error binding to %s:%d\n", inet_ntoa(si_me.sin_addr), MT_MNDP_PORT);
+		close(sock);
 		return 0;
 	}
 
@@ -281,7 +286,7 @@ int queryMNDP(const char *identity, unsigned char *mac) {
 	while (1) {
 		/* Timeout, in case we receive a lot of packets, but from the wrong routers */
 		if (time(0) - startTime > (fastlookup ? MT_MNDP_TIMEOUT : MT_MNDP_LONGTIMEOUT)) {
-			return 0;
+			goto done;
 		}
 
 		FD_ZERO(&read_fds);
@@ -292,13 +297,13 @@ int queryMNDP(const char *identity, unsigned char *mac) {
 	
 		select(sock + 1, &read_fds, NULL, NULL, &timeout);
 		if (!FD_ISSET(sock, &read_fds)) {
-			return 0;
+			goto done;
 		}
 
 		/* Read UDP packet */
 		length = recvfrom(sock, buff, MT_PACKET_LEN, 0, 0, 0);
 		if (length < 0) {
-			return 0;
+			goto done;
 		}
 
 		/* Parse MNDP packet */
@@ -307,8 +312,12 @@ int queryMNDP(const char *identity, unsigned char *mac) {
 		if (packet != NULL) {
 			if (strcasecmp(identity, packet->identity) == 0) {
 				memcpy(mac, packet->address, ETH_ALEN);
+				close(sock);
 				return 1;
 			}
 		}
 	}
+done:
+	close(sock);
+	return 0;
 }

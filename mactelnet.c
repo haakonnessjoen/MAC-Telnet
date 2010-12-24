@@ -47,7 +47,7 @@ unsigned int incounter = 0;
 int sessionkey = 0;
 int running = 1;
 
-unsigned char broadcastMode = 1;
+unsigned char broadcast_mode = 1;
 unsigned char terminalMode = 0;
 
 unsigned char srcmac[ETH_ALEN];
@@ -66,25 +66,25 @@ char password[255];
 /* Protocol data direction */
 unsigned char mt_direction_fromserver = 0;
 
-unsigned int sendSocket;
+unsigned int send_socket;
 
-static int sendUDP(struct mt_packet *packet) {
+static int send_udp(struct mt_packet *packet) {
 
-	if (broadcastMode) {
+	if (broadcast_mode) {
 		/* Init SendTo struct */
 		struct sockaddr_in socket_address;
 		socket_address.sin_family = AF_INET;
 		socket_address.sin_port = htons(MT_MACTELNET_PORT);
 		socket_address.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 
-		return sendto(sendSocket, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
+		return sendto(send_socket, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
 	} else {
-		return sendCustomUDP(sockfd, deviceIndex, srcmac, dstmac, &sourceip,  sourceport, &destip, MT_MACTELNET_PORT, packet->data, packet->size);
+		return send_custom_udp(sockfd, deviceIndex, srcmac, dstmac, &sourceip,  sourceport, &destip, MT_MACTELNET_PORT, packet->data, packet->size);
 	}
 
 }
 
-static void sendAuthData(char *username, char *password) {
+static void send_auth(char *username, char *password) {
 	struct mt_packet data;
 	unsigned short width = 0;
 	unsigned short height = 0;
@@ -92,7 +92,7 @@ static void sendAuthData(char *username, char *password) {
 	char md5data[100];
 	unsigned char md5sum[17];
 	int result;
-	int plen = 0;
+	int plen;
 	md5_state_t state;
 
 	/* Concat string of 0 + password + encryptionkey */
@@ -108,20 +108,20 @@ static void sendAuthData(char *username, char *password) {
 	md5sum[0] = 0;
 
 	/* Send combined packet to server */
-	 initPacket(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
-	plen += addControlPacket(&data, MT_CPTYPE_PASSWORD, md5sum, 17);
-	plen += addControlPacket(&data, MT_CPTYPE_USERNAME, username, strlen(username));
-	plen += addControlPacket(&data, MT_CPTYPE_TERM_TYPE, terminal, strlen(terminal));
+	init_packet(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
+	plen = add_control_packet(&data, MT_CPTYPE_PASSWORD, md5sum, 17);
+	plen += add_control_packet(&data, MT_CPTYPE_USERNAME, username, strlen(username));
+	plen += add_control_packet(&data, MT_CPTYPE_TERM_TYPE, terminal, strlen(terminal));
 	
-	if (getTerminalSize(&width, &height) != -1) {
-		plen += addControlPacket(&data, MT_CPTYPE_TERM_WIDTH, &width, 2);
-		plen += addControlPacket(&data, MT_CPTYPE_TERM_HEIGHT, &height, 2);
+	if (get_terminal_size(&width, &height) != -1) {
+		plen += add_control_packet(&data, MT_CPTYPE_TERM_WIDTH, &width, 2);
+		plen += add_control_packet(&data, MT_CPTYPE_TERM_HEIGHT, &height, 2);
 	}
 
 	outcounter += plen;
 
 	/* TODO: handle result */
-	result = sendUDP(&data);
+	result = send_udp(&data);
 }
 
 static void sig_winch(int sig) {
@@ -130,22 +130,22 @@ static void sig_winch(int sig) {
 	int result,plen;
 
 	/* terminal height/width has changed, inform server */
-	if (getTerminalSize(&width, &height) != -1) {
-		initPacket(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
-		plen = addControlPacket(&data, MT_CPTYPE_TERM_WIDTH, &width, 2);
-		plen += addControlPacket(&data, MT_CPTYPE_TERM_HEIGHT, &height, 2);
+	if (get_terminal_size(&width, &height) != -1) {
+		init_packet(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
+		plen = add_control_packet(&data, MT_CPTYPE_TERM_WIDTH, &width, 2);
+		plen += add_control_packet(&data, MT_CPTYPE_TERM_HEIGHT, &height, 2);
 		outcounter += plen;
 
-		result = sendUDP(&data);
+		result = send_udp(&data);
 	}
 
 	/* reinstate signal handler */
 	signal(SIGWINCH, sig_winch);
 }
 
-static void handlePacket(unsigned char *data, int data_len) {
+static void handle_packet(unsigned char *data, int data_len) {
 	struct mt_mactelnet_hdr pkthdr;
-	parsePacket(data, &pkthdr);
+	parse_packet(data, &pkthdr);
 
 	/* We only care about packets with correct sessionkey */
 	if (pkthdr.seskey != sessionkey) {
@@ -160,8 +160,8 @@ static void handlePacket(unsigned char *data, int data_len) {
 		int success = 0;
 
 		/* Always transmit ACKNOWLEDGE packets in response to DATA packets */
-		initPacket(&odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, pkthdr.counter + (data_len - MT_HEADER_LEN));
-		result = sendUDP(&odata);
+		init_packet(&odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, pkthdr.counter + (data_len - MT_HEADER_LEN));
+		result = send_udp(&odata);
 
 		/* Accept first packet, and all packets greater than incounter, and if counter has
 		wrapped around. */
@@ -173,14 +173,14 @@ static void handlePacket(unsigned char *data, int data_len) {
 		}
 
 		/* Parse controlpacket data */
-		success = parseControlPacket(data + MT_HEADER_LEN, data_len - MT_HEADER_LEN, &cpkt);
+		success = parse_control_packet(data + MT_HEADER_LEN, data_len - MT_HEADER_LEN, &cpkt);
 
 		while (success) {
 
 			/* If we receive encryptionkey, transmit auth data back */
 			if (cpkt.cptype == MT_CPTYPE_ENCRYPTIONKEY) {
 				memcpy(encryptionkey, cpkt.data, cpkt.length);
-				sendAuthData(username, password);
+				send_auth(username, password);
 			}
 
 			/* If the (remaining) data did not have a control-packet magic byte sequence,
@@ -194,7 +194,7 @@ static void handlePacket(unsigned char *data, int data_len) {
 			   terminal data may arrive, so we set up the terminal to raw mode. */
 			else if (cpkt.cptype == MT_CPTYPE_END_AUTH) {
 				/* stop input buffering at all levels. Give full control of terminal to RouterOS */
-				rawTerm();
+				raw_term();
 				setvbuf(stdin,  (char*)NULL, _IONBF, 0);
 
 				/* we have entered "terminal mode" */
@@ -205,7 +205,7 @@ static void handlePacket(unsigned char *data, int data_len) {
 			}
 
 			/* Parse next controlpacket */
-			success = parseControlPacket(NULL, 0, &cpkt);
+			success = parse_control_packet(NULL, 0, &cpkt);
 		}
 	}
 	else if (pkthdr.ptype == MT_PTYPE_ACK) {
@@ -218,8 +218,8 @@ static void handlePacket(unsigned char *data, int data_len) {
 		int result=0;
 
 		/* Acknowledge the disconnection by sending a END packet in return */
-		initPacket(&odata, MT_PTYPE_END, srcmac, dstmac, pkthdr.seskey, 0);
-		result = sendUDP(&odata);
+		init_packet(&odata, MT_PTYPE_END, srcmac, dstmac, pkthdr.seskey, 0);
+		result = send_udp(&odata);
 
 		fprintf(stderr, "Connection closed.\n");
 
@@ -230,7 +230,7 @@ static void handlePacket(unsigned char *data, int data_len) {
 	}
 }
 
-static int findInterface() {
+static int find_interface() {
 	struct mt_packet data;
 	struct sockaddr_in myip;
 	int success;
@@ -240,7 +240,7 @@ static int findInterface() {
 	struct timeval timeout;
 	int optval = 1;
 	
-	while ((success = getIps(devicename, 128, &myip))) {
+	while ((success = get_ips(devicename, 128, &myip))) {
 		char str[INET_ADDRSTRLEN];
 
 		/* Skip loopback interfaces */
@@ -267,17 +267,17 @@ static int findInterface() {
 		}
 
 		/* Find the mac address for the current device */
-		if (getDeviceMAC(testsocket, devicename, srcmac) < 0) {
+		if (get_device_mac(testsocket, devicename, srcmac) < 0) {
 			close(testsocket);
 			continue;
 		}
 
-		/* Set the global socket handle for sendUDP() */
-		sendSocket = testsocket;
+		/* Set the global socket handle for send_udp() */
+		send_socket = testsocket;
 
 		/* Send a SESSIONSTART message with the current device */
-		initPacket(&data, MT_PTYPE_SESSIONSTART, srcmac, dstmac, sessionkey, 0);
-		sendUDP(&data);
+		init_packet(&data, MT_PTYPE_SESSIONSTART, srcmac, dstmac, sessionkey, 0);
+		send_udp(&data);
 
 		timeout.tv_sec = connect_timeout;
 		timeout.tv_usec = 0;
@@ -308,7 +308,7 @@ int main (int argc, char **argv) {
 	struct timeval timeout;
 	int keepalive_counter = 0;
 	fd_set read_fds;
-	unsigned char printHelp = 0, haveUsername = 0, havePassword = 0;
+	unsigned char print_help = 0, have_username = 0, have_password = 0;
 	int c;
 	int optval = 1;
 
@@ -321,21 +321,21 @@ int main (int argc, char **argv) {
 		switch (c) {
 
 			case 'n':
-				broadcastMode = 0;
+				broadcast_mode = 0;
 				break;
 
 			case 'u':
 				/* Save username */
 				strncpy(username, optarg, sizeof(username) - 1);
 				username[sizeof(username) - 1] = '\0';
-				haveUsername = 1;
+				have_username = 1;
 				break;
 
 			case 'p':
 				/* Save password */
 				strncpy(password, optarg, sizeof(password) - 1);
 				password[sizeof(password) - 1] = '\0';
-				havePassword = 1;
+				have_password = 1;
 				break;
 
 			case 't':
@@ -344,15 +344,15 @@ int main (int argc, char **argv) {
 
 			case 'h':
 			case '?':
-				printHelp = 1;
+				print_help = 1;
 				break;
 
 		}
 	}
-	if (argc - optind < 1 || printHelp) {
+	if (argc - optind < 1 || print_help) {
 		fprintf(stderr, "Usage: %s <MAC|identity> [-h] [-n] [-t <timeout>] [-u <username>] [-p <password>]\n", argv[0]);
 
-		if (printHelp) {
+		if (print_help) {
 			fprintf(stderr, "\nParameters:\n");
 			fprintf(stderr, "  ifname    Network interface that the RouterOS resides on. (example: eth0)\n");
 			fprintf(stderr, "  MAC       MAC-Address of the RouterOS device. Use mndp to discover them.\n");
@@ -370,12 +370,12 @@ int main (int argc, char **argv) {
 	/* Seed randomizer */
 	srand(time(NULL));
 
-	if (!broadcastMode && geteuid() != 0) {
+	if (!broadcast_mode && geteuid() != 0) {
 		fprintf(stderr, "You need to have root privileges to use the -n parameter.\n");
 		return 1;
 	}
 
-	if (!broadcastMode) {
+	if (!broadcast_mode) {
 		/* Transmit raw packets with this socket */
 		sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 		if (sockfd < 0) {
@@ -391,7 +391,7 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 
-	if (broadcastMode) {
+	if (broadcast_mode) {
 		if (setsockopt(insockfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof (optval))==-1) {
 			perror("SO_BROADCAST");
 			return 1;
@@ -415,7 +415,7 @@ int main (int argc, char **argv) {
 			fprintf(stderr, "Searching for '%s'...", argv[optind]);
 
 			/* Search for Router by identity name, using MNDP */
-			if (!queryMNDP(argv[optind], dstmac)) {
+			if (!query_mndp(argv[optind], dstmac)) {
 				fprintf(stderr, "not found\n");
 				return 1;
 			}
@@ -429,12 +429,12 @@ int main (int argc, char **argv) {
 		}
 	}
 
-	if (!haveUsername) {
+	if (!have_username) {
 		printf("Login: ");
 		scanf("%254s", username);
 	}
 
-	if (!havePassword) {
+	if (!have_password) {
 		char *tmp;
 		tmp = getpass("Passsword: ");
 		strncpy(password, tmp, sizeof(password) - 1);
@@ -473,24 +473,24 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 
-	if (!findInterface() || (result = recvfrom(insockfd, buff, 1400, 0, 0, 0)) < 1) {
+	if (!find_interface() || (result = recvfrom(insockfd, buff, 1400, 0, 0, 0)) < 1) {
 		fprintf(stderr, "Connection failed.\n");
 		return 1;
 	}
 	printf("done\n");
 
 	/* Handle first received packet */
-	handlePacket(buff, result);
+	handle_packet(buff, result);
 
 	/*
 	 * TODO: Should resubmit whenever a PTYPE_DATA packet is sent, and an ACK packet with correct datacounter is received
 	 * or time out the connection, in all other cases.
 	*/
-	initPacket(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, 0);
-	outcounter +=  addControlPacket(&data, MT_CPTYPE_BEGINAUTH, NULL, 0);
+	init_packet(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, 0);
+	outcounter +=  add_control_packet(&data, MT_CPTYPE_BEGINAUTH, NULL, 0);
 
-	/* TODO: handle result of sendUDP */
-	result = sendUDP(&data);
+	/* TODO: handle result of send_udp */
+	result = send_udp(&data);
 
 	while (running) {
 		int reads;
@@ -509,7 +509,7 @@ int main (int argc, char **argv) {
 			if (FD_ISSET(insockfd, &read_fds)) {
 				memset(buff, 0, 1500);
 				result = recvfrom(insockfd, buff, 1500, 0, 0, 0);
-				handlePacket(buff, result);
+				handle_packet(buff, result);
 			}
 			/* Handle data from keyboard/local terminal */
 			if (FD_ISSET(0, &read_fds)) {
@@ -518,10 +518,10 @@ int main (int argc, char **argv) {
 
 				datalen = read(STDIN_FILENO, &keydata, 512);
 
-				initPacket(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
-				addControlPacket(&data, MT_CPTYPE_PLAINDATA, &keydata, datalen);
+				init_packet(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
+				add_control_packet(&data, MT_CPTYPE_PLAINDATA, &keydata, datalen);
 				outcounter += datalen;
-				result = sendUDP(&data);
+				result = send_udp(&data);
 			}
 		/* Handle select() timeout */
 		} else {
@@ -530,15 +530,15 @@ int main (int argc, char **argv) {
 			if ((keepalive_counter++ % 10) == 0) {
 				struct mt_packet odata;
 				int plen=0,result=0;
-				plen = initPacket(&odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, 0);
-				result = sendUDP(&odata);
+				plen = init_packet(&odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, 0);
+				result = send_udp(&odata);
 			}
 		}
 	}
 
 	if (terminalMode) {
 		/* Reset terminal back to old settings */
-		resetTerm();
+		reset_term();
 	}
 
 	close(sockfd);

@@ -11,7 +11,7 @@ struct mt_credentials {
 
 extern struct mt_credentials mt_users[MT_CRED_MAXNUM];
 
-extern void readUserfile();
-struct mt_credentials* findUser(char *username);
+extern void read_userfile();
+struct mt_credentials* find_user(char *username);
 
 #endif

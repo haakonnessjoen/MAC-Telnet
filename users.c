@@ -25,7 +25,7 @@
 
 struct mt_credentials mt_users[MT_CRED_MAXNUM];
 
-void readUserfile() {
+void read_userfile() {
 	FILE *file = fopen(USERSFILE, "r");
 	char line [BUFSIZ];
 	int i = 0;
@@ -60,7 +60,7 @@ void readUserfile() {
 	fclose(file);
 }
 
-struct mt_credentials* findUser(char *username) {
+struct mt_credentials* find_user(char *username) {
 	int i = 0;
 
 	while (i < MT_CRED_MAXNUM && mt_users[i].username[0] != 0) {

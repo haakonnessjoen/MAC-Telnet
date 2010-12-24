@@ -77,7 +77,7 @@ int main(int argc, char **argv)  {
 		}
 
 		/* Parse MNDP packet */
-		packet = parseMNDP(buff, result);
+		packet = parse_mndp(buff, result);
 
 		if (packet != NULL) {
 			/* Print it */

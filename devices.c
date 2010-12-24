@@ -35,7 +35,7 @@
 
 /* Functions using NETDEVICE api */
 
-int getDeviceIndex(int sockfd, char *deviceName) {
+int get_device_index(int sockfd, char *deviceName) {
 	struct ifreq ifr;
 
 	/* Find interface index from deviceName */
@@ -48,7 +48,7 @@ int getDeviceIndex(int sockfd, char *deviceName) {
 	return ifr.ifr_ifindex;
 }
 
-int getDeviceMAC(const int sockfd, const char *deviceName, unsigned char *mac) {
+int get_device_mac(const int sockfd, const char *deviceName, unsigned char *mac) {
 	struct ifreq ifr;
 
 	/* Find interface hardware address from deviceName */
@@ -62,7 +62,7 @@ int getDeviceMAC(const int sockfd, const char *deviceName, unsigned char *mac) {
 	return 1;
 }
 
-int getDeviceIp(const int sockfd, const char *deviceName, struct sockaddr_in *ip) {
+int get_device_ip(const int sockfd, const char *deviceName, struct sockaddr_in *ip) {
 	struct ifconf ifc;
 	struct ifreq *ifr;
 	int i,numDevices;
@@ -106,7 +106,7 @@ int getDeviceIp(const int sockfd, const char *deviceName, struct sockaddr_in *ip
 	return -1;
 }
 
-int getIps(char *name, int nameLen, struct sockaddr_in *ip) {
+int get_ips(char *name, int nameLen, struct sockaddr_in *ip) {
 	static int first = 1;
 	static struct ifaddrs *int_addrs;
 	static const struct ifaddrs *int_cursor;

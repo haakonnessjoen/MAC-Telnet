@@ -26,7 +26,7 @@
 
 struct termios origTerm;
 
-int rawTerm() {
+int raw_term() {
 	struct termios new;
 
 	if (tcgetattr(STDIN_FILENO, &origTerm) < 0) {
@@ -49,7 +49,7 @@ int rawTerm() {
 	return 0;
 }
 
-int resetTerm() {
+int reset_term() {
 	if (tcsetattr(STDIN_FILENO, TCSANOW, &origTerm) < 0) {
 		perror("tcsetattr");
 		return -1;
@@ -57,7 +57,7 @@ int resetTerm() {
 	return 0;
 }
 
-int getTerminalSize(unsigned short *width, unsigned short *height) {
+int get_terminal_size(unsigned short *width, unsigned short *height) {
 	struct winsize ws;
 
 	if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) != 0) {
@@ -71,7 +71,7 @@ int getTerminalSize(unsigned short *width, unsigned short *height) {
 	return 0;
 }
 
-int setTerminalSize(int fd, unsigned short width, unsigned short height) {
+int set_terminal_size(int fd, unsigned short width, unsigned short height) {
 	struct winsize ws;
 
 	ws.ws_col = width;

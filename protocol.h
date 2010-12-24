@@ -83,14 +83,14 @@ struct mt_packet {
 };
 
 /* MacTelnet/Winbox packets */
-extern int initPacket(struct mt_packet *packet, enum mt_ptype ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned int counter);
-extern int addControlPacket(struct mt_packet *packet, enum mt_cptype cptype, void *cpdata, int data_len);
-extern void parsePacket(unsigned char *data, struct mt_mactelnet_hdr *pkthdr);
-extern int parseControlPacket(unsigned char *data, int data_len, struct mt_mactelnet_control_hdr *cpkthdr);
+extern int init_packet(struct mt_packet *packet, enum mt_ptype ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned int counter);
+extern int add_control_packet(struct mt_packet *packet, enum mt_cptype cptype, void *cpdata, int data_len);
+extern void parse_packet(unsigned char *data, struct mt_mactelnet_hdr *pkthdr);
+extern int parse_control_packet(unsigned char *data, int data_len, struct mt_mactelnet_control_hdr *cpkthdr);
 
 /* MNDP packets */
-struct mt_mndp_packet *parseMNDP(const unsigned char *data, const int packetLen);
-int queryMNDP(const char *identity, unsigned char *mac);
+struct mt_mndp_packet *parse_mndp(const unsigned char *data, const int packetLen);
+int query_mndp(const char *identity, unsigned char *mac);
 
 /* Control packet magic header */
 extern unsigned char mt_mactelnet_cpmagic[4];

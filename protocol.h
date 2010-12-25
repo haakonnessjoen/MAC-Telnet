@@ -89,7 +89,7 @@ extern void parse_packet(unsigned char *data, struct mt_mactelnet_hdr *pkthdr);
 extern int parse_control_packet(unsigned char *data, int data_len, struct mt_mactelnet_control_hdr *cpkthdr);
 
 /* MNDP packets */
-struct mt_mndp_packet *parse_mndp(const unsigned char *data, const int packetLen);
+struct mt_mndp_packet *parse_mndp(const unsigned char *data, const int packet_len);
 int query_mndp(const char *identity, unsigned char *mac);
 
 /* Control packet magic header */

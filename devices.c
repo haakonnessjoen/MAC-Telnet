@@ -35,11 +35,11 @@
 
 /* Functions using NETDEVICE api */
 
-int get_device_index(int sockfd, char *deviceName) {
+int get_device_index(int sockfd, char *device_name) {
 	struct ifreq ifr;
 
-	/* Find interface index from deviceName */
-	strncpy(ifr.ifr_name, deviceName, 16);
+	/* Find interface index from device_name */
+	strncpy(ifr.ifr_name, device_name, 16);
 	if (ioctl(sockfd, SIOCGIFINDEX, &ifr) != 0) {
 		return -1;
 	}
@@ -48,11 +48,11 @@ int get_device_index(int sockfd, char *deviceName) {
 	return ifr.ifr_ifindex;
 }
 
-int get_device_mac(const int sockfd, const char *deviceName, unsigned char *mac) {
+int get_device_mac(const int sockfd, const char *device_name, unsigned char *mac) {
 	struct ifreq ifr;
 
-	/* Find interface hardware address from deviceName */
-	strncpy(ifr.ifr_name, deviceName, 16);
+	/* Find interface hardware address from device_name */
+	strncpy(ifr.ifr_name, device_name, 16);
 	if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) != 0) {
 		return -1;
 	}
@@ -62,10 +62,10 @@ int get_device_mac(const int sockfd, const char *deviceName, unsigned char *mac)
 	return 1;
 }
 
-int get_device_ip(const int sockfd, const char *deviceName, struct sockaddr_in *ip) {
+int get_device_ip(const int sockfd, const char *device_name, struct sockaddr_in *ip) {
 	struct ifconf ifc;
 	struct ifreq *ifr;
-	int i,numDevices;
+	int i,device_count;
 
 	/*
 	 * Do a initial query without allocating ifreq structs
@@ -93,9 +93,9 @@ int get_device_ip(const int sockfd, const char *deviceName, struct sockaddr_in *
 	}
 
 	/* Iterate through all devices, searching for interface */
-	numDevices = ifc.ifc_len / sizeof(struct ifreq);
-	for (i = 0; i < numDevices; ++i) {
-		if (strcmp(ifr[i].ifr_name, deviceName) == 0) {
+	device_count = ifc.ifc_len / sizeof(struct ifreq);
+	for (i = 0; i < device_count; ++i) {
+		if (strcmp(ifr[i].ifr_name, device_name) == 0) {
 			/* Fetch IP for found interface */
 			memcpy(ip, &(ifr[i].ifr_addr), sizeof(ip));
 			free(ifr);
@@ -106,11 +106,11 @@ int get_device_ip(const int sockfd, const char *deviceName, struct sockaddr_in *
 	return -1;
 }
 
-int get_ips(char *name, int nameLen, struct sockaddr_in *ip) {
+int get_ips(char *name, int name_len, struct sockaddr_in *ip) {
 	static int first = 1;
 	static struct ifaddrs *int_addrs;
 	static const struct ifaddrs *int_cursor;
-	const struct sockaddr_in *dlAddr;
+	const struct sockaddr_in *dl_addr;
 
 	if (first == 1) {
 		first = 0;
@@ -123,11 +123,11 @@ int get_ips(char *name, int nameLen, struct sockaddr_in *ip) {
 	}
 	if (int_cursor != NULL) {
 		while (int_cursor != NULL) {
-			dlAddr = (const struct sockaddr_in *) int_cursor->ifa_addr;
-			if (dlAddr != NULL && dlAddr->sin_family == AF_INET) {
-				memcpy(ip, dlAddr, sizeof(struct sockaddr_in));
-				strncpy(name, int_cursor->ifa_name, nameLen - 1);
-				name[nameLen - 1] = '\0';
+			dl_addr = (const struct sockaddr_in *) int_cursor->ifa_addr;
+			if (dl_addr != NULL && dl_addr->sin_family == AF_INET) {
+				memcpy(ip, dl_addr, sizeof(struct sockaddr_in));
+				strncpy(name, int_cursor->ifa_name, name_len - 1);
+				name[name_len - 1] = '\0';
 				int_cursor = int_cursor->ifa_next;
 				return 1;
 			}

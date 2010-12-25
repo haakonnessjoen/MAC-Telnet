@@ -206,27 +206,27 @@ int parse_control_packet(unsigned char *packetdata, int data_len, struct mt_mact
 	}
 }
 
-struct mt_mndp_packet *parse_mndp(const unsigned char *data, const int packetLen) {
+struct mt_mndp_packet *parse_mndp(const unsigned char *data, const int packet_len) {
 	static struct mt_mndp_packet packet;
-	unsigned short nameLen = 0;
+	unsigned short name_len = 0;
 
 	/* Check for valid packet length */
-	if (packetLen < 18) {
+	if (packet_len < 18) {
 		return NULL;
 	}
 
 	/* Fetch length of Identifier string */
-	memcpy(&nameLen, data + 16,2);
-	nameLen = (nameLen >> 8) | ((nameLen & 0xff) << 8);
+	memcpy(&name_len, data + 16,2);
+	name_len = (name_len >> 8) | ((name_len & 0xff) << 8);
 
 	/* Enforce maximum name length */
-	nameLen = nameLen < MT_MNDP_MAX_IDENTITY_LENGTH ? nameLen : MT_MNDP_MAX_IDENTITY_LENGTH;
+	name_len = name_len < MT_MNDP_MAX_IDENTITY_LENGTH ? name_len : MT_MNDP_MAX_IDENTITY_LENGTH;
 
 	/* Read Identifier string */
-	memcpy(packet.identity, data + 18, nameLen);
+	memcpy(packet.identity, data + 18, name_len);
 
 	/* Append zero */
-	packet.identity[nameLen] = 0;
+	packet.identity[name_len] = 0;
 
 	/* Read source MAC address */
 	memcpy(packet.address, data + 8, ETH_ALEN);
@@ -242,11 +242,11 @@ int query_mndp(const char *identity, unsigned char *mac) {
 	unsigned char buff[MT_PACKET_LEN];
 	unsigned int message = 0;
 	struct timeval timeout;
-	time_t startTime;
+	time_t start_time;
 	fd_set read_fds;
 	struct mt_mndp_packet *packet;
 
-	startTime = time(0);
+	start_time = time(0);
 
 	/* Open a UDP socket handle */
 	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -285,7 +285,7 @@ int query_mndp(const char *identity, unsigned char *mac) {
 
 	while (1) {
 		/* Timeout, in case we receive a lot of packets, but from the wrong routers */
-		if (time(0) - startTime > (fastlookup ? MT_MNDP_TIMEOUT : MT_MNDP_LONGTIMEOUT)) {
+		if (time(0) - start_time > (fastlookup ? MT_MNDP_TIMEOUT : MT_MNDP_LONGTIMEOUT)) {
 			goto done;
 		}
 

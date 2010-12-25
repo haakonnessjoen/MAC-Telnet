@@ -49,7 +49,7 @@
 
 int sockfd;
 int insockfd;
-int deviceIndex;
+int device_index;
 
 struct in_addr sourceip; 
 struct in_addr destip;
@@ -75,12 +75,12 @@ struct mt_connection {
 	unsigned int outcounter;
 	time_t lastdata;
 
-	int terminalMode;
+	int terminal_mode;
 	int state;
 	int ptsfd;
 	int slavefd;
 	int pid;
-	int waitForAck;
+	int wait_for_ack;
 
 	char username[30];
 	unsigned char srcip[4];
@@ -296,7 +296,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 	curconn->state = STATE_ACTIVE;
 
 	/* Enter terminal mode */
-	curconn->terminalMode = 1;
+	curconn->terminal_mode = 1;
 
 	/* Open pts handle */
 	curconn->ptsfd = posix_openpt(O_RDWR);
@@ -394,10 +394,10 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 	struct mt_mactelnet_control_hdr cpkt;
 	struct mt_packet pdata;
 	unsigned char *data = pkthdr->data;
-	int gotUserPacket = 0;
-	int gotPassPacket = 0;
-	int gotWidthPacket = 0;
-	int gotHeightPacket = 0;
+	int got_user_packet = 0;
+	int got_pass_packet = 0;
+	int got_width_packet = 0;
+	int got_height_packet = 0;
 	int success;
 
 	/* Parse first control packet */
@@ -423,17 +423,17 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 
 			memcpy(curconn->username, cpkt.data, cpkt.length > 29 ? 29 : cpkt.length);
 			curconn->username[cpkt.length > 29 ? 29 : cpkt.length] = 0;
-			gotUserPacket = 1;
+			got_user_packet = 1;
 
 		} else if (cpkt.cptype == MT_CPTYPE_TERM_WIDTH) {
 
 			curconn->terminal_width = cpkt.data[0] | (cpkt.data[1]<<8);
-			gotWidthPacket = 1;
+			got_width_packet = 1;
 
 		} else if (cpkt.cptype == MT_CPTYPE_TERM_HEIGHT) {
 
 			curconn->terminal_height = cpkt.data[0] | (cpkt.data[1]<<8);
-			gotHeightPacket = 1;
+			got_height_packet = 1;
 
 		} else if (cpkt.cptype == MT_CPTYPE_TERM_TYPE) {
 
@@ -443,7 +443,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 		} else if (cpkt.cptype == MT_CPTYPE_PASSWORD) {
 
 			memcpy(trypassword, cpkt.data, 17);
-			gotPassPacket = 1;
+			got_pass_packet = 1;
 
 		} else if (cpkt.cptype == MT_CPTYPE_PLAINDATA) {
 
@@ -460,11 +460,11 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 		success = parse_control_packet(NULL, 0, &cpkt);
 	}
 	
-	if (gotUserPacket && gotPassPacket) {
+	if (got_user_packet && got_pass_packet) {
 		user_login(curconn, pkthdr);
 	}
 	
-	if (curconn->state == STATE_ACTIVE && (gotWidthPacket || gotHeightPacket)) {
+	if (curconn->state == STATE_ACTIVE && (got_width_packet || got_height_packet)) {
 		set_terminal_size(curconn->ptsfd, curconn->terminal_width, curconn->terminal_height);
 
 	}
@@ -522,7 +522,7 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 			curconn->lastdata = time(NULL);
 
 			if (pkthdr.counter <= curconn->outcounter) {
-				curconn->waitForAck = 0;
+				curconn->wait_for_ack = 0;
 			}
 
 			if (pkthdr.counter == curconn->outcounter) {
@@ -672,7 +672,7 @@ int main (int argc, char **argv) {
 
 		/* Add active connections to select queue */
 		for (p = connections_head; p != NULL; p = p->next) {
-			if (p->state == STATE_ACTIVE && p->waitForAck == 0 && p->ptsfd > 0) {
+			if (p->state == STATE_ACTIVE && p->wait_for_ack == 0 && p->ptsfd > 0) {
 				FD_SET(p->ptsfd, &read_fds);
 				if (p->ptsfd > maxfd)
 					maxfd = p->ptsfd;
@@ -698,7 +698,7 @@ int main (int argc, char **argv) {
 			/* Handle data from terminal sessions */
 			for (p = connections_head; p != NULL; p = p->next) {
 				/* Check if we have data ready in the pty buffer for the active session */
-				if (p->state == STATE_ACTIVE && p->ptsfd > 0 && p->waitForAck == 0 && FD_ISSET(p->ptsfd, &read_fds)) {
+				if (p->state == STATE_ACTIVE && p->ptsfd > 0 && p->wait_for_ack == 0 && FD_ISSET(p->ptsfd, &read_fds)) {
 					unsigned char keydata[1024];
 					int datalen,plen;
 
@@ -709,7 +709,7 @@ int main (int argc, char **argv) {
 						init_packet(&pdata, MT_PTYPE_DATA, p->dstmac, p->srcmac, p->seskey, p->outcounter);
 						plen = add_control_packet(&pdata, MT_CPTYPE_PLAINDATA, &keydata, datalen);
 						p->outcounter += plen;
-						p->waitForAck = 1;
+						p->wait_for_ack = 1;
 						result = send_udp(p, &pdata);
 					} else {
 						/* Shell exited */
@@ -726,7 +726,7 @@ int main (int argc, char **argv) {
 						p = &tmp;
 					}
 				}
-				else if (p->state == STATE_ACTIVE && p->ptsfd > 0 && p->waitForAck == 1 && FD_ISSET(p->ptsfd, &read_fds)) {
+				else if (p->state == STATE_ACTIVE && p->ptsfd > 0 && p->wait_for_ack == 1 && FD_ISSET(p->ptsfd, &read_fds)) {
 					printf("(%d) Waiting for ack\n", p->seskey);
 				}
 			}

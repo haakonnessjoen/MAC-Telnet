@@ -41,14 +41,14 @@
 
 int sockfd;
 int insockfd;
-int deviceIndex;
+int device_index;
 unsigned int outcounter = 0;
 unsigned int incounter = 0;
 int sessionkey = 0;
 int running = 1;
 
 unsigned char broadcast_mode = 1;
-unsigned char terminalMode = 0;
+unsigned char terminal_mode = 0;
 
 unsigned char srcmac[ETH_ALEN];
 unsigned char dstmac[ETH_ALEN];
@@ -79,7 +79,7 @@ static int send_udp(struct mt_packet *packet) {
 
 		return sendto(send_socket, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
 	} else {
-		return send_custom_udp(sockfd, deviceIndex, srcmac, dstmac, &sourceip,  sourceport, &destip, MT_MACTELNET_PORT, packet->data, packet->size);
+		return send_custom_udp(sockfd, device_index, srcmac, dstmac, &sourceip,  sourceport, &destip, MT_MACTELNET_PORT, packet->data, packet->size);
 	}
 
 }
@@ -198,7 +198,7 @@ static void handle_packet(unsigned char *data, int data_len) {
 				setvbuf(stdin,  (char*)NULL, _IONBF, 0);
 
 				/* we have entered "terminal mode" */
-				terminalMode = 1;
+				terminal_mode = 1;
 
 				/* Add resize signal handler */
 				signal(SIGWINCH, sig_winch);
@@ -536,7 +536,7 @@ int main (int argc, char **argv) {
 		}
 	}
 
-	if (terminalMode) {
+	if (terminal_mode) {
 		/* Reset terminal back to old settings */
 		reset_term();
 	}

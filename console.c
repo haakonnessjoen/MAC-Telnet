@@ -24,17 +24,17 @@
 #include <termios.h>
 #include <unistd.h>
 
-struct termios origTerm;
+struct termios orig_term;
 
 int raw_term() {
 	struct termios new;
 
-	if (tcgetattr(STDIN_FILENO, &origTerm) < 0) {
+	if (tcgetattr(STDIN_FILENO, &orig_term) < 0) {
 		perror("tcgetattr");
 		return -1;
 	}
 
-	memcpy(&new, &origTerm, sizeof(struct termios) );
+	memcpy(&new, &orig_term, sizeof(struct termios) );
 
 	/* raw mode, from tcsetattr man page */
 	new.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
@@ -50,7 +50,7 @@ int raw_term() {
 }
 
 int reset_term() {
-	if (tcsetattr(STDIN_FILENO, TCSANOW, &origTerm) < 0) {
+	if (tcsetattr(STDIN_FILENO, TCSANOW, &orig_term) < 0) {
 		perror("tcsetattr");
 		return -1;
 	}

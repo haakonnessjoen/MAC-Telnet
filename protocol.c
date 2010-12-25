@@ -75,7 +75,7 @@ int add_control_packet(struct mt_packet *packet, enum mt_cptype cptype, void *cp
 
 	/* Something is really wrong. Packets should never become over 1500 bytes */
 	if (packet->size + MT_CPHEADER_LEN + data_len > MT_PACKET_LEN) {
-		fprintf(stderr, "addControlPacket: ERROR, too large packet. Exceeds %d bytes\n", MT_PACKET_LEN);
+		fprintf(stderr, "add_control_packet: ERROR, too large packet. Exceeds %d bytes\n", MT_PACKET_LEN);
 		return -1;
 		//exit(1);
 	}

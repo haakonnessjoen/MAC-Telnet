@@ -439,10 +439,28 @@ int main (int argc, char **argv) {
 	{
 		char *p = argv[optind];
 		int colons = 0;
+		int dashs = 0;
 		while (*p++) {
 			if (*p == ':') {
 				colons++;
 			}
+			else if (*p == '-') {
+				dashs++;
+			}
+		}
+
+		/* 
+		 * Windows users often enter macs with dash instead
+		 * of colon.
+		 */
+		if (colons == 0 && dashs == 5) {
+			p = argv[optind];
+			while (*p++) {
+				if (*p == '-') {
+					*p = ':';
+				}
+			}
+			colons = dashs;
 		}
 
 		if (colons != 5) {

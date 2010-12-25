@@ -110,6 +110,7 @@ static int send_udp(struct mt_packet *packet, int retransmit) {
 				return sent_bytes;
 			}
 
+			/* Retransmit */
 			send_udp(packet, 0);
 		}
 

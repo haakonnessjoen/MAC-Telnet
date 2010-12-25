@@ -28,10 +28,6 @@
 #include "protocol.h"
 #include "config.h"
 
-unsigned char mt_mactelnet_cpmagic[4] = { 0x56, 0x34, 0x12, 0xff };
-unsigned char mt_mactelnet_clienttype[2] = { 0x00, 0x15 };
-int retransmit_intervals[MAX_RETRANSMIT_INTERVALS] = { 15, 20, 30, 50, 90, 170, 330, 660, 1000 };
-
 int init_packet(struct mt_packet *packet, enum mt_ptype ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned int counter) {
 	unsigned char *data = packet->data;
 

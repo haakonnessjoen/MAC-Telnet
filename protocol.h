@@ -92,13 +92,13 @@ extern int parse_control_packet(unsigned char *data, int data_len, struct mt_mac
 struct mt_mndp_packet *parse_mndp(const unsigned char *data, const int packet_len);
 int query_mndp(const char *identity, unsigned char *mac);
 
-/* Initialized by protocol.c */
+/* Number of milliseconds between each retransmission */
 #define MAX_RETRANSMIT_INTERVALS 9
-extern int retransmit_intervals[MAX_RETRANSMIT_INTERVALS];
+static const int retransmit_intervals[MAX_RETRANSMIT_INTERVALS] = { 15, 20, 30, 50, 90, 170, 330, 660, 1000 };
 
 /* Control packet magic header */
-extern unsigned char mt_mactelnet_cpmagic[4];
-extern unsigned char mt_mactelnet_clienttype[2];
+static const unsigned char mt_mactelnet_cpmagic[4] = { 0x56, 0x34, 0x12, 0xff };
+static const unsigned char mt_mactelnet_clienttype[2] = { 0x00, 0x15 };
 
 /* Must be initialized by application */
 extern unsigned char mt_direction_fromserver;

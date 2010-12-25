@@ -1,3 +1,29 @@
+mactelnet (0.2-1ubuntu1) unstable; urgency=low
+
+  * 52edeba Add support for dash-seperated mac addresses
+  * 25476c7 Moved global protocol info to protocol header, where it belongs
+  * 8e2e73c Added simple DATA packet retransmission support.
+  * 93d82ea Change naming convention on variable names as well
+  * 2d9057c Changed naming convention on function names
+  * dbadc1a Fixed a bug where the mndp port/socket was not closed after a parseMNDP call.
+  * c91ff96 Cleaned up code and added -Wall to the compiler flags. Moved packet types over to enums for more ease of use.
+  * 2074658 Added u/wtmp logout code, and did some minior code cleanup.
+  * fae8147 Show mac address of client in syslog, and save correct mac address for wtmp.
+  * ff590f3 Fix silly bug that made mactelnetd connections time out after only 65k bytes
+  * 53ef36c Added syslog logging. Added daemonizing of application. Cleaned up login code to correctly set up controlling terminal.
+  * 1cf099b Added "nologin" support. And cleaned up a little duplicated code.
+  * fadddf3 Fix silly warning about ether_ntoa argument
+  * bc9266f Added wtmp/utmp support. Fixed setuid/setgid bug and error detection. Added motd message. Minior code cleanup.
+  * 1fb3f64 Code cleanup in mactelnet daemon
+  * 59525a2 Added a little documentation in the source code
+  * 3f66904 Handle network devices without address information correctly.
+  * 749229f Skip loopback interfaces. They seldom/never have a MAC address, and you probably won't run a MAC-Telnet server there. Speeds up autodetect.
+  * 1c11ee9 Added missing file, documentation fixup, and minifixup in makefile
+  * 3103d2c Started code for auto-detecting interface. Working proof of concept version. Raw socket version not updated yet.
+  * 40362c4 Simplified the way parseControlPacket is looped/called
+  * a993f53 Minior fix: Move mac-address code downwards according to the order of arguments. So problems with the ifname will be reported before problems with the mac addr
+  * 50d0439 Removed dependency of libssl/crypto. Added L. Peter Deutsch's implementation of MD5 instead.
+ 
 mactelnet (0.1-1ubuntu1) unstable; urgency=low
 
   * Removed libssl dependency

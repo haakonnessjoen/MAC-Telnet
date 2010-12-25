@@ -39,6 +39,9 @@
 #include "config.h"
 #include "mactelnet.h"
 
+#define PROGRAM_NAME "MAC-Telnet"
+#define PROGRAM_VERSION "0.2"
+
 int sockfd;
 int insockfd;
 int device_index;
@@ -67,6 +70,10 @@ char password[255];
 unsigned char mt_direction_fromserver = 0;
 
 unsigned int send_socket;
+
+static void print_version() {
+	fprintf(stderr, PROGRAM_NAME " " PROGRAM_VERSION "\n");
+}
 
 static int send_udp(struct mt_packet *packet, int retransmit) {
 	int sent_bytes;
@@ -347,7 +354,7 @@ int main (int argc, char **argv) {
 	int optval = 1;
 
 	while (1) {
-		c = getopt(argc, argv, "nt:u:p:h?");
+		c = getopt(argc, argv, "nt:u:p:vh?");
 
 		if (c == -1)
 			break;
@@ -376,6 +383,11 @@ int main (int argc, char **argv) {
 				connect_timeout = atoi(optarg);
 				break;
 
+			case 'v':
+				print_version();
+				exit(0);
+				break;
+
 			case 'h':
 			case '?':
 				print_help = 1;
@@ -384,6 +396,7 @@ int main (int argc, char **argv) {
 		}
 	}
 	if (argc - optind < 1 || print_help) {
+		print_version();
 		fprintf(stderr, "Usage: %s <MAC|identity> [-h] [-n] [-t <timeout>] [-u <username>] [-p <password>]\n", argv[0]);
 
 		if (print_help) {

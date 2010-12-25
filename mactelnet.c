@@ -68,8 +68,8 @@ unsigned char mt_direction_fromserver = 0;
 
 unsigned int send_socket;
 
-static int send_udp(struct mt_packet *packet) {
-
+static int send_udp(struct mt_packet *packet, int retransmit) {
+	int sent_bytes;
 	if (broadcast_mode) {
 		/* Init SendTo struct */
 		struct sockaddr_in socket_address;
@@ -77,11 +77,46 @@ static int send_udp(struct mt_packet *packet) {
 		socket_address.sin_port = htons(MT_MACTELNET_PORT);
 		socket_address.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 
-		return sendto(send_socket, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
+		sent_bytes = sendto(send_socket, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
 	} else {
-		return send_custom_udp(sockfd, device_index, srcmac, dstmac, &sourceip,  sourceport, &destip, MT_MACTELNET_PORT, packet->data, packet->size);
+		sent_bytes = send_custom_udp(sockfd, device_index, srcmac, dstmac, &sourceip,  sourceport, &destip, MT_MACTELNET_PORT, packet->data, packet->size);
 	}
 
+	/* 
+	 * Retransmit packet if no data is received within
+	 * retransmit_intervals milliseconds.
+	 * 
+	 * TODO: Only stop retransmitting if received packet is
+	 * an ACK packet.
+	 */
+	if (retransmit) {
+		int i;
+
+		for (i = 0; i < MAX_RETRANSMIT_INTERVALS; ++i) {
+			fd_set read_fds;
+			int reads;
+			struct timeval timeout;
+			int interval = retransmit_intervals[i] * 1000;
+
+			/* Init select */
+			FD_ZERO(&read_fds);
+			FD_SET(insockfd, &read_fds);
+			timeout.tv_sec = 0;
+			timeout.tv_usec = interval;
+
+			/* Wait for data or timeout */
+			reads = select(insockfd + 1, &read_fds, NULL, NULL, &timeout);
+			if (reads && FD_ISSET(insockfd, &read_fds)) {
+				return sent_bytes;
+			}
+
+			send_udp(packet, 0);
+		}
+
+		fprintf(stderr, "\nConnection timed out\n");
+		exit(1);
+	}
+	return sent_bytes;
 }
 
 static void send_auth(char *username, char *password) {
@@ -121,7 +156,7 @@ static void send_auth(char *username, char *password) {
 	outcounter += plen;
 
 	/* TODO: handle result */
-	result = send_udp(&data);
+	result = send_udp(&data, 1);
 }
 
 static void sig_winch(int sig) {
@@ -136,7 +171,7 @@ static void sig_winch(int sig) {
 		plen += add_control_packet(&data, MT_CPTYPE_TERM_HEIGHT, &height, 2);
 		outcounter += plen;
 
-		result = send_udp(&data);
+		result = send_udp(&data, 1);
 	}
 
 	/* reinstate signal handler */
@@ -161,7 +196,7 @@ static void handle_packet(unsigned char *data, int data_len) {
 
 		/* Always transmit ACKNOWLEDGE packets in response to DATA packets */
 		init_packet(&odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, pkthdr.counter + (data_len - MT_HEADER_LEN));
-		result = send_udp(&odata);
+		result = send_udp(&odata, 0);
 
 		/* Accept first packet, and all packets greater than incounter, and if counter has
 		wrapped around. */
@@ -219,7 +254,7 @@ static void handle_packet(unsigned char *data, int data_len) {
 
 		/* Acknowledge the disconnection by sending a END packet in return */
 		init_packet(&odata, MT_PTYPE_END, srcmac, dstmac, pkthdr.seskey, 0);
-		result = send_udp(&odata);
+		result = send_udp(&odata, 0);
 
 		fprintf(stderr, "Connection closed.\n");
 
@@ -277,7 +312,7 @@ static int find_interface() {
 
 		/* Send a SESSIONSTART message with the current device */
 		init_packet(&data, MT_PTYPE_SESSIONSTART, srcmac, dstmac, sessionkey, 0);
-		send_udp(&data);
+		send_udp(&data, 0);
 
 		timeout.tv_sec = connect_timeout;
 		timeout.tv_usec = 0;
@@ -305,9 +340,7 @@ int main (int argc, char **argv) {
 	struct mt_packet data;
 	struct sockaddr_in si_me;
 	unsigned char buff[1500];
-	struct timeval timeout;
 	int keepalive_counter = 0;
-	fd_set read_fds;
 	unsigned char print_help = 0, have_username = 0, have_password = 0;
 	int c;
 	int optval = 1;
@@ -490,10 +523,12 @@ int main (int argc, char **argv) {
 	outcounter +=  add_control_packet(&data, MT_CPTYPE_BEGINAUTH, NULL, 0);
 
 	/* TODO: handle result of send_udp */
-	result = send_udp(&data);
+	result = send_udp(&data, 1);
 
 	while (running) {
+		fd_set read_fds;
 		int reads;
+		struct timeval timeout;
 
 		/* Init select */
 		FD_ZERO(&read_fds);
@@ -521,7 +556,7 @@ int main (int argc, char **argv) {
 				init_packet(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
 				add_control_packet(&data, MT_CPTYPE_PLAINDATA, &keydata, datalen);
 				outcounter += datalen;
-				result = send_udp(&data);
+				result = send_udp(&data, 1);
 			}
 		/* Handle select() timeout */
 		} else {
@@ -531,7 +566,7 @@ int main (int argc, char **argv) {
 				struct mt_packet odata;
 				int plen=0,result=0;
 				plen = init_packet(&odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, 0);
-				result = send_udp(&odata);
+				result = send_udp(&odata, 0);
 			}
 		}
 	}

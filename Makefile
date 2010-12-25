@@ -10,9 +10,12 @@ install: all
 	cp mndp $(DESTDIR)/usr/bin/
 	cp mactelnet $(DESTDIR)/usr/bin/
 	cp mactelnetd $(DESTDIR)/usr/sbin/
+	mkdir -p $(DESTDIR)/etc
 	cp mactelnetd.users $(DESTDIR)/etc/
-	chown $(DESTDIR)/etc/mactelnetd.users
+	chown root $(DESTDIR)/etc/mactelnetd.users
 	chmod 600 $(DESTDIR)/etc/mactelnetd.users
+
+install-debian:
 
 mactelnet: config.h udp.h udp.c mactelnet.c mactelnet.h protocol.c protocol.h console.c console.h devices.c devices.h md5.c md5.h
 	gcc -Wall -g -DUSERSFILE='"/etc/mactelnetd.users"' -o mactelnet mactelnet.c udp.c protocol.c console.c devices.c md5.c

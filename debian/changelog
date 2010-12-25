@@ -24,6 +24,7 @@ mactelnet (0.2-1ubuntu1) unstable; urgency=low
   * a993f53 Minior fix: Move mac-address code downwards according to the order of arguments. So problems with the ifname will be reported before problems with the mac addr
   * 50d0439 Removed dependency of libssl/crypto. Added L. Peter Deutsch's implementation of MD5 instead.
  
+ -- Haakon Nessjoen <haakon.nessjoen@gmail.com>  Mon, 26 Dec 2010 00:15:23 +0200
 mactelnet (0.1-1ubuntu1) unstable; urgency=low
 
   * Removed libssl dependency

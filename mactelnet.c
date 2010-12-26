@@ -50,7 +50,7 @@ static unsigned int incounter = 0;
 static int sessionkey = 0;
 static int running = 1;
 
-static unsigned char broadcast_mode = 1;
+static unsigned char use_raw_socket = 0;
 static unsigned char terminal_mode = 0;
 
 static unsigned char srcmac[ETH_ALEN];
@@ -83,7 +83,7 @@ static int send_udp(struct mt_packet *packet, int retransmit) {
 	/* Clear keepalive counter */
 	keepalive_counter = 0;
 
-	if (broadcast_mode) {
+	if (!use_raw_socket) {
 		/* Init SendTo struct */
 		struct sockaddr_in socket_address;
 		socket_address.sin_family = AF_INET;
@@ -370,7 +370,7 @@ int main (int argc, char **argv) {
 		switch (c) {
 
 			case 'n':
-				broadcast_mode = 0;
+				use_raw_socket = 1;
 				break;
 
 			case 'u':
@@ -425,12 +425,12 @@ int main (int argc, char **argv) {
 	/* Seed randomizer */
 	srand(time(NULL));
 
-	if (!broadcast_mode && geteuid() != 0) {
-		fprintf(stderr, "You need to have root privileges to use the -n parameter.\n");
-		return 1;
-	}
+	if (use_raw_socket) {
+		if (geteuid() != 0) {
+			fprintf(stderr, "You need to have root privileges to use the -n parameter.\n");
+			return 1;
+		}
 
-	if (!broadcast_mode) {
 		/* Transmit raw packets with this socket */
 		sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 		if (sockfd < 0) {
@@ -446,7 +446,7 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 
-	if (broadcast_mode) {
+	if (!use_raw_socket) {
 		if (setsockopt(insockfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof (optval))==-1) {
 			perror("SO_BROADCAST");
 			return 1;

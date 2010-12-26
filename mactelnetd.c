@@ -47,6 +47,9 @@
 #include "users.h"
 #include "config.h"
 
+#define PROGRAM_NAME "MAC-Telnet Daemon"
+#define PROGRAM_VERSION "0.2"
+
 #define MAX_INSOCKETS 100
 
 #define MT_INTERFACE_LEN 128
@@ -56,12 +59,15 @@ struct mt_socket {
 	unsigned char mac[ETH_ALEN];
 	char name[MT_INTERFACE_LEN];
 	int sockfd;
+	int device_index;
 };
 
 static int sockfd;
 static int insockfd;
 static struct mt_socket sockets[MAX_INSOCKETS];
 static int sockets_count = 0;
+
+static int use_raw_socket = 0;
 
 static struct in_addr sourceip; 
 static struct in_addr destip;
@@ -174,7 +180,7 @@ static struct mt_connection *list_find_connection(unsigned short seskey, unsigne
 	return NULL;
 }
 
-int find_socket(unsigned char *mac) {
+static int find_socket(unsigned char *mac) {
 	int i;
 
 	for (i = 0; i < sockets_count; ++i) {
@@ -184,7 +190,7 @@ int find_socket(unsigned char *mac) {
 	return -1;
 }
 
-void setup_sockets() {
+static void setup_sockets() {
 	struct sockaddr_in myip;
 	char devicename[MT_INTERFACE_LEN];
 	unsigned char mac[ETH_ALEN];
@@ -193,30 +199,32 @@ void setup_sockets() {
 
 	memset(emptymac, 0, ETH_ALEN);
 
-	while ((success = get_ips(devicename, 128, &myip))) {
-		if (get_device_mac(sockfd, devicename, mac)) {
+	while ((success = get_ips(devicename, MT_INTERFACE_LEN, &myip))) {
+		if (get_device_mac(insockfd, devicename, mac)) {
 			if (memcmp(mac, emptymac, ETH_ALEN) != 0 && find_socket(mac) < 0) {
-/*
 				int optval = 1;
 				struct sockaddr_in si_me;
-*/
 				struct mt_socket *mysocket = &(sockets[sockets_count]);
 
 				memcpy(mysocket->mac, mac, ETH_ALEN);
 				strncpy(mysocket->name, devicename, MT_INTERFACE_LEN - 1);
 				mysocket->name[MT_INTERFACE_LEN - 1] = '\0';
 
-/*
+
 				mysocket->sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 				if (mysocket->sockfd < 0) {
 					close(mysocket->sockfd);
 					continue;
 				}
 
+				if (setsockopt(mysocket->sockfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof (optval))==-1) {
+					perror("SO_BROADCAST");
+					continue;
+				}
+
 				setsockopt(mysocket->sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
-*/
+
 				/* Initialize receiving socket on the device chosen */
-/*
 				si_me.sin_family = AF_INET;
 				si_me.sin_port = htons(MT_MACTELNET_PORT);
 				memcpy(&(si_me.sin_addr), &(myip.sin_addr), 4);
@@ -225,18 +233,29 @@ void setup_sockets() {
 					fprintf(stderr, "Error binding to %s:%d, %s\n", inet_ntoa(si_me.sin_addr), sourceport, strerror(errno));
 					continue;
 				}
-*/
 				memcpy(mysocket->ip, &(myip.sin_addr), 4);
 				memcpy(mysocket->mac, mac, ETH_ALEN);
+
+				mysocket->device_index = get_device_index(mysocket->sockfd, devicename);
+
 				sockets_count++;
-				syslog(LOG_NOTICE, "Listening on %s: %16s port %d\n", devicename, ether_ntoa((struct ether_addr *)mac), MT_MACTELNET_PORT);
 			}
 		}
 	}
 }
 
-static int send_udp(const struct mt_connection *conn, const struct mt_packet *data) {
-	return send_custom_udp(sockfd, 2, conn->dstmac, conn->srcmac, &sourceip, sourceport, &destip, conn->srcport, data->data, data->size);
+static int send_udp(const struct mt_connection *conn, const struct mt_packet *packet) {
+	if (use_raw_socket) {
+		return send_custom_udp(sockfd, conn->socket->device_index, conn->dstmac, conn->srcmac, &sourceip, sourceport, &destip, conn->srcport, packet->data, packet->size);
+	} else {
+		/* Init SendTo struct */
+		struct sockaddr_in socket_address;
+		socket_address.sin_family = AF_INET;
+		socket_address.sin_port = htons(conn->srcport);
+		socket_address.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+
+		return sendto(conn->socket->sockfd, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
+	}
 }
 
 static void display_motd() {
@@ -680,6 +699,10 @@ static void daemonize() {
 	signal(SIGTTIN,SIG_IGN);	
 }
 
+static void print_version() {
+	fprintf(stderr, PROGRAM_NAME " " PROGRAM_VERSION "\n");
+}
+
 /*
  * TODO: Rewrite main() when all sub-functionality is tested
  */
@@ -689,7 +712,41 @@ int main (int argc, char **argv) {
 	struct timeval timeout;
 	struct mt_packet pdata;
 	fd_set read_fds;
-	int optval = 1;
+	int c,optval = 1;
+	int print_help = 0;
+
+	while ((c = getopt(argc, argv, "nvh?")) != -1) {
+		switch (c) {
+
+			case 'n':
+				use_raw_socket = 1;
+				break;
+
+			case 'v':
+				print_version();
+				exit(0);
+				break;
+
+			case 'h':
+			case '?':
+				print_help = 1;
+				break;
+
+		}
+	}
+
+	if (print_help) {
+		print_version();
+		fprintf(stderr, "Usage: %s [-n] [-h]\n", argv[0]);
+
+		if (print_help) {
+			fprintf(stderr, "\nParameters:\n");
+			fprintf(stderr, "  -n        Do not use broadcast packets. Just a tad less insecure.\n");
+			fprintf(stderr, "  -h        This help.\n");
+			fprintf(stderr, "\n");
+		}
+		return 1;
+	}
 
 	/* Try to read user file */
 	read_userfile();
@@ -702,11 +759,13 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 
-	/* Transmit raw packets with this socket */
-	sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-	if (sockfd < 0) {
-		perror("sockfd");
-		return 1;
+	if (use_raw_socket) {
+		/* Transmit raw packets with this socket */
+		sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+		if (sockfd < 0) {
+			perror("sockfd");
+			return 1;
+		}
 	}
 
 	/* Receive regular udp packets with this socket */
@@ -739,14 +798,19 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 
+	setup_sockets();
+
 	daemonize();
 
 	openlog("mactelnetd", LOG_PID, LOG_DAEMON);
 
 	syslog(LOG_NOTICE, "Bound to %s:%d", inet_ntoa(si_me.sin_addr), sourceport);
 
-	setup_sockets();
-
+	for (i = 0; i < sockets_count; ++i) {
+		struct mt_socket *socket = &(sockets[i]);
+		syslog(LOG_NOTICE, "Listening on %s: %16s port %d\n", socket->name, ether_ntoa((struct ether_addr *)socket->mac), MT_MACTELNET_PORT);
+	}
+	
 	if (sockets_count == 0) {
 		syslog(LOG_ERR, "Unable to find the mac-address on any interfaces\n");
 		exit(1);
@@ -762,7 +826,7 @@ int main (int argc, char **argv) {
 		/* Init select */
 		FD_ZERO(&read_fds);
 		FD_SET(insockfd, &read_fds);
-		maxfd = sockfd > insockfd ? sockfd : insockfd;
+		maxfd = insockfd;
 
 		/* Add active connections to select queue */
 		for (p = connections_head; p != NULL; p = p->next) {

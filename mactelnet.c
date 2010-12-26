@@ -62,6 +62,8 @@ static int sourceport;
 
 static int connect_timeout = CONNECT_TIMEOUT;
 
+static int keepalive_counter = 0;
+
 static unsigned char encryptionkey[128];
 static char username[255];
 static char password[255];
@@ -77,6 +79,10 @@ static void print_version() {
 
 static int send_udp(struct mt_packet *packet, int retransmit) {
 	int sent_bytes;
+
+	/* Clear keepalive counter */
+	keepalive_counter = 0;
+
 	if (broadcast_mode) {
 		/* Init SendTo struct */
 		struct sockaddr_in socket_address;
@@ -120,6 +126,9 @@ static int send_udp(struct mt_packet *packet, int retransmit) {
 			/* Retransmit */
 			send_udp(packet, 0);
 		}
+
+		if (terminal_mode)
+			reset_term();
 
 		fprintf(stderr, "\nConnection timed out\n");
 		exit(1);
@@ -348,7 +357,6 @@ int main (int argc, char **argv) {
 	struct mt_packet data;
 	struct sockaddr_in si_me;
 	unsigned char buff[1500];
-	int keepalive_counter = 0;
 	unsigned char print_help = 0, have_username = 0, have_password = 0;
 	int c;
 	int optval = 1;
@@ -547,10 +555,6 @@ int main (int argc, char **argv) {
 	/* Handle first received packet */
 	handle_packet(buff, result);
 
-	/*
-	 * TODO: Should resubmit whenever a PTYPE_DATA packet is sent, and an ACK packet with correct datacounter is received
-	 * or time out the connection, in all other cases.
-	*/
 	init_packet(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, 0);
 	outcounter +=  add_control_packet(&data, MT_CPTYPE_BEGINAUTH, NULL, 0);
 
@@ -594,10 +598,10 @@ int main (int argc, char **argv) {
 		} else {
 			/* handle keepalive counter, transmit keepalive packet every 10 seconds
 			   of inactivity  */
-			if ((keepalive_counter++ % 10) == 0) {
+			if (keepalive_counter++ == 10) {
 				struct mt_packet odata;
 				int plen=0,result=0;
-				plen = init_packet(&odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, 0);
+				plen = init_packet(&odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, outcounter);
 				result = send_udp(&odata, 0);
 			}
 		}

@@ -42,34 +42,34 @@
 #define PROGRAM_NAME "MAC-Telnet"
 #define PROGRAM_VERSION "0.2"
 
-int sockfd;
-int insockfd;
-int device_index;
-unsigned int outcounter = 0;
-unsigned int incounter = 0;
-int sessionkey = 0;
-int running = 1;
+static int sockfd;
+static int insockfd;
+static int device_index;
+static unsigned int outcounter = 0;
+static unsigned int incounter = 0;
+static int sessionkey = 0;
+static int running = 1;
 
-unsigned char broadcast_mode = 1;
-unsigned char terminal_mode = 0;
+static unsigned char broadcast_mode = 1;
+static unsigned char terminal_mode = 0;
 
-unsigned char srcmac[ETH_ALEN];
-unsigned char dstmac[ETH_ALEN];
+static unsigned char srcmac[ETH_ALEN];
+static unsigned char dstmac[ETH_ALEN];
 
-struct in_addr sourceip; 
-struct in_addr destip;
-int sourceport;
+static struct in_addr sourceip; 
+static struct in_addr destip;
+static int sourceport;
 
-int connect_timeout = CONNECT_TIMEOUT;
+static int connect_timeout = CONNECT_TIMEOUT;
 
-unsigned char encryptionkey[128];
-char username[255];
-char password[255];
+static unsigned char encryptionkey[128];
+static char username[255];
+static char password[255];
 
 /* Protocol data direction */
 unsigned char mt_direction_fromserver = 0;
 
-unsigned int send_socket;
+static unsigned int send_socket;
 
 static void print_version() {
 	fprintf(stderr, PROGRAM_NAME " " PROGRAM_VERSION "\n");

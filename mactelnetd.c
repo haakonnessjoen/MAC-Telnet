@@ -47,15 +47,14 @@
 #include "users.h"
 #include "config.h"
 
-int sockfd;
-int insockfd;
-int device_index;
+static int sockfd;
+static int insockfd;
 
-struct in_addr sourceip; 
-struct in_addr destip;
-int sourceport;
+static struct in_addr sourceip; 
+static struct in_addr destip;
+static int sourceport;
 
-unsigned char trypassword[17];
+static unsigned char trypassword[17];
 
 /* Protocol data direction */
 unsigned char mt_direction_fromserver = 1;
@@ -100,7 +99,7 @@ struct mt_connection {
 static void uwtmp_login(struct mt_connection *);
 static void uwtmp_logout(struct mt_connection *);
 
-struct mt_connection *connections_head = NULL;
+static struct mt_connection *connections_head = NULL;
 
 static void list_add_connection(struct mt_connection *conn) {
 	struct mt_connection *p;

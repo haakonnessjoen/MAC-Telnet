@@ -64,9 +64,11 @@ unsigned char mt_direction_fromserver = 1;
 #define MT_CONNECTION_TIMEOUT 15
 
 /* Connection states */
-#define STATE_AUTH 1
-#define STATE_CLOSED 2
-#define STATE_ACTIVE 3
+enum mt_connection_state {
+	STATE_AUTH,
+	STATE_CLOSED,
+	STATE_ACTIVE
+};
 
 /** Connection struct */
 struct mt_connection {
@@ -76,7 +78,7 @@ struct mt_connection {
 	time_t lastdata;
 
 	int terminal_mode;
-	int state;
+	enum mt_connection_state state;
 	int ptsfd;
 	int slavefd;
 	int pid;
@@ -333,7 +335,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 
 			syslog(LOG_INFO, "(%d) User %s logged in.", curconn->seskey, curconn->username);
 
-			/* Initialize terminal environment */			
+			/* Initialize terminal environment */
 			setenv("USER", user->pw_name, 1);
 			setenv("HOME", user->pw_dir, 1);
 			setenv("SHELL", user->pw_shell, 1);
@@ -519,20 +521,18 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 			if (curconn == NULL) {
 				break;
 			}
-			curconn->lastdata = time(NULL);
 
 			if (pkthdr.counter <= curconn->outcounter) {
 				curconn->wait_for_ack = 0;
 			}
 
-			if (pkthdr.counter == curconn->outcounter) {
+			if (time(0) - curconn->lastdata > 9) {
 				// Answer to anti-timeout packet
-				/* TODO: only answer if time() - lastpacket is somewhat high.. */
 				init_packet(&pdata, MT_PTYPE_ACK, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter);
 				send_udp(curconn, &pdata);
 			}
-				return;
-			break;
+			curconn->lastdata = time(NULL);
+			return;
 
 		case MT_PTYPE_DATA:
 			curconn = list_find_connection(pkthdr.seskey, (unsigned char *)&(pkthdr.srcaddr));

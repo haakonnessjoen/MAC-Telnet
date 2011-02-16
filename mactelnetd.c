@@ -236,7 +236,6 @@ static void setup_sockets() {
 				memcpy(mysocket->ip, &(myip.sin_addr), 4);
 			}
 			mysocket->device_index = get_device_index(insockfd, devicename);
-			printf("dif=%d = %s\n", mysocket->device_index, devicename);
 			
 			sockets_count++;
 		}

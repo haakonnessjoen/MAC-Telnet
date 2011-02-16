@@ -36,9 +36,11 @@
 #include <linux/if_ether.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <sys/sysinfo.h>
 #include <pwd.h>
 #include <utmp.h>
 #include <syslog.h>
+#include <sys/utsname.h>
 #include "md5.h"
 #include "protocol.h"
 #include "udp.h"
@@ -64,6 +66,8 @@ struct mt_socket {
 
 static int sockfd;
 static int insockfd;
+static int mndpsockfd;
+
 static struct mt_socket sockets[MAX_INSOCKETS];
 static int sockets_count = 0;
 
@@ -74,6 +78,8 @@ static struct in_addr destip;
 static int sourceport;
 
 static unsigned char trypassword[17];
+
+static time_t last_mndp_time = 0;
 
 /* Protocol data direction */
 unsigned char mt_direction_fromserver = 1;
@@ -255,6 +261,24 @@ static int send_udp(const struct mt_connection *conn, const struct mt_packet *pa
 		return sendto(conn->socket->sockfd, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
 	}
 }
+
+static int send_mndp_udp(const struct mt_socket *sock, const struct mt_packet *packet) {
+	unsigned char dstmac[6];
+	
+	if (use_raw_socket) {
+		memset(dstmac, 255, 6);
+		return send_custom_udp(sockfd, sock->device_index, sock->mac, dstmac, &sourceip, MT_MNDP_PORT, &destip, MT_MNDP_PORT, packet->data, packet->size);
+	} else {
+		/* Init SendTo struct */
+		struct sockaddr_in socket_address;
+		socket_address.sin_family = AF_INET;
+		socket_address.sin_port = htons(MT_MNDP_PORT);
+		socket_address.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+
+		return sendto(sock->sockfd, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
+	}
+}
+
 
 static void display_motd() {
 	FILE *fp;
@@ -701,12 +725,46 @@ static void print_version() {
 	fprintf(stderr, PROGRAM_NAME " " PROGRAM_VERSION "\n");
 }
 
+void mndp_broadcast() {
+	struct mt_packet pdata;
+	struct utsname s_uname;
+	struct sysinfo s_sysinfo;
+	int i;
+	unsigned int uptime;
+
+	if (uname(&s_uname) != 0)
+		return;
+	
+	if (sysinfo(&s_sysinfo) != 0)
+		return;
+	
+	uptime = s_sysinfo.uptime;
+
+	for (i = 0; i < sockets_count; ++i) {
+		struct mt_mndp_hdr *header = (struct mt_mndp_hdr *)&(pdata.data);
+		struct mt_socket *socket = &(sockets[i]);
+
+		mndp_init_packet(&pdata, 0, 1);
+		mndp_add_attribute(&pdata, MT_MNDPTYPE_ADDRESS, socket->mac, 6);
+		mndp_add_attribute(&pdata, MT_MNDPTYPE_IDENTITY, s_uname.nodename, strlen(s_uname.nodename));
+		mndp_add_attribute(&pdata, MT_MNDPTYPE_VERSION, s_uname.release, strlen(s_uname.release));
+		mndp_add_attribute(&pdata, MT_MNDPTYPE_PLATFORM, PLATFORM_NAME, strlen(PLATFORM_NAME));
+		mndp_add_attribute(&pdata, MT_MNDPTYPE_HARDWARE, s_uname.machine, strlen(s_uname.machine));
+		mndp_add_attribute(&pdata, MT_MNDPTYPE_TIMESTAMP, &uptime, 4);
+
+		header->cksum = in_cksum((unsigned short *)&(pdata.data), pdata.size);
+
+		send_mndp_udp(socket, &pdata);
+	}
+}
+
 /*
  * TODO: Rewrite main() when all sub-functionality is tested
  */
 int main (int argc, char **argv) {
 	int result,i;
 	struct sockaddr_in si_me;
+	struct sockaddr_in si_me_mndp;
 	struct timeval timeout;
 	struct mt_packet pdata;
 	fd_set read_fds;
@@ -785,7 +843,7 @@ int main (int argc, char **argv) {
 	/* Initialize receiving socket on the device chosen */
 	memset((char *) &si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
-	si_me.sin_port = htons(MT_MACTELNET_PORT);
+	si_me.sin_port = htons(sourceport);
 	memcpy(&(si_me.sin_addr), &sourceip, 4);
 
 	setsockopt(insockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval));
@@ -794,6 +852,27 @@ int main (int argc, char **argv) {
 	if (bind(insockfd, (struct sockaddr *)&si_me, sizeof(si_me))==-1) {
 		fprintf(stderr, "Error binding to %s:%d, %s\n", inet_ntoa(si_me.sin_addr), sourceport, strerror(errno));
 		return 1;
+	}
+
+	/* TODO: Move socket initialization out of main() */
+
+	/* Receive mndp udp packets with this socket */
+	mndpsockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (insockfd < 0) {
+		perror("insockfd");
+		return 1;
+	}
+
+	memset((char *)&si_me_mndp, 0, sizeof(si_me_mndp));
+	si_me_mndp.sin_family = AF_INET;
+	si_me_mndp.sin_port = htons(MT_MNDP_PORT);
+	memcpy(&(si_me_mndp.sin_addr), &sourceip, 4);
+
+	setsockopt(mndpsockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval));
+
+	/* Bind to udp port */
+	if (bind(mndpsockfd, (struct sockaddr *)&si_me_mndp, sizeof(si_me_mndp))==-1) {
+		fprintf(stderr, "Error binding to %s:%d, %s\n", inet_ntoa(si_me_mndp.sin_addr), MT_MNDP_PORT, strerror(errno));
 	}
 
 	setup_sockets();
@@ -820,11 +899,13 @@ int main (int argc, char **argv) {
 		int reads;
 		struct mt_connection *p;
 		int maxfd=0;
+		time_t now;
 
 		/* Init select */
 		FD_ZERO(&read_fds);
 		FD_SET(insockfd, &read_fds);
-		maxfd = insockfd;
+		FD_SET(mndpsockfd, &read_fds);
+		maxfd = insockfd > mndpsockfd ? insockfd : mndpsockfd;
 
 		/* Add active connections to select queue */
 		for (p = connections_head; p != NULL; p = p->next) {
@@ -850,6 +931,18 @@ int main (int argc, char **argv) {
 				unsigned int slen = sizeof(saddress);
 				result = recvfrom(insockfd, buff, 1500, 0, (struct sockaddr *)&saddress, &slen);
 				handle_packet(buff, result, &saddress);
+			}
+			if (FD_ISSET(mndpsockfd, &read_fds)) {
+				unsigned char buff[1500];
+				struct sockaddr_in saddress;
+				unsigned int slen = sizeof(saddress);
+				result = recvfrom(mndpsockfd, buff, 1500, 0, (struct sockaddr *)&saddress, &slen);
+
+				/* Handle MNDP broadcast request, max 1 rps */
+				if (result == 4 && time(NULL) - last_mndp_time > 0) {
+					mndp_broadcast();
+					time(&last_mndp_time);
+				}
 			}
 			/* Handle data from terminal sessions */
 			for (p = connections_head; p != NULL; p = p->next) {
@@ -887,22 +980,27 @@ int main (int argc, char **argv) {
 				}
 			}
 		/* Handle select() timeout */
-		} else {
-			if (connections_head != NULL) {
-				struct mt_connection *p,tmp;
-				for (p = connections_head; p != NULL; p = p->next) {
-					if (time(NULL) - p->lastdata >= MT_CONNECTION_TIMEOUT) {
-						syslog(LOG_INFO, "(%d) Session timed out", p->seskey);
-						init_packet(&pdata, MT_PTYPE_DATA, p->dstmac, p->srcmac, p->seskey, p->outcounter);
-						add_control_packet(&pdata, MT_CPTYPE_PLAINDATA, "Timeout\r\n", 9);
-						send_udp(p, &pdata);
-						init_packet(&pdata, MT_PTYPE_END, p->dstmac, p->srcmac, p->seskey, p->outcounter);
-						send_udp(p, &pdata);
+		}
+		time(&now);
+		
+		if (now - last_mndp_time > MT_MNDP_BROADCAST_INTERVAL) {
+			mndp_broadcast();
+			last_mndp_time = now;
+		}
+		if (connections_head != NULL) {
+			struct mt_connection *p,tmp;
+			for (p = connections_head; p != NULL; p = p->next) {
+				if (now - p->lastdata >= MT_CONNECTION_TIMEOUT) {
+					syslog(LOG_INFO, "(%d) Session timed out", p->seskey);
+					init_packet(&pdata, MT_PTYPE_DATA, p->dstmac, p->srcmac, p->seskey, p->outcounter);
+					add_control_packet(&pdata, MT_CPTYPE_PLAINDATA, "Timeout\r\n", 9);
+					send_udp(p, &pdata);
+					init_packet(&pdata, MT_PTYPE_END, p->dstmac, p->srcmac, p->seskey, p->outcounter);
+					send_udp(p, &pdata);
 
-						tmp.next = p->next;
-						list_remove_connection(p);
-						p = &tmp;
-					}
+					tmp.next = p->next;
+					list_remove_connection(p);
+					p = &tmp;
 				}
 			}
 		}

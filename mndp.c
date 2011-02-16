@@ -42,6 +42,8 @@ int main(int argc, char **argv)  {
 	si_me.sin_port = htons(MT_MNDP_PORT);
 	si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 
+	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval));
+
 	/* Bind to specified address/port */
 	if (bind(sock, (struct sockaddr *)&si_me, sizeof(si_me))==-1) {
 		fprintf(stderr, "Error binding to %s:%d\n", inet_ntoa(si_me.sin_addr), MT_MNDP_PORT);
@@ -68,7 +70,7 @@ int main(int argc, char **argv)  {
 	}
 
 	while(1) {
-		struct mt_mndp_packet *packet;
+		struct mt_mndp_info *packet;
 		/* Wait for a UDP packet */
 		result = recvfrom(sock, buff, MT_PACKET_LEN, 0, 0, 0);
 		if (result < 0) {
@@ -81,7 +83,14 @@ int main(int argc, char **argv)  {
 
 		if (packet != NULL) {
 			/* Print it */
-			printf("%17s %s\n", ether_ntoa((struct ether_addr *)packet->address), packet->identity);
+			printf(" %-17s %s", ether_ntoa((struct ether_addr *)packet->address), packet->identity);
+			if (packet->platform != NULL) {
+				printf(" (%s %s %s)", packet->platform, packet->version, packet->hardware);
+			}
+			if (packet->uptime > 0) {
+				printf(" up %d days %d hours", packet->uptime / 86400, packet->uptime % 86400 / 3600);
+			}
+			putchar('\n');
 		}
 	}
 

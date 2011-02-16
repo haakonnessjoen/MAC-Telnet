@@ -202,31 +202,137 @@ int parse_control_packet(unsigned char *packetdata, int data_len, struct mt_mact
 	}
 }
 
-struct mt_mndp_packet *parse_mndp(const unsigned char *data, const int packet_len) {
-	static struct mt_mndp_packet packet;
-	unsigned short name_len = 0;
+int mndp_init_packet(struct mt_packet *packet, unsigned char version, unsigned char ttl) {
+	struct mt_mndp_hdr *header = (struct mt_mndp_hdr *)packet->data;
+
+	header->version = version;
+	header->ttl = ttl;
+	header->cksum = 0;
+	
+	packet->size = sizeof(header);
+	
+	return sizeof(header);
+}
+
+int mndp_add_attribute(struct mt_packet *packet, enum mt_mndp_attrtype attrtype, void *attrdata, unsigned short data_len) {
+	unsigned char *data = packet->data + packet->size;
+	unsigned short type = attrtype;
+	unsigned short len = data_len;
+
+	/* Something is really wrong. Packets should never become over 1500 bytes */
+	if (packet->size + 4 + data_len > MT_PACKET_LEN) {
+		fprintf(stderr, "mndp_add_attribute: ERROR, too large packet. Exceeds %d bytes\n", MT_PACKET_LEN);
+		return -1;
+	}
+
+	/* TODO: Should check all host-to-network/network-to-host conversions in code
+	 * and add defines to check the current host's endianness.
+	 */
+	type = htons(type);
+	memcpy(data, &type, 2);
+
+	len = htons(len);
+	memcpy(data + 2, &len, 2);
+
+	memcpy(data + 4, attrdata, data_len);
+	
+	packet->size += 4 + data_len;
+	
+	return 4 + data_len;
+}
+
+
+struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len) {
+	const unsigned char *p;
+	static struct mt_mndp_info packet;
+	struct mt_mndp_hdr *mndp_hdr;
 
 	/* Check for valid packet length */
 	if (packet_len < 18) {
 		return NULL;
 	}
 
-	/* Fetch length of Identifier string */
-	memcpy(&name_len, data + 16,2);
-	name_len = (name_len >> 8) | ((name_len & 0xff) << 8);
+	bzero(&packet, sizeof(packet));
 
-	/* Enforce maximum name length */
-	name_len = name_len < MT_MNDP_MAX_IDENTITY_LENGTH ? name_len : MT_MNDP_MAX_IDENTITY_LENGTH;
+	mndp_hdr = (struct mt_mndp_hdr*)data;
 
-	/* Read Identifier string */
-	memcpy(packet.identity, data + 18, name_len);
+	memcpy(&(packet.header), mndp_hdr, sizeof(mndp_hdr));
 
-	/* Append zero */
-	packet.identity[name_len] = 0;
+	p = data + sizeof(struct mt_mndp_hdr);
+	
+	while(p < data + packet_len) {
+		unsigned short type, len;
+		
+		memcpy(&type, p, 2);
+		memcpy(&len, p + 2, 2);
+		
+		type = ntohs(type);
+		len = ntohs(len);
+		p += 4;
 
-	/* Read source MAC address */
-	memcpy(packet.address, data + 8, ETH_ALEN);
+		switch (type) {
+			case MT_MNDPTYPE_ADDRESS:
+				if (len >= ETH_ALEN) {
+					memcpy(packet.address, p, ETH_ALEN);
+				}
+				break;
 
+			case MT_MNDPTYPE_IDENTITY:
+				if (len > MT_MNDP_MAX_STRING_LENGTH) {
+					len = MT_MNDP_MAX_STRING_LENGTH;
+				}
+
+				memcpy(packet.identity, p, len);
+				packet.identity[len] = '\0';
+				break;
+
+			case MT_MNDPTYPE_PLATFORM:
+				if (len > MT_MNDP_MAX_STRING_LENGTH) {
+					len = MT_MNDP_MAX_STRING_LENGTH;
+				}
+
+				memcpy(packet.platform, p, len);
+				packet.platform[len] = '\0';
+				break;
+
+			case MT_MNDPTYPE_VERSION:
+				if (len > MT_MNDP_MAX_STRING_LENGTH) {
+					len = MT_MNDP_MAX_STRING_LENGTH;
+				}
+
+				memcpy(packet.version, p, len);
+				packet.version[len] = '\0';
+				break;
+
+			case MT_MNDPTYPE_TIMESTAMP:
+				memcpy(&(packet.uptime), p, 4);
+				break;
+
+			case MT_MNDPTYPE_HARDWARE:
+				if (len > MT_MNDP_MAX_STRING_LENGTH) {
+					len = MT_MNDP_MAX_STRING_LENGTH;
+				}
+
+				memcpy(packet.hardware, p, len);
+				packet.hardware[len] = '\0';
+				break;
+
+			case MT_MNDPTYPE_SOFTID:
+				if (len > MT_MNDP_MAX_STRING_LENGTH) {
+					len = MT_MNDP_MAX_STRING_LENGTH;
+				}
+				
+				memcpy(packet.softid, p, len);
+				packet.softid[len] = '\0';
+				break;
+
+			//default:
+				// Unhandled MNDP type
+		}
+		
+		p += len;
+	}
+	
 	return &packet;
 }
 
@@ -240,7 +346,7 @@ int query_mndp(const char *identity, unsigned char *mac) {
 	struct timeval timeout;
 	time_t start_time;
 	fd_set read_fds;
-	struct mt_mndp_packet *packet;
+	struct mt_mndp_info *packet;
 
 	start_time = time(0);
 

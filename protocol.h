@@ -27,7 +27,9 @@
 #define MT_MACTELNET_PORT 20561
 
 #define MT_MNDP_PORT 5678
-#define MT_MNDP_MAX_IDENTITY_LENGTH 64
+#define MT_MNDP_MAX_STRING_LENGTH 128
+#define MT_MNDP_BROADCAST_INTERVAL 30
+
 #define MT_MNDP_TIMEOUT 5
 #define MT_MNDP_LONGTIMEOUT 120
 
@@ -54,6 +56,24 @@ enum mt_cptype {
 	MT_CPTYPE_PLAINDATA = -1
 };
 
+/* MNDP attribute type */
+enum mt_mndp_attrtype {
+	MT_MNDPTYPE_ADDRESS   = 0x0001,
+	MT_MNDPTYPE_IDENTITY  = 0x0005,
+	MT_MNDPTYPE_VERSION   = 0x0007,
+	MT_MNDPTYPE_PLATFORM  = 0x0008,
+	MT_MNDPTYPE_TIMESTAMP = 0x000a,
+	MT_MNDPTYPE_SOFTID    = 0x000b,
+	MT_MNDPTYPE_HARDWARE  = 0x000c
+};
+
+/* MNDP packet header */
+struct mt_mndp_hdr {
+  unsigned char version;
+  unsigned char ttl;
+  unsigned short cksum;
+};
+
 struct mt_mactelnet_hdr {
 	unsigned char ver;
 	enum mt_ptype ptype;
@@ -72,9 +92,15 @@ struct mt_mactelnet_control_hdr {
 };
 
 /* TODO: Add all the other information obtainable from mndp */
-struct mt_mndp_packet {
+struct mt_mndp_info {
+	struct mt_mndp_hdr header;
 	unsigned char address[ETH_ALEN];
-	char identity[MT_MNDP_MAX_IDENTITY_LENGTH];
+	char identity[MT_MNDP_MAX_STRING_LENGTH];
+	char version[MT_MNDP_MAX_STRING_LENGTH];
+	char platform[MT_MNDP_MAX_STRING_LENGTH];
+	char hardware[MT_MNDP_MAX_STRING_LENGTH];
+	char softid[MT_MNDP_MAX_STRING_LENGTH];
+	unsigned int uptime;
 };
 
 struct mt_packet {
@@ -89,7 +115,10 @@ extern void parse_packet(unsigned char *data, struct mt_mactelnet_hdr *pkthdr);
 extern int parse_control_packet(unsigned char *data, int data_len, struct mt_mactelnet_control_hdr *cpkthdr);
 
 /* MNDP packets */
-struct mt_mndp_packet *parse_mndp(const unsigned char *data, const int packet_len);
+extern int mndp_init_packet(struct mt_packet *packet, unsigned char version, unsigned char ttl);
+extern int mndp_add_attribute(struct mt_packet *packet, enum mt_mndp_attrtype attrtype, void *attrdata, unsigned short data_len);
+
+extern struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len);
 int query_mndp(const char *identity, unsigned char *mac);
 
 /* Number of milliseconds between each retransmission */

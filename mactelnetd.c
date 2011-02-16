@@ -215,7 +215,7 @@ static void setup_sockets() {
 			strncpy(mysocket->name, devicename, MT_INTERFACE_LEN - 1);
 			mysocket->name[MT_INTERFACE_LEN - 1] = '\0';
 
-			if (use_raw_socket == 0 && get_device_ip(insockfd, devicename, &myip) > 0) {
+			if (get_device_ip(insockfd, devicename, &myip) > 0) {
 
 				mysocket->sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 				if (mysocket->sockfd < 0) {
@@ -266,8 +266,8 @@ static int send_mndp_udp(const struct mt_socket *sock, const struct mt_packet *p
 	unsigned char dstmac[6];
 	
 	if (use_raw_socket) {
-		memset(dstmac, 255, 6);
-		return send_custom_udp(sockfd, sock->device_index, sock->mac, dstmac, &sourceip, MT_MNDP_PORT, &destip, MT_MNDP_PORT, packet->data, packet->size);
+		memset(dstmac, 0xff, 6);
+		return send_custom_udp(sockfd, sock->device_index, sock->mac, dstmac, (const struct in_addr *)sock->ip, MT_MNDP_PORT, &destip, MT_MNDP_PORT, packet->data, packet->size);
 	} else {
 		/* Init SendTo struct */
 		struct sockaddr_in socket_address;

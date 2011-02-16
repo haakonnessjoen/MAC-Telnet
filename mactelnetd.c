@@ -199,17 +199,17 @@ static void setup_sockets() {
 
 	memset(emptymac, 0, ETH_ALEN);
 
-	while ((success = get_ips(devicename, MT_INTERFACE_LEN, &myip))) {
-		if (get_device_mac(insockfd, devicename, mac)) {
-			if (memcmp(mac, emptymac, ETH_ALEN) != 0 && find_socket(mac) < 0) {
-				int optval = 1;
-				struct sockaddr_in si_me;
-				struct mt_socket *mysocket = &(sockets[sockets_count]);
+	while ((success = get_macs(insockfd, devicename, MT_INTERFACE_LEN, mac))) {
+		if (memcmp(mac, emptymac, ETH_ALEN) != 0 && find_socket(mac) < 0) {
+			int optval = 1;
+			struct sockaddr_in si_me;
+			struct mt_socket *mysocket = &(sockets[sockets_count]);
 
-				memcpy(mysocket->mac, mac, ETH_ALEN);
-				strncpy(mysocket->name, devicename, MT_INTERFACE_LEN - 1);
-				mysocket->name[MT_INTERFACE_LEN - 1] = '\0';
+			memcpy(mysocket->mac, mac, ETH_ALEN);
+			strncpy(mysocket->name, devicename, MT_INTERFACE_LEN - 1);
+			mysocket->name[MT_INTERFACE_LEN - 1] = '\0';
 
+			if (use_raw_socket == 0 && get_device_ip(insockfd, devicename, &myip) > 0) {
 
 				mysocket->sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 				if (mysocket->sockfd < 0) {
@@ -234,12 +234,11 @@ static void setup_sockets() {
 					continue;
 				}
 				memcpy(mysocket->ip, &(myip.sin_addr), 4);
-				memcpy(mysocket->mac, mac, ETH_ALEN);
-
-				mysocket->device_index = get_device_index(mysocket->sockfd, devicename);
-
-				sockets_count++;
 			}
+			mysocket->device_index = get_device_index(insockfd, devicename);
+			printf("dif=%d = %s\n", mysocket->device_index, devicename);
+			
+			sockets_count++;
 		}
 	}
 }
@@ -808,7 +807,7 @@ int main (int argc, char **argv) {
 
 	for (i = 0; i < sockets_count; ++i) {
 		struct mt_socket *socket = &(sockets[i]);
-		syslog(LOG_NOTICE, "Listening on %s: %16s port %d\n", socket->name, ether_ntoa((struct ether_addr *)socket->mac), MT_MACTELNET_PORT);
+		syslog(LOG_NOTICE, "Listening on %s for %16s\n", socket->name, ether_ntoa((struct ether_addr *)socket->mac));
 	}
 	
 	if (sockets_count == 0) {

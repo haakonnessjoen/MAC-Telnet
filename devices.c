@@ -97,13 +97,49 @@ int get_device_ip(const int sockfd, const char *device_name, struct sockaddr_in 
 	for (i = 0; i < device_count; ++i) {
 		if (strcmp(ifr[i].ifr_name, device_name) == 0) {
 			/* Fetch IP for found interface */
-			memcpy(ip, &(ifr[i].ifr_addr), sizeof(ip));
+			memcpy(ip, &(ifr[i].ifr_addr), sizeof(struct sockaddr_in));
 			free(ifr);
 			return 1;
 		}
 	}
 	free(ifr);
 	return -1;
+}
+
+int get_macs(int sockfd, char *name, int name_len, unsigned char *mac) {
+	static int first = 1;
+	static struct ifaddrs *int_addrs;
+	static const struct ifaddrs *int_cursor;
+	const struct sockaddr_in *dl_addr;
+
+	if (first == 1) {
+		first = 0;
+		if (getifaddrs(&int_addrs) == 0) {
+			int_cursor = int_addrs;
+		} else {
+			first = 1;
+			return 0;
+		}
+	}
+	if (int_cursor != NULL) {
+		while (int_cursor != NULL) {
+			dl_addr = (const struct sockaddr_in *) int_cursor->ifa_addr;
+			if (dl_addr != NULL && dl_addr->sin_family == AF_PACKET) {
+				strncpy(name, int_cursor->ifa_name, name_len - 1);
+				name[name_len - 1] = '\0';
+				int_cursor = int_cursor->ifa_next;
+				if (get_device_mac(sockfd, name, mac)) {
+					return 1;
+				}
+			}
+			int_cursor = int_cursor->ifa_next;
+		}
+	}
+	if (int_addrs != NULL) {
+		freeifaddrs(int_addrs);
+		int_addrs = NULL;
+	}
+	return 0;
 }
 
 int get_ips(char *name, int name_len, struct sockaddr_in *ip) {

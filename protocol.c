@@ -45,25 +45,29 @@ int init_packet(struct mt_packet *packet, enum mt_ptype ptype, unsigned char *sr
 
 	if (mt_direction_fromserver) {
 		/* Session key */
-		data[16] = sessionkey >> 8;
-		data[17] = sessionkey & 0xff;
+#if BYTE_ORDER == LITTLE_ENDIAN
+		sessionkey = htons(sessionkey);
+#endif
+		memcpy(data + 15, &sessionkey, sizeof(sessionkey));
 
 		/* Client type: Mac Telnet */
 		memcpy(data + 14, &mt_mactelnet_clienttype, sizeof(mt_mactelnet_clienttype));
 	} else {
 		/* Session key */
-		data[14] = sessionkey >> 8;
-		data[15] = sessionkey & 0xff;
+#if BYTE_ORDER == LITTLE_ENDIAN
+		sessionkey = htons(sessionkey);
+#endif
+		memcpy(data + 14, &sessionkey, sizeof(sessionkey));
 
 		/* Client type: Mac Telnet */
 		memcpy(data + 16, &mt_mactelnet_clienttype, sizeof(mt_mactelnet_clienttype));
 	}
 
 	/* Received/sent data counter */
-	data[18] = (counter >> 24) & 0xff;
-	data[19] = (counter >> 16) & 0xff;
-	data[20] = (counter >> 8) & 0xff;
-	data[21] = counter & 0xff;
+#if BYTE_ORDER == LITTLE_ENDIAN
+	counter = htonl(counter);
+#endif
+	memcpy(data + 18, &counter, sizeof(counter));
 
 	/* 22 bytes header */
 	packet->size = 22;
@@ -71,6 +75,7 @@ int init_packet(struct mt_packet *packet, enum mt_ptype ptype, unsigned char *sr
 }
 
 int add_control_packet(struct mt_packet *packet, enum mt_cptype cptype, void *cpdata, int data_len) {
+	unsigned int templen;
 	unsigned char *data = packet->data + packet->size;
 
 	/* Something is really wrong. Packets should never become over 1500 bytes */
@@ -95,13 +100,17 @@ int add_control_packet(struct mt_packet *packet, enum mt_cptype cptype, void *cp
 	data[4] = cptype;
 
 	/* Data length */
-	data[5] = (data_len >> 24) & 0xff;
-	data[6] = (data_len >> 16) & 0xff;
-	data[7] = (data_len >> 8) & 0xff;
-	data[8] = data_len & 0xff;
+#if BYTE_ORDER == LITTLE_ENDIAN
+	templen = data_len;
+	templen = htonl(templen);
+	memcpy(data + 5, &templen, sizeof(templen));
+#else
+	#pragma unused(templen)
+	memcpy(data + 5, &data_len, sizeof(data_len));
+#endif
 
 	/* Insert data */
-	if (data_len) {
+	if (data_len > 0) {
 		memcpy(data + MT_CPHEADER_LEN, cpdata, data_len);
 	}
 
@@ -159,8 +168,10 @@ void parse_packet(unsigned char *data, struct mt_mactelnet_hdr *pkthdr) {
 
 	if (mt_direction_fromserver) {
 		/* Session key */
-		pkthdr->seskey = data[14] << 8 | data[15];
-
+		memcpy(&(pkthdr->seskey), data + 14, sizeof(pkthdr->seskey));
+#if BYTE_ORDER == LITTLE_ENDIAN
+		pkthdr->seskey = ntohs(pkthdr->seskey);
+#endif
 		/* server type */
 		memcpy(&(pkthdr->clienttype), data+16, 2);
 	} else {
@@ -168,11 +179,17 @@ void parse_packet(unsigned char *data, struct mt_mactelnet_hdr *pkthdr) {
 		memcpy(&(pkthdr->clienttype), data+14, 2);
 
 		/* Session key */
-		pkthdr->seskey = data[16] << 8 | data[17];
+		memcpy(&(pkthdr->seskey), data + 16, sizeof(pkthdr->seskey));
+#if BYTE_ORDER == LITTLE_ENDIAN
+		pkthdr->seskey = ntohs(pkthdr->seskey);
+#endif
 	}
 
 	/* Received/sent data counter */
-	pkthdr->counter = data[18] << 24 | data[19] << 16 | data[20] << 8 | data[21];
+	memcpy(&(pkthdr->counter), data + 18, sizeof(pkthdr->counter));
+#if BYTE_ORDER == LITTLE_ENDIAN
+	pkthdr->counter = ntohl(pkthdr->counter);
+#endif
 
 	/* Set pointer to actual data */
 	pkthdr->data = data + 22;
@@ -211,7 +228,10 @@ int parse_control_packet(unsigned char *packetdata, int data_len, struct mt_mact
 		cpkthdr->cptype = data[4];
 
 		/* Control packet data length */
-		cpkthdr->length = data[5] << 24 | data[6] << 16 | data[7] << 8 | data[8];
+		memcpy(&(cpkthdr->length), data + 5, sizeof(cpkthdr->length));
+#if BYTE_ORDER == LITTLE_ENDIAN
+		cpkthdr->length = ntohl(cpkthdr->length);
+#endif
 
 		/* Set pointer to actual data */
 		cpkthdr->data = data + 9;
@@ -262,16 +282,20 @@ int mndp_add_attribute(struct mt_packet *packet, enum mt_mndp_attrtype attrtype,
 	/* TODO: Should check all host-to-network/network-to-host conversions in code
 	 * and add defines to check the current host's endianness.
 	 */
+#if BYTE_ORDER == LITTLE_ENDIAN
 	type = htons(type);
-	memcpy(data, &type, 2);
+#endif
+	memcpy(data, &type, sizeof(type));
 
+#if BYTE_ORDER == LITTLE_ENDIAN
 	len = htons(len);
-	memcpy(data + 2, &len, 2);
+#endif
+	memcpy(data + 2, &len, sizeof(len));
 
 	memcpy(data + 4, attrdata, data_len);
-	
+
 	packet->size += 4 + data_len;
-	
+
 	return 4 + data_len;
 }
 
@@ -293,15 +317,17 @@ struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len)
 	memcpy(&(packet.header), mndp_hdr, sizeof(mndp_hdr));
 
 	p = data + sizeof(struct mt_mndp_hdr);
-	
+
 	while(p < data + packet_len) {
 		unsigned short type, len;
-		
+
 		memcpy(&type, p, 2);
 		memcpy(&len, p + 2, 2);
-		
+
+#if BYTE_ORDER == LITTLE_ENDIAN
 		type = ntohs(type);
 		len = ntohs(len);
+#endif
 		p += 4;
 
 		switch (type) {
@@ -340,6 +366,10 @@ struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len)
 
 			case MT_MNDPTYPE_TIMESTAMP:
 				memcpy(&(packet.uptime), p, 4);
+/* Seems like ping uptime is transmitted as small endian? */
+#if BYTE_ORDER == BIG_ENDIAN
+				packet.uptime = ntohl(packet.uptime);
+#endif
 				break;
 
 			case MT_MNDPTYPE_HARDWARE:
@@ -393,8 +423,13 @@ int query_mndp(const char *identity, unsigned char *mac) {
 	/* Set initialize address/port */
 	memset((char *) &si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
+#if BYTE_ORDER == LITTLE_ENDIAN
 	si_me.sin_port = htons(MT_MNDP_PORT);
 	si_me.sin_addr.s_addr = htonl(INADDR_ANY);
+#else
+	si_me.sin_port = MT_MNDP_PORT;
+	si_me.sin_addr.s_addr = INADDR_ANY;
+#endif
 
 	/* Bind to specified address/port */
 	if (bind(sock, (struct sockaddr *)&si_me, sizeof(si_me)) == -1) {
@@ -409,8 +444,13 @@ int query_mndp(const char *identity, unsigned char *mac) {
 	/* Request routers identify themselves */
 	memset((char *) &si_remote, 0, sizeof(si_remote));
 	si_remote.sin_family = AF_INET;
+#if BYTE_ORDER == LITTLE_ENDIAN
 	si_remote.sin_port = htons(MT_MNDP_PORT);
 	si_remote.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+#else
+	si_remote.sin_port = MT_MNDP_PORT;
+	si_remote.sin_addr.s_addr = INADDR_BROADCAST;
+#endif
 
 	if (sendto(sock, &message, sizeof (message), 0, (struct sockaddr *)&si_remote, sizeof(si_remote)) == -1) {
 		fprintf(stderr, "Unable to send broadcast packet: Router lookup will be slow\n");

@@ -166,6 +166,11 @@ static void send_auth(char *username, char *password) {
 	plen += add_control_packet(&data, MT_CPTYPE_TERM_TYPE, terminal, strlen(terminal));
 	
 	if (get_terminal_size(&width, &height) != -1) {
+#if BYTE_ORDER == BIG_ENDIAN
+		/* Seems like Mikrotik are sending data little_endianed? */
+		width = ((width & 0xff) << 8) | ((width & 0xff00) >> 8);
+		height = ((height & 0xff) << 8) | ((height & 0xff00) >> 8);
+#endif
 		plen += add_control_packet(&data, MT_CPTYPE_TERM_WIDTH, &width, 2);
 		plen += add_control_packet(&data, MT_CPTYPE_TERM_HEIGHT, &height, 2);
 	}

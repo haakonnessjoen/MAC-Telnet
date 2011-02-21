@@ -79,7 +79,7 @@ struct mt_mndp_hdr {
 struct mt_mactelnet_hdr {
 	unsigned char ver;
 	enum mt_ptype ptype;
-	unsigned int clienttype;
+	unsigned char clienttype[2];
 	unsigned char srcaddr[6];
 	unsigned char dstaddr[6];
 	unsigned short seskey;

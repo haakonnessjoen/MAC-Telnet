@@ -1,12 +1,22 @@
 
-all: mactelnet macping mactelnetd mndp
+CC=gcc
+CCFLAGS= 
+
+all: macping mndp mactelnet mactelnetd
 
 clean: dist-clean
 
 dist-clean:
 	rm -f mactelnet macping mactelnetd mndp
+	rm -f *.o
 
-install: all
+strip-all: mndp macping mactelnet mactelnetd
+	strip -s mndp
+	strip -s macping
+	strip -s mactelnet
+	strip -s mactelnetd
+
+install: all strip-all
 	cp mndp $(DESTDIR)/usr/bin/
 	cp macping $(DESTDIR)/usr/bin/
 	cp mactelnet $(DESTDIR)/usr/bin/
@@ -15,14 +25,29 @@ install: all
 	chown root $(DESTDIR)/etc/mactelnetd.users
 	chmod 600 $(DESTDIR)/etc/mactelnetd.users
 
-mactelnet: config.h udp.h udp.c mactelnet.c mactelnet.h protocol.c protocol.h console.c console.h devices.c devices.h md5.c md5.h
-	gcc -Wall -g -DUSERSFILE='"/etc/mactelnetd.users"' -o mactelnet mactelnet.c udp.c protocol.c console.c devices.c md5.c
+udp.o: udp.c udp.h
+	${CC} -Wall ${CCFLAGS} -c udp.c
 
-mactelnetd: config.h mactelnetd.c udp.h udp.c protocol.c protocol.h devices.c devices.h console.c console.h users.c users.h md5.c md5.h
-	gcc -Wall -g -DUSERSFILE='"/etc/mactelnetd.users"' -o mactelnetd mactelnetd.c udp.c protocol.c console.c devices.c users.c md5.c
+users.o: users.c users.h
+	${CC} -Wall ${CCFLAGS} -DUSERSFILE='"/etc/mactelnetd.users"' -c users.c
 
-mndp: config.h mndp.c protocol.c protocol.h
-	gcc -Wall -g -o mndp mndp.c protocol.c
+protocol.o: protocol.c protocol.h
+	${CC} -Wall ${CCFLAGS} -c protocol.c
 
-macping: config.h macping.c udp.c udp.h devices.c devices.h protocol.c protocol.h
-	gcc -Wall -g -o macping macping.c devices.c udp.c protocol.c
+devices.o: devices.c devices.h
+	${CC} -Wall ${CCFLAGS} -c devices.c
+
+md5.o: md5.c md5.h
+	${CC} -Wall ${CCFLAGS} -c md5.c
+
+mactelnet: config.h udp.o mactelnet.c mactelnet.h protocol.o console.c console.h devices.o md5.o
+	${CC} -Wall ${CCFLAGS} -o mactelnet mactelnet.c udp.o protocol.o console.c devices.o md5.o
+
+mactelnetd: config.h mactelnetd.c udp.o protocol.o devices.o console.c console.h users.o users.h md5.o
+	${CC} -Wall ${CCFLAGS} -o mactelnetd mactelnetd.c udp.o protocol.o console.c devices.o users.o md5.o
+
+mndp: config.h mndp.c protocol.o
+	${CC} -Wall ${CCFLAGS} -o mndp mndp.c protocol.o
+
+macping: config.h macping.c udp.o devices.o protocol.o
+	${CC} -Wall ${CCFLAGS} -o macping macping.c devices.o udp.o protocol.o

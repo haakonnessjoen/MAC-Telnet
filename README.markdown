@@ -22,7 +22,7 @@ Usage
 -----
 
     # mactelnet -h
-    Usage: ./mactelnet <MAC|identity> [-h] [-n] [-t <timeout>] [-u <username>] [-p <password>]
+    Usage: mactelnet <MAC|identity> [-h] [-n] [-t <timeout>] [-u <username>] [-p <password>]
     
     Parameters:
       MAC       MAC-Address of the RouterOS device. Use mndp to discover them.
@@ -36,7 +36,7 @@ Usage
 
 Example:
 
-    $ ./mactelnet 0:c:42:43:58:a5 -u admin
+    $ mactelnet 0:c:42:43:58:a5 -u admin
     Password: 
     Connecting to 0:c:42:43:58:a5...done
     
@@ -57,7 +57,7 @@ MAC-Ping usage
 --------------
 
     # macping -h
-    Usage: ./macping <MAC> [-h] [-c <count>] [-s <packet size>]
+    Usage: macping <MAC> [-h] [-c <count>] [-s <packet size>]
     
     Parameters:
       MAC       MAC-Address of the RouterOS/mactelnetd device.

@@ -34,7 +34,7 @@ Usage
       -h        This help.
 
 
-    Example:
+Example:
 
     $ ./mactelnet 0:c:42:43:58:a5 -u admin
     Password: 
@@ -53,3 +53,30 @@ Usage
      
      [admin@HMG] >
 
+MAC-Ping usage
+--------------
+
+    # macping -h
+    Usage: ./macping <MAC> [-h] [-c <count>] [-s <packet size>]
+    
+    Parameters:
+      MAC       MAC-Address of the RouterOS/mactelnetd device.
+      -s        Specify size of ping packet.
+      -c        Number of packets to send. (0 = for ever)
+      -h        This help.
+
+Example:
+
+    # macping 0:c:42:43:58:a5
+    0:c:42:43:58:a5 56 byte, ping time 1.17 ms
+    0:c:42:43:58:a5 56 byte, ping time 1.07 ms
+    0:c:42:43:58:a5 56 byte, ping time 1.20 ms
+    0:c:42:43:58:a5 56 byte, ping time 0.65 ms
+    0:c:42:43:58:a5 56 byte, ping time 1.19 ms
+    
+    5 packets transmitted, 5 packets received, 0% packet loss
+    round-trip min/avg/max = 0.65/1.06/1.20 ms
+
+Or for use in bash-scripting:
+
+    # macping 0:c:42:43:58:a5 -c 2 >/dev/null 2>&1 || ( echo "No answer for 2 pings" | mail -s "router down" my.email@address.com )

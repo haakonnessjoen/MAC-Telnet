@@ -38,6 +38,8 @@ enum mt_ptype {
 	MT_PTYPE_SESSIONSTART,
 	MT_PTYPE_DATA,
 	MT_PTYPE_ACK,
+	MT_PTYPE_PING = 4,
+	MT_PTYPE_PONG,
 	MT_PTYPE_END = 255
 };
 
@@ -113,6 +115,11 @@ extern int init_packet(struct mt_packet *packet, enum mt_ptype ptype, unsigned c
 extern int add_control_packet(struct mt_packet *packet, enum mt_cptype cptype, void *cpdata, int data_len);
 extern void parse_packet(unsigned char *data, struct mt_mactelnet_hdr *pkthdr);
 extern int parse_control_packet(unsigned char *data, int data_len, struct mt_mactelnet_control_hdr *cpkthdr);
+
+/* MAC-Ping packets */
+int init_pingpacket(struct mt_packet *packet, unsigned char *srcmac, unsigned char *dstmac);
+int init_pongpacket(struct mt_packet *packet, unsigned char *srcmac, unsigned char *dstmac);
+int add_packetdata(struct mt_packet *packet, unsigned char *data, unsigned short length);
 
 /* MNDP packets */
 extern int mndp_init_packet(struct mt_packet *packet, unsigned char version, unsigned char ttl);

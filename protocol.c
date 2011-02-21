@@ -110,6 +110,40 @@ int add_control_packet(struct mt_packet *packet, enum mt_cptype cptype, void *cp
 	return MT_CPHEADER_LEN + data_len;
 }
 
+int init_pingpacket(struct mt_packet *packet, unsigned char *srcmac, unsigned char *dstmac) {
+	init_packet(packet, MT_PTYPE_PING, srcmac, dstmac, 0, 0);
+
+	/* Zero out sessionkey & counter */
+	bzero(packet->data + 14, 4);
+
+	/* Remove data counter field from header */
+	packet->size -= 4;
+	return packet->size;
+}
+
+int init_pongpacket(struct mt_packet *packet, unsigned char *srcmac, unsigned char *dstmac) {
+	init_packet(packet, MT_PTYPE_PONG, srcmac, dstmac, 0, 0);
+
+	/* Zero out sessionkey & counter */
+	bzero(packet->data + 14, 4);
+
+	/* Remove data counter field from header */
+	packet->size -= 4;
+	return packet->size;
+}
+
+int add_packetdata(struct mt_packet *packet, unsigned char *data, unsigned short length) {
+	if (packet->size + length > MT_PACKET_LEN) {
+		fprintf(stderr, "add_control_packet: ERROR, too large packet. Exceeds %d bytes\n", MT_PACKET_LEN);
+		return -1;
+	}
+
+	memcpy(packet->data + packet->size, data, length);
+	packet->size += length;
+
+	return length;
+}
+
 void parse_packet(unsigned char *data, struct mt_mactelnet_hdr *pkthdr) {
 	/* Packet version */
 	pkthdr->ver = data[0];

@@ -56,6 +56,9 @@
 
 #define MT_INTERFACE_LEN 128
 
+/* Max ~5 pings per second */
+#define MT_MAXPPS MT_MNDP_BROADCAST_INTERVAL * 5
+
 struct mt_socket {
 	unsigned char ip[4];
 	unsigned char mac[ETH_ALEN];
@@ -67,6 +70,8 @@ struct mt_socket {
 static int sockfd;
 static int insockfd;
 static int mndpsockfd;
+
+static int pings = 0;
 
 static struct mt_socket sockets[MAX_INSOCKETS];
 static int sockets_count = 0;
@@ -262,17 +267,17 @@ static int send_udp(const struct mt_connection *conn, const struct mt_packet *pa
 	}
 }
 
-static int send_mndp_udp(const struct mt_socket *sock, const struct mt_packet *packet) {
+static int send_special_udp(const struct mt_socket *sock, unsigned short port, const struct mt_packet *packet) {
 	unsigned char dstmac[6];
 	
 	if (use_raw_socket) {
 		memset(dstmac, 0xff, 6);
-		return send_custom_udp(sockfd, sock->device_index, sock->mac, dstmac, (const struct in_addr *)sock->ip, MT_MNDP_PORT, &destip, MT_MNDP_PORT, packet->data, packet->size);
+		return send_custom_udp(sockfd, sock->device_index, sock->mac, dstmac, (const struct in_addr *)sock->ip, port, &destip, port, packet->data, packet->size);
 	} else {
 		/* Init SendTo struct */
 		struct sockaddr_in socket_address;
 		socket_address.sin_family = AF_INET;
-		socket_address.sin_port = htons(MT_MNDP_PORT);
+		socket_address.sin_port = htons(port);
 		socket_address.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 
 		return sendto(sock->sockfd, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
@@ -322,7 +327,7 @@ static void uwtmp_login(struct mt_connection *conn) {
 	strncpy(utent.ut_line, line, sizeof(utent.ut_line));
 	strncpy(utent.ut_id, utent.ut_line + 3, sizeof(utent.ut_id));
 	strncpy(utent.ut_host,ether_ntoa((const struct ether_addr *)conn->srcmac), sizeof(utent.ut_host));
-	time(&utent.ut_time);
+	time((time_t *)&(utent.ut_time));
 	
 	/* Update utmp and/or wtmp */
 	setutent();
@@ -600,6 +605,7 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 	struct mt_connection *curconn = NULL;
 	struct mt_packet pdata;
 	int socketnum;
+	int i;
 
 	parse_packet(data, &pkthdr);
 
@@ -609,6 +615,21 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 	}
 
 	switch (pkthdr.ptype) {
+
+		case MT_PTYPE_PING:
+			if (pings++ > MT_MAXPPS) {
+				break;
+			}
+			init_pongpacket(&pdata, (unsigned char *)&(pkthdr.dstaddr), (unsigned char *)&(pkthdr.srcaddr));
+			add_packetdata(&pdata, pkthdr.data - 4, data_len - (MT_HEADER_LEN - 4));
+			for (i = 0; i < sockets_count; ++i) {
+				struct mt_socket *socket = &(sockets[i]);
+				if (memcmp(&(socket->mac), &(pkthdr.dstaddr), ETH_ALEN) == 0) {
+					send_special_udp(socket, MT_MACTELNET_PORT, &pdata);
+					break;
+				}
+			}
+			break;
 
 		case MT_PTYPE_SESSIONSTART:
 			syslog(LOG_DEBUG, "(%d) New connection from %s.", pkthdr.seskey, ether_ntoa((struct ether_addr*)&(pkthdr.srcaddr)));
@@ -754,7 +775,7 @@ void mndp_broadcast() {
 
 		header->cksum = in_cksum((unsigned short *)&(pdata.data), pdata.size);
 
-		send_mndp_udp(socket, &pdata);
+		send_special_udp(socket, MT_MNDP_PORT, &pdata);
 	}
 }
 
@@ -984,6 +1005,7 @@ int main (int argc, char **argv) {
 		time(&now);
 		
 		if (now - last_mndp_time > MT_MNDP_BROADCAST_INTERVAL) {
+			pings = 0;
 			mndp_broadcast();
 			last_mndp_time = now;
 		}

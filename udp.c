@@ -34,6 +34,50 @@ unsigned short in_cksum(unsigned short *addr, int len)
 	return (answer);
 }
 
+unsigned short udp_sum_calc(unsigned char *src_addr,unsigned char *dst_addr, unsigned char *data, unsigned short len) {
+	unsigned short prot_udp=17;
+	unsigned short padd=0;
+	unsigned short word16;
+	unsigned int sum = 0;
+	int i;
+
+	/* Padding ? */
+	padd = (len % 2);
+	if (padd){
+		data[len + padd]=0;
+	}
+
+	/* header+data */
+	for (i = 0; i < len + padd; i += 2){
+		word16 = ((data[i] << 8) & 0xFF00) + (data[i + 1] & 0xFF);
+		sum += (unsigned long)word16;
+	}
+
+	/* source ip */
+	for (i = 0; i < 4; i += 2){
+		word16 = ((src_addr[i] << 8) & 0xFF00) + (src_addr[i + 1] & 0xFF);
+		sum += word16;
+	}
+
+	/* dest ip */
+	for (i = 0; i < 4; i += 2){
+		word16 = ((dst_addr[i] << 8) & 0xFF00) + (dst_addr[i + 1] & 0xFF);
+		sum += word16;
+	}
+
+	sum += prot_udp + len;
+
+	while (sum>>16)
+		sum = (sum & 0xFFFF)+(sum >> 16);
+
+	sum = ~sum;
+
+	if (sum == 0)
+		sum = 0xffff;
+
+	return (unsigned short) sum;
+}
+
 int send_custom_udp(const int socket, const int ifindex, const unsigned char *sourcemac, const unsigned char *destmac, const struct in_addr *sourceip, const int sourceport, const struct in_addr *destip, const int destport, const unsigned char *data, const int datalen) {
 	struct sockaddr_ll socket_address;
 
@@ -46,6 +90,12 @@ int send_custom_udp(const int socket, const int ifindex, const unsigned char *so
 	struct iphdr *ip = (struct iphdr *)(buffer+14);
 	struct udphdr *udp = (struct udphdr *)(buffer+14+20);
 	unsigned char *rest = (unsigned char *)(buffer+20+14+sizeof(struct udphdr));
+
+	if (((void *)rest - (void*)buffer) + datalen  > ETH_FRAME_LEN) {
+		fprintf(stderr, "packet size too large\n");
+		free(buffer);
+		return 0;
+	}
 
 	static unsigned int id = 1;
 	int send_result = 0;
@@ -85,6 +135,7 @@ int send_custom_udp(const int socket, const int ifindex, const unsigned char *so
 	ip->check = 0x0000;
 	ip->saddr = sourceip->s_addr;
 	ip->daddr = destip->s_addr;
+
 	/* Calculate checksum for IP header */
 	ip->check = in_cksum((unsigned short *)ip, sizeof(struct iphdr));
 
@@ -96,6 +147,8 @@ int send_custom_udp(const int socket, const int ifindex, const unsigned char *so
 
 	/* Insert actual data */
 	memcpy(rest, data, datalen);
+
+	udp->check = htons(udp_sum_calc((unsigned char *)&(ip->saddr), (unsigned char *)&(ip->daddr), (unsigned char *)udp, sizeof(struct udphdr) + datalen));
 
 	/* Send the packet */
 	send_result = sendto(socket, buffer, datalen+8+14+20, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));

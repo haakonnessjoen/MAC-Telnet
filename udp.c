@@ -50,7 +50,7 @@ unsigned short udp_sum_calc(unsigned char *src_addr,unsigned char *dst_addr, uns
 	/* header+data */
 	for (i = 0; i < len + padd; i += 2){
 		word16 = ((data[i] << 8) & 0xFF00) + (data[i + 1] & 0xFF);
-		sum += (unsigned long)word16;
+		sum += word16;
 	}
 
 	/* source ip */
@@ -65,6 +65,7 @@ unsigned short udp_sum_calc(unsigned char *src_addr,unsigned char *dst_addr, uns
 		sum += word16;
 	}
 
+	len = len;
 	sum += prot_udp + len;
 
 	while (sum>>16)
@@ -113,7 +114,11 @@ int send_custom_udp(const int socket, const int ifindex, const unsigned char *so
 
 	/* Init SendTo struct */
 	socket_address.sll_family   = PF_PACKET;	
+#if BYTE_ORDER == LITTLE_ENDIAN
 	socket_address.sll_protocol = htons(ETH_P_IP);	
+#else
+	socket_address.sll_protocol = ETH_P_IP;	
+#endif
 	socket_address.sll_ifindex  = ifindex;
 	socket_address.sll_hatype   = ARPHRD_ETHER;
 	socket_address.sll_pkttype  = PACKET_OTHERHOST;
@@ -127,9 +132,15 @@ int send_custom_udp(const int socket, const int ifindex, const unsigned char *so
 	ip->version = 4;
 	ip->ihl = 5;
 	ip->tos = 0x10;
+#if BYTE_ORDER == LITTLE_ENDIAN
 	ip->tot_len = htons(datalen + 8 + 20);
 	ip->id = htons(id++);
-	ip->frag_off = 0x0040;
+	ip->frag_off = htons(0x4000);
+#else
+	ip->tot_len = datalen + 8 + 20;
+	ip->id = id++;
+	ip->frag_off = 0x4000;
+#endif
 	ip->ttl = 64;
 	ip->protocol = 17; /* UDP */
 	ip->check = 0x0000;
@@ -140,15 +151,26 @@ int send_custom_udp(const int socket, const int ifindex, const unsigned char *so
 	ip->check = in_cksum((unsigned short *)ip, sizeof(struct iphdr));
 
 	/* Init UDP Header */
+#if BYTE_ORDER == LITTLE_ENDIAN
 	udp->source = htons(sourceport);
 	udp->dest = htons(destport);
-	udp->check = 0;
 	udp->len = htons(sizeof(struct udphdr) + datalen);
+	udp->check = 0;
+#else
+	udp->source = sourceport;
+	udp->dest = destport;
+	udp->check = 0;
+	udp->len = sizeof(struct udphdr) + datalen;
+#endif
 
 	/* Insert actual data */
 	memcpy(rest, data, datalen);
 
-	udp->check = htons(udp_sum_calc((unsigned char *)&(ip->saddr), (unsigned char *)&(ip->daddr), (unsigned char *)udp, sizeof(struct udphdr) + datalen));
+	/* Add UDP checksum */
+	udp->check = udp_sum_calc((unsigned char *)&(ip->saddr), (unsigned char *)&(ip->daddr), (unsigned char *)udp, sizeof(struct udphdr) + datalen);
+#if BYTE_ORDER == LITTLE_ENDIAN
+	udp->check = htons(udp->check);
+#endif
 
 	/* Send the packet */
 	send_result = sendto(socket, buffer, datalen+8+14+20, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));

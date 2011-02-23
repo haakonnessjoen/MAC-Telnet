@@ -108,9 +108,9 @@ void display_results() {
 	if (min_ms == FLT_MAX)
 		min_ms = 0;
 
-	fprintf(stderr, "\n");
-	fprintf(stderr, "%d packets transmitted, %d packets received, %d%% packet loss\n", ping_sent, pong_received, 100 - percent);
-	fprintf(stderr, "round-trip min/avg/max = %.2f/%.2f/%.2f ms\n", min_ms, avg_ms/pong_received, max_ms);
+	printf("\n");
+	printf("%d packets transmitted, %d packets received, %d%% packet loss\n", ping_sent, pong_received, 100 - percent);
+	printf("round-trip min/avg/max = %.2f/%.2f/%.2f ms\n", min_ms, avg_ms/pong_received, max_ms);
 
 	/* For bash scripting */
 	if (pong_received == 0) {
@@ -124,18 +124,23 @@ int main(int argc, char **argv)  {
 	int optval = 1;
 	int print_help = 0;
 	int send_packets = 5;
+	int fastmode = 0;
 	int c;
 	struct sockaddr_in si_me;
 	struct mt_packet packet;
 	int i;
 
 	while (1) {
-		c = getopt(argc, argv, "s:c:hv?");
+		c = getopt(argc, argv, "fs:c:hv?");
 
 		if (c == -1)
 			break;
 
 		switch (c) {
+			case 'f':
+				fastmode = 1;
+				break;
+
 			case 's':
 				ping_size = atoi(optarg) - 18;
 				break;
@@ -157,13 +162,20 @@ int main(int argc, char **argv)  {
 		}
 	}
 
+	/* We don't want people to use this for the wrong reasons */
+	if (fastmode && (send_packets == 0 || send_packets > 100)) {
+		fprintf(stderr, "Number of packets to send must be more than 0 and less than 100 in fast mode.\n");
+		return 1;
+	}
+
 	if (argc - optind < 1 || print_help) {
 		print_version();
-		fprintf(stderr, "Usage: %s <MAC> [-h] [-c <count>] [-s <packet size>]\n", argv[0]);
+		fprintf(stderr, "Usage: %s <MAC> [-h] [-f] [-c <count>] [-s <packet size>]\n", argv[0]);
 
 		if (print_help) {
 			fprintf(stderr, "\nParameters:\n");
 			fprintf(stderr, "  MAC       MAC-Address of the RouterOS/mactelnetd device.\n");
+			fprintf(stderr, "  -f        Fast mode, do not wait before sending next ping request.\n");
 			fprintf(stderr, "  -s        Specify size of ping packet.\n");
 			fprintf(stderr, "  -c        Number of packets to send. (0 = unlimited)\n");
 			fprintf(stderr, "  -h        This help.\n");
@@ -308,7 +320,9 @@ int main(int argc, char **argv)  {
 					}
 					pong_received++;
 					memcpy(&lasttimestamp, &pongtimestamp, sizeof(pongtimestamp));
-					sleep(1);
+					if (!fastmode) {
+						sleep(1);
+					}
 				} else {
 					/* Wait for the correct packet */
 					continue;

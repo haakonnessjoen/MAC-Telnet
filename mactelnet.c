@@ -331,6 +331,7 @@ static int find_interface() {
 
 		/* Set the global socket handle for send_udp() */
 		send_socket = testsocket;
+		device_index = get_device_index(testsocket, devicename);
 
 		/* Send a SESSIONSTART message with the current device */
 		init_packet(&data, MT_PTYPE_SESSIONSTART, srcmac, dstmac, sessionkey, 0);

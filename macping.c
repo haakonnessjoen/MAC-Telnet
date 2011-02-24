@@ -89,7 +89,7 @@ static void setup_devices() {
 	}
 }
 
-long long int toddiff(struct timeval *tod1, struct timeval *tod2)
+static long long int toddiff(struct timeval *tod1, struct timeval *tod2)
 {
     long long t1, t2;
     t1 = tod1->tv_sec * 1000000 + tod1->tv_usec;
@@ -97,7 +97,7 @@ long long int toddiff(struct timeval *tod1, struct timeval *tod2)
     return t1 - t2;
 }
 
-void display_results() {
+static void display_results() {
 	int percent = (int)((100.f/ping_sent) * pong_received);
 	if (percent > 100)
 		percent = 0;
@@ -194,7 +194,11 @@ int main(int argc, char **argv)  {
 		return 1;
 	}
 
-	ether_aton_r(argv[optind], (struct ether_addr *)dstmac);
+	/* Get mac-address from string, or check for hostname via mndp */
+	if (!query_mndp_verbose(argv[optind], dstmac)) {
+		/* No valid mac address found, abort */
+		return 1;
+	}
 
 	/* Open a UDP socket handle */
 	sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));

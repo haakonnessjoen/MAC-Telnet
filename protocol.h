@@ -127,6 +127,7 @@ extern int mndp_add_attribute(struct mt_packet *packet, enum mt_mndp_attrtype at
 
 extern struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len);
 int query_mndp(const char *identity, unsigned char *mac);
+int query_mndp_verbose(char *address, unsigned char *dstmac);
 
 /* Number of milliseconds between each retransmission */
 #define MAX_RETRANSMIT_INTERVALS 9

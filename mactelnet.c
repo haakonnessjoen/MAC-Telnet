@@ -461,50 +461,10 @@ int main (int argc, char **argv) {
 	/* Need to use, to be able to autodetect which interface to use */
 	setsockopt(insockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval));
 
-	/* Check for identity name or mac address */
-	{
-		char *p = argv[optind];
-		int colons = 0;
-		int dashs = 0;
-		while (*p++) {
-			if (*p == ':') {
-				colons++;
-			}
-			else if (*p == '-') {
-				dashs++;
-			}
-		}
-
-		/* 
-		 * Windows users often enter macs with dash instead
-		 * of colon.
-		 */
-		if (colons == 0 && dashs == 5) {
-			p = argv[optind];
-			while (*p++) {
-				if (*p == '-') {
-					*p = ':';
-				}
-			}
-			colons = dashs;
-		}
-
-		if (colons != 5) {
-			fprintf(stderr, "Searching for '%s'...", argv[optind]);
-
-			/* Search for Router by identity name, using MNDP */
-			if (!query_mndp(argv[optind], dstmac)) {
-				fprintf(stderr, "not found\n");
-				return 1;
-			}
-
-			/* Router found, display mac and continue */
-			fprintf(stderr, "found\n");
-
-		} else {
-			/* Convert mac address string to ether_addr struct */
-			ether_aton_r(argv[optind], (struct ether_addr *)dstmac);
-		}
+	/* Get mac-address from string, or check for hostname via mndp */
+	if (!query_mndp_verbose(argv[optind], dstmac)) {
+		/* No valid mac address found, abort */
+		return 1;
 	}
 
 	if (!have_username) {

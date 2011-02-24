@@ -485,7 +485,7 @@ int main (int argc, char **argv) {
 
 	if (!have_password) {
 		char *tmp;
-		tmp = getpass("Passsword: ");
+		tmp = getpass("Password: ");
 		strncpy(password, tmp, sizeof(password) - 1);
 		password[sizeof(password) - 1] = '\0';
 		/* security */

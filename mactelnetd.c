@@ -506,8 +506,10 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 			/* Display MOTD */
 			display_motd();
 
-			/* Spawn shell */
 			chdir(user->pw_dir);
+
+			/* Spawn shell */
+			/* TODO: Maybe use "login -f USER" instead? renders motd and executes shell correctly for system */
 			execl(user->pw_shell, user->pw_shell, (char *) 0);
 			exit(0); // just to be sure.
 		}

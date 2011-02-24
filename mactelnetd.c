@@ -433,6 +433,15 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 	if (slavename != NULL) {
 		pid_t pid;
 		struct stat sb;
+		struct passwd *user = (struct passwd *)getpwnam(curconn->username);
+		if (user == NULL) {
+			syslog(LOG_WARNING, "(%d) Login ok, but local user not accessible (%s).", curconn->seskey, curconn->username);
+			abort_connection(curconn, pkthdr, "Local user not accessible\r\n");
+			return;
+		}
+
+		/* Change the owner of the slave pts */
+		chown(slavename, user->pw_uid, user->pw_gid);
 
 		curconn->slavefd = open(slavename, O_RDWR);
 		if (curconn->slavefd == -1) {
@@ -444,12 +453,6 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 
 		if ((pid = fork()) == 0) {
 			int i;
-			struct passwd *user = (struct passwd *)getpwnam(curconn->username);
-			if (user == NULL) {
-				syslog(LOG_WARNING, "(%d) Login ok, but local user not accessible (%s).", curconn->seskey, curconn->username);
-				abort_connection(curconn, pkthdr, "Local user not accessible\r\n");
-				return;
-			}
 
 			/* Add login information to utmp/wtmp */
 			uwtmp_login(curconn);

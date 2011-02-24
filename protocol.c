@@ -48,7 +48,7 @@ int init_packet(struct mt_packet *packet, enum mt_ptype ptype, unsigned char *sr
 #if BYTE_ORDER == LITTLE_ENDIAN
 		sessionkey = htons(sessionkey);
 #endif
-		memcpy(data + 15, &sessionkey, sizeof(sessionkey));
+		memcpy(data + 16, &sessionkey, sizeof(sessionkey));
 
 		/* Client type: Mac Telnet */
 		memcpy(data + 14, &mt_mactelnet_clienttype, sizeof(mt_mactelnet_clienttype));

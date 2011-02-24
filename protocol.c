@@ -45,18 +45,14 @@ int init_packet(struct mt_packet *packet, enum mt_ptype ptype, unsigned char *sr
 
 	if (mt_direction_fromserver) {
 		/* Session key */
-#if BYTE_ORDER == LITTLE_ENDIAN
 		sessionkey = htons(sessionkey);
-#endif
 		memcpy(data + 16, &sessionkey, sizeof(sessionkey));
 
 		/* Client type: Mac Telnet */
 		memcpy(data + 14, &mt_mactelnet_clienttype, sizeof(mt_mactelnet_clienttype));
 	} else {
 		/* Session key */
-#if BYTE_ORDER == LITTLE_ENDIAN
 		sessionkey = htons(sessionkey);
-#endif
 		memcpy(data + 14, &sessionkey, sizeof(sessionkey));
 
 		/* Client type: Mac Telnet */
@@ -64,9 +60,7 @@ int init_packet(struct mt_packet *packet, enum mt_ptype ptype, unsigned char *sr
 	}
 
 	/* Received/sent data counter */
-#if BYTE_ORDER == LITTLE_ENDIAN
 	counter = htonl(counter);
-#endif
 	memcpy(data + 18, &counter, sizeof(counter));
 
 	/* 22 bytes header */
@@ -105,7 +99,7 @@ int add_control_packet(struct mt_packet *packet, enum mt_cptype cptype, void *cp
 	templen = htonl(templen);
 	memcpy(data + 5, &templen, sizeof(templen));
 #else
-	#pragma unused(templen)
+#pragma unused(templen)
 	memcpy(data + 5, &data_len, sizeof(data_len));
 #endif
 
@@ -169,9 +163,8 @@ void parse_packet(unsigned char *data, struct mt_mactelnet_hdr *pkthdr) {
 	if (mt_direction_fromserver) {
 		/* Session key */
 		memcpy(&(pkthdr->seskey), data + 14, sizeof(pkthdr->seskey));
-#if BYTE_ORDER == LITTLE_ENDIAN
 		pkthdr->seskey = ntohs(pkthdr->seskey);
-#endif
+
 		/* server type */
 		memcpy(&(pkthdr->clienttype), data+16, 2);
 	} else {
@@ -180,16 +173,12 @@ void parse_packet(unsigned char *data, struct mt_mactelnet_hdr *pkthdr) {
 
 		/* Session key */
 		memcpy(&(pkthdr->seskey), data + 16, sizeof(pkthdr->seskey));
-#if BYTE_ORDER == LITTLE_ENDIAN
 		pkthdr->seskey = ntohs(pkthdr->seskey);
-#endif
 	}
 
 	/* Received/sent data counter */
 	memcpy(&(pkthdr->counter), data + 18, sizeof(pkthdr->counter));
-#if BYTE_ORDER == LITTLE_ENDIAN
 	pkthdr->counter = ntohl(pkthdr->counter);
-#endif
 
 	/* Set pointer to actual data */
 	pkthdr->data = data + 22;
@@ -229,9 +218,7 @@ int parse_control_packet(unsigned char *packetdata, int data_len, struct mt_mact
 
 		/* Control packet data length */
 		memcpy(&(cpkthdr->length), data + 5, sizeof(cpkthdr->length));
-#if BYTE_ORDER == LITTLE_ENDIAN
 		cpkthdr->length = ntohl(cpkthdr->length);
-#endif
 
 		/* Set pointer to actual data */
 		cpkthdr->data = data + 9;
@@ -279,17 +266,10 @@ int mndp_add_attribute(struct mt_packet *packet, enum mt_mndp_attrtype attrtype,
 		return -1;
 	}
 
-	/* TODO: Should check all host-to-network/network-to-host conversions in code
-	 * and add defines to check the current host's endianness.
-	 */
-#if BYTE_ORDER == LITTLE_ENDIAN
 	type = htons(type);
-#endif
 	memcpy(data, &type, sizeof(type));
 
-#if BYTE_ORDER == LITTLE_ENDIAN
 	len = htons(len);
-#endif
 	memcpy(data + 2, &len, sizeof(len));
 
 	memcpy(data + 4, attrdata, data_len);
@@ -324,10 +304,9 @@ struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len)
 		memcpy(&type, p, 2);
 		memcpy(&len, p + 2, 2);
 
-#if BYTE_ORDER == LITTLE_ENDIAN
 		type = ntohs(type);
 		len = ntohs(len);
-#endif
+
 		p += 4;
 
 		switch (type) {
@@ -366,9 +345,14 @@ struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len)
 
 			case MT_MNDPTYPE_TIMESTAMP:
 				memcpy(&(packet.uptime), p, 4);
-/* Seems like ping uptime is transmitted as small endian? */
+/* Seems like ping uptime is transmitted as little endian? */
 #if BYTE_ORDER == BIG_ENDIAN
-				packet.uptime = ntohl(packet.uptime);
+				packet.uptime = (
+					((packet.uptime & 0x000000FF) << 24) +
+					((packet.uptime & 0x0000FF00) << 8) +
+					((packet.uptime & 0x00FF0000) >> 8) +
+					((packet.uptime & 0xFF000000) >> 24)
+				);
 #endif
 				break;
 
@@ -390,8 +374,9 @@ struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len)
 				packet.softid[len] = '\0';
 				break;
 
-			//default:
-				// Unhandled MNDP type
+			/*default:
+				 Unhandled MNDP type
+			*/
 		}
 		
 		p += len;
@@ -423,13 +408,8 @@ int query_mndp(const char *identity, unsigned char *mac) {
 	/* Set initialize address/port */
 	memset((char *) &si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
-#if BYTE_ORDER == LITTLE_ENDIAN
 	si_me.sin_port = htons(MT_MNDP_PORT);
 	si_me.sin_addr.s_addr = htonl(INADDR_ANY);
-#else
-	si_me.sin_port = MT_MNDP_PORT;
-	si_me.sin_addr.s_addr = INADDR_ANY;
-#endif
 
 	/* Bind to specified address/port */
 	if (bind(sock, (struct sockaddr *)&si_me, sizeof(si_me)) == -1) {
@@ -444,13 +424,8 @@ int query_mndp(const char *identity, unsigned char *mac) {
 	/* Request routers identify themselves */
 	memset((char *) &si_remote, 0, sizeof(si_remote));
 	si_remote.sin_family = AF_INET;
-#if BYTE_ORDER == LITTLE_ENDIAN
 	si_remote.sin_port = htons(MT_MNDP_PORT);
 	si_remote.sin_addr.s_addr = htonl(INADDR_BROADCAST);
-#else
-	si_remote.sin_port = MT_MNDP_PORT;
-	si_remote.sin_addr.s_addr = INADDR_BROADCAST;
-#endif
 
 	if (sendto(sock, &message, sizeof (message), 0, (struct sockaddr *)&si_remote, sizeof(si_remote)) == -1) {
 		fprintf(stderr, "Unable to send broadcast packet: Router lookup will be slow\n");

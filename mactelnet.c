@@ -73,6 +73,8 @@ unsigned char mt_direction_fromserver = 0;
 
 static unsigned int send_socket;
 
+static int handle_packet(unsigned char *data, int data_len);
+
 static void print_version() {
 	fprintf(stderr, PROGRAM_NAME " " PROGRAM_VERSION "\n");
 }
@@ -98,9 +100,6 @@ static int send_udp(struct mt_packet *packet, int retransmit) {
 	/* 
 	 * Retransmit packet if no data is received within
 	 * retransmit_intervals milliseconds.
-	 * 
-	 * TODO: Only stop retransmitting if received packet is
-	 * an ACK packet.
 	 */
 	if (retransmit) {
 		int i;
@@ -120,7 +119,16 @@ static int send_udp(struct mt_packet *packet, int retransmit) {
 			/* Wait for data or timeout */
 			reads = select(insockfd + 1, &read_fds, NULL, NULL, &timeout);
 			if (reads && FD_ISSET(insockfd, &read_fds)) {
-				return sent_bytes;
+				unsigned char buff[1500];
+				int result;
+				
+				bzero(buff, 1500);
+				result = recvfrom(insockfd, buff, 1500, 0, 0, 0);
+
+				/* Handle incoming packets, waiting for an ack */
+				if (result > 0 && handle_packet(buff, result) == MT_PTYPE_ACK) {
+					return sent_bytes;
+				}
 			}
 
 			/* Retransmit */
@@ -200,13 +208,13 @@ static void sig_winch(int sig) {
 	signal(SIGWINCH, sig_winch);
 }
 
-static void handle_packet(unsigned char *data, int data_len) {
+static int handle_packet(unsigned char *data, int data_len) {
 	struct mt_mactelnet_hdr pkthdr;
 	parse_packet(data, &pkthdr);
 
 	/* We only care about packets with correct sessionkey */
 	if (pkthdr.seskey != sessionkey) {
-		return;
+		return -1;
 	}
 
 	/* Handle data packets */
@@ -226,7 +234,7 @@ static void handle_packet(unsigned char *data, int data_len) {
 			incounter = pkthdr.counter;
 		} else {
 			/* Ignore double or old packets */
-			return;
+			return -1;
 		}
 
 		/* Parse controlpacket data */
@@ -284,7 +292,10 @@ static void handle_packet(unsigned char *data, int data_len) {
 		running = 0;
 	} else {
 		fprintf(stderr, "Unhandeled packet type: %d received from server %s\n", pkthdr.ptype, ether_ntoa((struct ether_addr *)dstmac));
+		return -1;
 	}
+
+	return pkthdr.ptype;
 }
 
 static int find_interface() {
@@ -543,7 +554,7 @@ int main (int argc, char **argv) {
 		if (reads > 0) {
 			/* Handle data from server */
 			if (FD_ISSET(insockfd, &read_fds)) {
-				memset(buff, 0, 1500);
+				bzero(buff, 1500);
 				result = recvfrom(insockfd, buff, 1500, 0, 0, 0);
 				handle_packet(buff, result);
 			}

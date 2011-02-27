@@ -40,7 +40,7 @@
 #include "mactelnet.h"
 
 #define PROGRAM_NAME "MAC-Telnet"
-#define PROGRAM_VERSION "0.2"
+#define PROGRAM_VERSION "0.3"
 
 static int sockfd;
 static int insockfd;

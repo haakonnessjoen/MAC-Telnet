@@ -815,9 +815,13 @@ int main (int argc, char **argv) {
 	fd_set read_fds;
 	int c,optval = 1;
 	int print_help = 0;
+	int foreground = 0;
 
-	while ((c = getopt(argc, argv, "nvh?")) != -1) {
+	while ((c = getopt(argc, argv, "fnvh?")) != -1) {
 		switch (c) {
+			case 'f':
+				foreground = 1;
+				break;
 
 			case 'n':
 				use_raw_socket = 1;
@@ -838,14 +842,20 @@ int main (int argc, char **argv) {
 
 	if (print_help) {
 		print_version();
-		fprintf(stderr, "Usage: %s [-n] [-h]\n", argv[0]);
+		fprintf(stderr, "Usage: %s [-f|-n|-h]\n", argv[0]);
 
 		if (print_help) {
 			fprintf(stderr, "\nParameters:\n");
+			fprintf(stderr, "  -f        Run process in foreground.\n");
 			fprintf(stderr, "  -n        Do not use broadcast packets. Just a tad less insecure.\n");
 			fprintf(stderr, "  -h        This help.\n");
 			fprintf(stderr, "\n");
 		}
+		return 1;
+	}
+
+	if (geteuid() != 0) {
+		fprintf(stderr, "You need to have root privileges to use %s.\n", argv[0]);
 		return 1;
 	}
 
@@ -854,11 +864,6 @@ int main (int argc, char **argv) {
 
 	/* Seed randomizer */
 	srand(time(NULL));
-
-	if (geteuid() != 0) {
-		fprintf(stderr, "You need to have root privileges to use %s.\n", argv[0]);
-		return 1;
-	}
 
 	if (use_raw_socket) {
 		/* Transmit raw packets with this socket */
@@ -922,7 +927,9 @@ int main (int argc, char **argv) {
 
 	setup_sockets();
 
-	daemonize();
+	if (!foreground) {
+		daemonize();
+	}
 
 	openlog("mactelnetd", LOG_PID, LOG_DAEMON);
 

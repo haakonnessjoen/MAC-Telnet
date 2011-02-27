@@ -99,14 +99,17 @@ static long long int toddiff(struct timeval *tod1, struct timeval *tod2)
 
 static void display_results() {
 	int percent = (int)((100.f/ping_sent) * pong_received);
-	if (percent > 100)
+	if (percent > 100) {
 		percent = 0;
+	}
 
-	if (percent < 0)
+	if (percent < 0) {
 		percent = 0;
+	}
 
-	if (min_ms == FLT_MAX)
+	if (min_ms == FLT_MAX) {
 		min_ms = 0;
+	}
 
 	printf("\n");
 	printf("%d packets transmitted, %d packets received, %d%% packet loss\n", ping_sent, pong_received, 100 - percent);
@@ -133,8 +136,9 @@ int main(int argc, char **argv)  {
 	while (1) {
 		c = getopt(argc, argv, "fs:c:hv?");
 
-		if (c == -1)
+		if (c == -1) {
 			break;
+		}
 
 		switch (c) {
 			case 'f':
@@ -289,51 +293,54 @@ int main(int argc, char **argv)  {
 		while (waitforpacket) {
 			/* Wait for data or timeout */
 			reads = select(insockfd+1, &read_fds, NULL, NULL, &timeout);
-			if (reads > 0) {
-				unsigned char buff[1500];
-				struct sockaddr_in saddress;
-				unsigned int slen = sizeof(saddress);
-				struct mt_mactelnet_hdr pkthdr;
-
-				result = recvfrom(insockfd, buff, 1500, 0, (struct sockaddr *)&saddress, &slen);
-				parse_packet(buff, &pkthdr);
-
-				/* TODO: Check that we are the receiving host */
-				if (pkthdr.ptype == MT_PTYPE_PONG) {
-					struct timeval pongtimestamp;
-					struct timeval nowtimestamp;
-
-					waitforpacket = 0;
-					gettimeofday(&nowtimestamp, NULL);
-
-					memcpy(&pongtimestamp, pkthdr.data - 4, sizeof(pongtimestamp));
-					if (memcmp(pkthdr.data - 4, pingdata, ping_size) == 0) {
-						float diff = toddiff(&nowtimestamp, &pongtimestamp) / 1000.0f;
-
-						if (diff < min_ms)
-							min_ms = diff;
-
-						if (diff > max_ms)
-							max_ms = diff;
-
-						avg_ms += diff;
-
-						printf("%s %d byte, ping time %.2f ms%s\n", ether_ntoa((struct ether_addr *)&(pkthdr.srcaddr)), result, diff, (char *)(memcmp(&pongtimestamp,&lasttimestamp,sizeof(lasttimestamp)) == 0 ? " DUP" : ""));
-					} else {
-						printf("%s Reply of %d bytes of unequal data\n", ether_ntoa((struct ether_addr *)&(pkthdr.srcaddr)), result);
-					}
-					pong_received++;
-					memcpy(&lasttimestamp, &pongtimestamp, sizeof(pongtimestamp));
-					if (!fastmode) {
-						sleep(1);
-					}
-				} else {
-					/* Wait for the correct packet */
-					continue;
-				}
-			} else {
+			if (reads <= 0) {
 				waitforpacket = 0;
 				fprintf(stderr, "%s ping timeout\n", ether_ntoa((struct ether_addr *)&dstmac));
+				break;
+			}
+
+			unsigned char buff[1500];
+			struct sockaddr_in saddress;
+			unsigned int slen = sizeof(saddress);
+			struct mt_mactelnet_hdr pkthdr;
+
+			result = recvfrom(insockfd, buff, 1500, 0, (struct sockaddr *)&saddress, &slen);
+			parse_packet(buff, &pkthdr);
+
+			/* TODO: Check that we are the receiving host */
+			if (pkthdr.ptype != MT_PTYPE_PONG) {
+				/* Wait for the correct packet */
+				continue;
+			}
+			
+			struct timeval pongtimestamp;
+			struct timeval nowtimestamp;
+
+			waitforpacket = 0;
+			gettimeofday(&nowtimestamp, NULL);
+
+			memcpy(&pongtimestamp, pkthdr.data - 4, sizeof(pongtimestamp));
+			if (memcmp(pkthdr.data - 4, pingdata, ping_size) == 0) {
+				float diff = toddiff(&nowtimestamp, &pongtimestamp) / 1000.0f;
+
+				if (diff < min_ms) {
+					min_ms = diff;
+				}
+
+				if (diff > max_ms) {
+					max_ms = diff;
+				}
+
+				avg_ms += diff;
+
+				printf("%s %d byte, ping time %.2f ms%s\n", ether_ntoa((struct ether_addr *)&(pkthdr.srcaddr)), result, diff, (char *)(memcmp(&pongtimestamp,&lasttimestamp,sizeof(lasttimestamp)) == 0 ? " DUP" : ""));
+			} else {
+				printf("%s Reply of %d bytes of unequal data\n", ether_ntoa((struct ether_addr *)&(pkthdr.srcaddr)), result);
+			}
+			pong_received++;
+			memcpy(&lasttimestamp, &pongtimestamp, sizeof(pongtimestamp));
+			if (!fastmode) {
+				sleep(1);
 			}
 		}
 	}

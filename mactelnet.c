@@ -135,8 +135,9 @@ static int send_udp(struct mt_packet *packet, int retransmit) {
 			send_udp(packet, 0);
 		}
 
-		if (terminal_mode)
+		if (terminal_mode) {
 			reset_term();
+		}
 
 		fprintf(stderr, "\nConnection timed out\n");
 		exit(1);
@@ -274,7 +275,7 @@ static int handle_packet(unsigned char *data, int data_len) {
 		}
 	}
 	else if (pkthdr.ptype == MT_PTYPE_ACK) {
-		/* TODO: If we were resubmitting lost messages, stop resubmitting here if received counter is correct. */
+		/* Handled elsewhere */
 	}
 
 	/* The server wants to terminate the connection, we have to oblige */
@@ -381,8 +382,9 @@ int main (int argc, char **argv) {
 	while (1) {
 		c = getopt(argc, argv, "nt:u:p:vh?");
 
-		if (c == -1)
+		if (c == -1) {
 			break;
+		}
 
 		switch (c) {
 

@@ -195,8 +195,9 @@ int parse_control_packet(unsigned char *packetdata, int data_len, struct mt_mact
 	   and then several times for each control packets. Letting this function
 	   control the data position. */
 	if (packetdata != NULL) {
-		if (data_len <= 0)
+		if (data_len <= 0) {
 			return 0;
+		}
 
 		int_data = packetdata;
 		int_data_len = data_len;
@@ -204,8 +205,9 @@ int parse_control_packet(unsigned char *packetdata, int data_len, struct mt_mact
 	}
 
 	/* No more data to parse? */
-	if (int_pos >= int_data_len)
+	if (int_pos >= int_data_len) {
 		return 0;
+	}
 
 	/* Set current position in data buffer */
 	data = int_data + int_pos;
@@ -308,6 +310,11 @@ struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len)
 		len = ntohs(len);
 
 		p += 4;
+
+		/* Check if len is invalid */
+		if (p + len > data + packet_len) {
+			break;
+		}
 
 		switch (type) {
 			case MT_MNDPTYPE_ADDRESS:

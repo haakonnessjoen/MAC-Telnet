@@ -43,8 +43,8 @@ unsigned short udp_sum_calc(unsigned char *src_addr,unsigned char *dst_addr, uns
 
 	/* Padding ? */
 	padd = (len % 2);
-	if (padd){
-		data[len]=0;
+	if (padd) {
+		data[len] = 0;
 	}
 
 	/* header+data */

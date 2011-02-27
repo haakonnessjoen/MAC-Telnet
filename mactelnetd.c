@@ -148,8 +148,9 @@ static void list_add_connection(struct mt_connection *conn) {
 static void list_remove_connection(struct mt_connection *conn) {
 	struct mt_connection *p;
 	struct mt_connection *last;
-	if (connections_head == NULL)
+	if (connections_head == NULL) {
 		return;
+	}
 
 	if (conn->state == STATE_ACTIVE && conn->ptsfd > 0) {
 		close(conn->ptsfd);
@@ -179,8 +180,9 @@ static void list_remove_connection(struct mt_connection *conn) {
 static struct mt_connection *list_find_connection(unsigned short seskey, unsigned char *srcmac) {
 	struct mt_connection *p;
 
-	if (connections_head == NULL)
+	if (connections_head == NULL) {
 		return NULL;
+	}
 
 	for (p = connections_head; p != NULL; p = p->next) {
 		if (p->seskey == seskey && memcmp(srcmac, p->srcmac, 6) == 0) {
@@ -195,8 +197,9 @@ static int find_socket(unsigned char *mac) {
 	int i;
 
 	for (i = 0; i < sockets_count; ++i) {
-		if (memcmp(mac, sockets[i].mac, ETH_ALEN) == 0)
+		if (memcmp(mac, sockets[i].mac, ETH_ALEN) == 0) {
 			return i;
+		}
 	}
 	return -1;
 }
@@ -316,8 +319,9 @@ static void uwtmp_login(struct mt_connection *conn) {
 	pid = getpid();
 	
 	char *line = ttyname(conn->slavefd);
-	if (strncmp(line, "/dev/", 5) == 0)
+	if (strncmp(line, "/dev/", 5) == 0) {
 		line += 5;
+	}
 
 	/* Setup utmp struct */
 	memset((void *) &utent, 0, sizeof(utent));
@@ -326,7 +330,7 @@ static void uwtmp_login(struct mt_connection *conn) {
 	strncpy(utent.ut_user, conn->username, sizeof(utent.ut_user));
 	strncpy(utent.ut_line, line, sizeof(utent.ut_line));
 	strncpy(utent.ut_id, utent.ut_line + 3, sizeof(utent.ut_id));
-	strncpy(utent.ut_host,ether_ntoa((const struct ether_addr *)conn->srcmac), sizeof(utent.ut_host));
+	strncpy(utent.ut_host, ether_ntoa((const struct ether_addr *)conn->srcmac), sizeof(utent.ut_host));
 	time((time_t *)&(utent.ut_time));
 	
 	/* Update utmp and/or wtmp */
@@ -401,8 +405,9 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		curconn->outcounter += add_control_packet(&pdata, MT_CPTYPE_END_AUTH, NULL, 0);
 		send_udp(curconn, &pdata);
 
-		if (curconn->state == STATE_ACTIVE)
+		if (curconn->state == STATE_ACTIVE) {
 			return;
+		}
 	}
 
 	if (user == NULL || memcmp(md5sum, trypassword, 17) != 0) {
@@ -725,12 +730,14 @@ static void daemonize() {
 	pid = fork();
 
 	/* Error? */
-	if (pid < 0)
+	if (pid < 0) {
 		exit(1);
+	}
 
 	/* Parent exit */
-	if (pid > 0)
+	if (pid > 0) {
 		exit(0);
+	}
 
 	setsid();
 	close(0);
@@ -758,13 +765,16 @@ void mndp_broadcast() {
 	int i;
 	unsigned int uptime;
 
-	if (uname(&s_uname) != 0)
+	if (uname(&s_uname) != 0) {
 		return;
-	
-	if (sysinfo(&s_sysinfo) != 0)
+	}
+
+	if (sysinfo(&s_sysinfo) != 0) {
 		return;
-	
+	}
+
 	uptime = s_sysinfo.uptime;
+
 	/* Seems like ping uptime is transmitted as little endian? */
 #if BYTE_ORDER == BIG_ENDIAN
 	uptime = (
@@ -774,7 +784,6 @@ void mndp_broadcast() {
 		((uptime & 0xFF000000) >> 24)
 	);
 #endif
-
 
 	for (i = 0; i < sockets_count; ++i) {
 		struct mt_mndp_hdr *header = (struct mt_mndp_hdr *)&(pdata.data);
@@ -947,8 +956,9 @@ int main (int argc, char **argv) {
 		for (p = connections_head; p != NULL; p = p->next) {
 			if (p->state == STATE_ACTIVE && p->wait_for_ack == 0 && p->ptsfd > 0) {
 				FD_SET(p->ptsfd, &read_fds);
-				if (p->ptsfd > maxfd)
+				if (p->ptsfd > maxfd) {
 					maxfd = p->ptsfd;
+				}
 			}
 		}
 

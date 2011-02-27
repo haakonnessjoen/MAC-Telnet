@@ -4,8 +4,6 @@ MAC-Telnet for Linux
 A linux console tool for connecting to MikroTik RouterOS devices via their
 ethernet address.
 
-NB: Beta stage code. Do not expect to run flawlessy.
-
 Installation
 ------------
 
@@ -17,6 +15,8 @@ Then download source tarball, extract, compile and install:
     make all install
 
 Now you're ready.
+
+TIP: You can use the well known "expect" tool to automate/script dialogues via mactelnet!
 
 Usage
 -----

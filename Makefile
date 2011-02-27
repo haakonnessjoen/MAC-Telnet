@@ -21,7 +21,9 @@ install: all strip-all
 	cp macping $(DESTDIR)/usr/bin/
 	cp mactelnet $(DESTDIR)/usr/bin/
 	cp mactelnetd $(DESTDIR)/usr/sbin/
-	cp mactelnetd.users $(DESTDIR)/etc/
+	cp config/mactelnetd.users $(DESTDIR)/etc/
+# Ubuntu upstart script
+#	cp config/mactelnetd.init /etc/init/
 	chown root $(DESTDIR)/etc/mactelnetd.users
 	chmod 600 $(DESTDIR)/etc/mactelnetd.users
 

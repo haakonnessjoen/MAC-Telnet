@@ -72,7 +72,7 @@ unsigned short udp_sum_calc(unsigned char *src_addr,unsigned char *dst_addr, uns
 
 	sum = ~sum;
 
-	if ((unsigned short)sum == 0)
+	if (sum == 0)
 		sum = 0xFFFF;
 
 	return (unsigned short) sum;
@@ -109,11 +109,11 @@ int send_custom_udp(const int socket, const int ifindex, const unsigned char *so
 	/* Init ethernet header */
 	memcpy(eh->h_source, sourcemac, ETH_ALEN);
 	memcpy(eh->h_dest, destmac, ETH_ALEN);
-	eh->h_proto = 8;
+	eh->h_proto = htons(ETH_P_IP);
 
 	/* Init SendTo struct */
-	socket_address.sll_family   = PF_PACKET;	
-	socket_address.sll_protocol = htons(ETH_P_IP);	
+	socket_address.sll_family   = PF_PACKET;
+	socket_address.sll_protocol = htons(ETH_P_IP);
 	socket_address.sll_ifindex  = ifindex;
 	socket_address.sll_hatype   = ARPHRD_ETHER;
 	socket_address.sll_pkttype  = PACKET_OTHERHOST;

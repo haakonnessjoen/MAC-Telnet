@@ -765,6 +765,16 @@ void mndp_broadcast() {
 		return;
 	
 	uptime = s_sysinfo.uptime;
+	/* Seems like ping uptime is transmitted as little endian? */
+#if BYTE_ORDER == BIG_ENDIAN
+	uptime = (
+		((uptime & 0x000000FF) << 24) +
+		((uptime & 0x0000FF00) << 8) +
+		((uptime & 0x00FF0000) >> 8) +
+		((uptime & 0xFF000000) >> 24)
+	);
+#endif
+
 
 	for (i = 0; i < sockets_count; ++i) {
 		struct mt_mndp_hdr *header = (struct mt_mndp_hdr *)&(pdata.data);

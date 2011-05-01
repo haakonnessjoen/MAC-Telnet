@@ -16,16 +16,23 @@ strip-all: mndp macping mactelnet mactelnetd
 	strip -s mactelnet
 	strip -s mactelnetd
 
-install: all strip-all
+install: all strip-all install-docs
+	mkdir -p $(DESTDIR)/usr/bin
 	cp mndp $(DESTDIR)/usr/bin/
 	cp macping $(DESTDIR)/usr/bin/
 	cp mactelnet $(DESTDIR)/usr/bin/
+	mkdir -p $(DESTDIR)/usr/sbin
 	cp mactelnetd $(DESTDIR)/usr/sbin/
+	mkdir -p $(DESTDIR)/etc
 	cp config/mactelnetd.users $(DESTDIR)/etc/
 # Ubuntu upstart script
 #	cp config/mactelnetd.init /etc/init/
 	chown root $(DESTDIR)/etc/mactelnetd.users
 	chmod 600 $(DESTDIR)/etc/mactelnetd.users
+
+install-docs:
+	mkdir -p $(DESTDIR)/usr/share/man/man1/
+	cp docs/*.1 $(DESTDIR)/usr/share/man/man1/
 
 udp.o: udp.c udp.h
 	${CC} -Wall ${CCFLAGS} -c udp.c

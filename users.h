@@ -1,5 +1,5 @@
 /*
-    Mac-Telnet - Connect to RouterOS routers via MAC address
+    Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
     Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
 
     This program is free software; you can redistribute it and/or modify

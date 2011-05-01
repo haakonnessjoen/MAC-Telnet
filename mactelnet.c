@@ -1,5 +1,5 @@
 /*
-    Mac-Telnet - Connect to RouterOS routers via MAC address
+    Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
     Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
 
     This program is free software; you can redistribute it and/or modify
@@ -428,8 +428,8 @@ int main (int argc, char **argv) {
 
 		if (print_help) {
 			fprintf(stderr, "\nParameters:\n");
-			fprintf(stderr, "  MAC       MAC-Address of the RouterOS device. Use mndp to discover them.\n");
-			fprintf(stderr, "  identity  The identity/name of your RouterOS device. Uses MNDP protocol to find it.\n");
+			fprintf(stderr, "  MAC       MAC-Address of the RouterOS/mactelnetd device. Use mndp to discover it.\n");
+			fprintf(stderr, "  identity  The identity/name of your destination device. Uses MNDP protocol to find it.\n");
 			fprintf(stderr, "  -n        Do not use broadcast packets. Less insecure but requires root privileges.\n");
 			fprintf(stderr, "  -t        Amount of seconds to wait for a response on each interface.\n");
 			fprintf(stderr, "  -u        Specify username on command line.\n");

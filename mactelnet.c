@@ -152,7 +152,6 @@ static void send_auth(char *username, char *password) {
 	char *terminal = getenv("TERM");
 	char md5data[100];
 	unsigned char md5sum[17];
-	int result;
 	int plen;
 	md5_state_t state;
 
@@ -187,13 +186,13 @@ static void send_auth(char *username, char *password) {
 	outcounter += plen;
 
 	/* TODO: handle result */
-	result = send_udp(&data, 1);
+	send_udp(&data, 1);
 }
 
 static void sig_winch(int sig) {
 	unsigned short width,height;
 	struct mt_packet data;
-	int result,plen;
+	int plen;
 
 	/* terminal height/width has changed, inform server */
 	if (get_terminal_size(&width, &height) != -1) {
@@ -202,7 +201,7 @@ static void sig_winch(int sig) {
 		plen += add_control_packet(&data, MT_CPTYPE_TERM_HEIGHT, &height, 2);
 		outcounter += plen;
 
-		result = send_udp(&data, 1);
+		send_udp(&data, 1);
 	}
 
 	/* reinstate signal handler */
@@ -222,12 +221,11 @@ static int handle_packet(unsigned char *data, int data_len) {
 	if (pkthdr.ptype == MT_PTYPE_DATA) {
 		struct mt_packet odata;
 		struct mt_mactelnet_control_hdr cpkt;
-		int result=0;
 		int success = 0;
 
 		/* Always transmit ACKNOWLEDGE packets in response to DATA packets */
 		init_packet(&odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, pkthdr.counter + (data_len - MT_HEADER_LEN));
-		result = send_udp(&odata, 0);
+		send_udp(&odata, 0);
 
 		/* Accept first packet, and all packets greater than incounter, and if counter has
 		wrapped around. */
@@ -281,11 +279,10 @@ static int handle_packet(unsigned char *data, int data_len) {
 	/* The server wants to terminate the connection, we have to oblige */
 	else if (pkthdr.ptype == MT_PTYPE_END) {
 		struct mt_packet odata;
-		int result=0;
 
 		/* Acknowledge the disconnection by sending a END packet in return */
 		init_packet(&odata, MT_PTYPE_END, srcmac, dstmac, pkthdr.seskey, 0);
-		result = send_udp(&odata, 0);
+		send_udp(&odata, 0);
 
 		fprintf(stderr, "Connection closed.\n");
 
@@ -570,7 +567,7 @@ int main (int argc, char **argv) {
 				init_packet(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
 				add_control_packet(&data, MT_CPTYPE_PLAINDATA, &keydata, datalen);
 				outcounter += datalen;
-				result = send_udp(&data, 1);
+				send_udp(&data, 1);
 			}
 		/* Handle select() timeout */
 		} else {
@@ -578,9 +575,8 @@ int main (int argc, char **argv) {
 			   of inactivity  */
 			if (keepalive_counter++ == 10) {
 				struct mt_packet odata;
-				int plen=0,result=0;
-				plen = init_packet(&odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, outcounter);
-				result = send_udp(&odata, 0);
+				init_packet(&odata, MT_PTYPE_ACK, srcmac, dstmac, sessionkey, outcounter);
+				send_udp(&odata, 0);
 			}
 		}
 	}

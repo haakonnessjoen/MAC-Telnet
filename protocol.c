@@ -353,14 +353,7 @@ struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len)
 			case MT_MNDPTYPE_TIMESTAMP:
 				memcpy(&(packet.uptime), p, 4);
 /* Seems like ping uptime is transmitted as little endian? */
-#if BYTE_ORDER == BIG_ENDIAN
-				packet.uptime = (
-					((packet.uptime & 0x000000FF) << 24) +
-					((packet.uptime & 0x0000FF00) << 8) +
-					((packet.uptime & 0x00FF0000) >> 8) +
-					((packet.uptime & 0xFF000000) >> 24)
-				);
-#endif
+				packet.uptime = le32toh(packet.uptime);
 				break;
 
 			case MT_MNDPTYPE_HARDWARE:

@@ -17,12 +17,14 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #define _XOPEN_SOURCE 600
+#define _BSD_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <endian.h>
 #include <time.h>
 #include <arpa/inet.h>
 #include <net/ethernet.h>
@@ -773,17 +775,8 @@ void mndp_broadcast() {
 		return;
 	}
 
-	uptime = s_sysinfo.uptime;
-
 	/* Seems like ping uptime is transmitted as little endian? */
-#if BYTE_ORDER == BIG_ENDIAN
-	uptime = (
-		((uptime & 0x000000FF) << 24) +
-		((uptime & 0x0000FF00) << 8) +
-		((uptime & 0x00FF0000) >> 8) +
-		((uptime & 0xFF000000) >> 24)
-	);
-#endif
+	uptime = htole32(s_sysinfo.uptime);
 
 	for (i = 0; i < sockets_count; ++i) {
 		struct mt_mndp_hdr *header = (struct mt_mndp_hdr *)&(pdata.data);

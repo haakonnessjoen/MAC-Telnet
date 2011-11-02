@@ -221,6 +221,11 @@ int parse_control_packet(unsigned char *packetdata, int data_len, struct mt_mact
 		/* Control packet data length */
 		memcpy(&(cpkthdr->length), data + 5, sizeof(cpkthdr->length));
 		cpkthdr->length = ntohl(cpkthdr->length);
+		
+		/* We want no buffer overflows */
+		if (cpkthdr->length >= MT_PACKET_LEN - 22 - int_pos) {
+			cpkthdr->length = MT_PACKET_LEN - 1 - 22 - int_pos;
+		}
 
 		/* Set pointer to actual data */
 		cpkthdr->data = data + 9;

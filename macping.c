@@ -199,7 +199,7 @@ int main(int argc, char **argv)  {
 	}
 
 	/* Get mac-address from string, or check for hostname via mndp */
-	if (!query_mndp_verbose(argv[optind], dstmac)) {
+	if (!query_mndp_or_mac(argv[optind], dstmac, 1)) {
 		/* No valid mac address found, abort */
 		return 1;
 	}

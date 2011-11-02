@@ -477,7 +477,7 @@ done:
  * This function accepts either a full MAC address using : or - as seperators.
  * Or a router hostname. The hostname will be searched for via MNDP broadcast packets.
  */
-int query_mndp_verbose(char *address, unsigned char *dstmac) {
+int query_mndp_or_mac(char *address, unsigned char *dstmac, int verbose) {
 	char *p = address;
 	int colons = 0;
 	int dashs = 0;
@@ -510,14 +510,20 @@ int query_mndp_verbose(char *address, unsigned char *dstmac) {
 		 * Not a valid mac-address.
 		 * Search for Router by identity name, using MNDP
 		 */
-		fprintf(stderr, "Searching for '%s'...", address);
+		if (verbose) {
+			fprintf(stderr, "Searching for '%s'...", address);
+		}
 		if (!query_mndp(address, dstmac)) {
-			fprintf(stderr, "not found\n");
+			if (verbose) {
+				fprintf(stderr, "not found\n");
+			}
 			return 0;
 		}
 
 		/* Router found, display mac and continue */
-		fprintf(stderr, "found\n");
+		if (verbose) {
+			fprintf(stderr, "found\n");
+		}
 	} else {
 		/* Convert mac address string to ether_addr struct */
 		ether_aton_r(address, (struct ether_addr *)dstmac);

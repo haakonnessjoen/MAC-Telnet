@@ -62,6 +62,9 @@ static int sourceport;
 
 static int connect_timeout = CONNECT_TIMEOUT;
 
+static int is_a_tty = 1;
+static int quiet_mode = 0;
+
 static int keepalive_counter = 0;
 
 static unsigned char encryptionkey[128];
@@ -135,7 +138,7 @@ static int send_udp(struct mt_packet *packet, int retransmit) {
 			send_udp(packet, 0);
 		}
 
-		if (terminal_mode) {
+		if (is_a_tty && terminal_mode) {
 			reset_term();
 		}
 
@@ -173,7 +176,7 @@ static void send_auth(char *username, char *password) {
 	plen += add_control_packet(&data, MT_CPTYPE_USERNAME, username, strlen(username));
 	plen += add_control_packet(&data, MT_CPTYPE_TERM_TYPE, terminal, strlen(terminal));
 	
-	if (get_terminal_size(&width, &height) != -1) {
+	if (is_a_tty && get_terminal_size(&width, &height) != -1) {
 #if BYTE_ORDER == BIG_ENDIAN
 		/* Seems like Mikrotik are sending data little_endianed? */
 		width = ((width & 0xff) << 8) | ((width & 0xff00) >> 8);
@@ -257,15 +260,19 @@ static int handle_packet(unsigned char *data, int data_len) {
 			/* END_AUTH means that the user/password negotiation is done, and after this point
 			   terminal data may arrive, so we set up the terminal to raw mode. */
 			else if (cpkt.cptype == MT_CPTYPE_END_AUTH) {
-				/* stop input buffering at all levels. Give full control of terminal to RouterOS */
-				raw_term();
-				setvbuf(stdin,  (char*)NULL, _IONBF, 0);
 
 				/* we have entered "terminal mode" */
 				terminal_mode = 1;
 
-				/* Add resize signal handler */
-				signal(SIGWINCH, sig_winch);
+				if (is_a_tty) {
+					/* stop input buffering at all levels. Give full control of terminal to RouterOS */
+					raw_term();
+
+					setvbuf(stdin,  (char*)NULL, _IONBF, 0);
+
+					/* Add resize signal handler */
+					signal(SIGWINCH, sig_winch);
+				}
 			}
 
 			/* Parse next controlpacket */
@@ -284,7 +291,9 @@ static int handle_packet(unsigned char *data, int data_len) {
 		init_packet(&odata, MT_PTYPE_END, srcmac, dstmac, pkthdr.seskey, 0);
 		send_udp(&odata, 0);
 
-		fprintf(stderr, "Connection closed.\n");
+		if (!quiet_mode) {
+			fprintf(stderr, "Connection closed.\n");
+		}
 
 		/* exit */
 		running = 0;
@@ -377,7 +386,7 @@ int main (int argc, char **argv) {
 	int optval = 1;
 
 	while (1) {
-		c = getopt(argc, argv, "nt:u:p:vh?");
+		c = getopt(argc, argv, "nqt:u:p:vh?");
 
 		if (c == -1) {
 			break;
@@ -412,6 +421,10 @@ int main (int argc, char **argv) {
 				exit(0);
 				break;
 
+			case 'q':
+				quiet_mode = 1;
+				break;
+
 			case 'h':
 			case '?':
 				print_help = 1;
@@ -431,10 +444,16 @@ int main (int argc, char **argv) {
 			fprintf(stderr, "  -t        Amount of seconds to wait for a response on each interface.\n");
 			fprintf(stderr, "  -u        Specify username on command line.\n");
 			fprintf(stderr, "  -p        Specify password on command line.\n");
+			fprintf(stderr, "  -q        Quiet mode.\n");
 			fprintf(stderr, "  -h        This help.\n");
 			fprintf(stderr, "\n");
 		}
 		return 1;
+	}
+
+	is_a_tty = isatty(fileno(stdout)) && isatty(fileno(stdin));
+	if (!is_a_tty) {
+		quiet_mode = 1;
 	}
 
 	/* Seed randomizer */
@@ -472,19 +491,21 @@ int main (int argc, char **argv) {
 	setsockopt(insockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval));
 
 	/* Get mac-address from string, or check for hostname via mndp */
-	if (!query_mndp_verbose(argv[optind], dstmac)) {
+	if (!query_mndp_or_mac(argv[optind], dstmac, !quiet_mode)) {
 		/* No valid mac address found, abort */
 		return 1;
 	}
 
 	if (!have_username) {
-		printf("Login: ");
+		if (!quiet_mode) {
+			printf("Login: ");
+		}
 		scanf("%254s", username);
 	}
 
 	if (!have_password) {
 		char *tmp;
-		tmp = getpass("Password: ");
+		tmp = getpass(quiet_mode ? "" : "Password: ");
 		strncpy(password, tmp, sizeof(password) - 1);
 		password[sizeof(password) - 1] = '\0';
 		/* security */
@@ -508,7 +529,9 @@ int main (int argc, char **argv) {
 	/* stop output buffering */
 	setvbuf(stdout, (char*)NULL, _IONBF, 0);
 
-	printf("Connecting to %s...", ether_ntoa((struct ether_addr *)dstmac));
+	if (!quiet_mode) {
+		printf("Connecting to %s...", ether_ntoa((struct ether_addr *)dstmac));
+	}
 
 	/* Initialize receiving socket on the device chosen */
 	memset((char *) &si_me, 0, sizeof(si_me));
@@ -525,7 +548,9 @@ int main (int argc, char **argv) {
 		fprintf(stderr, "Connection failed.\n");
 		return 1;
 	}
-	printf("done\n");
+	if (!quiet_mode) {
+		printf("done\n");
+	}
 
 	/* Handle first received packet */
 	handle_packet(buff, result);
@@ -539,12 +564,16 @@ int main (int argc, char **argv) {
 	while (running) {
 		fd_set read_fds;
 		int reads;
+		static int terminal_gone = 0;
 		struct timeval timeout;
 
 		/* Init select */
 		FD_ZERO(&read_fds);
-		FD_SET(0, &read_fds);
+		if (!terminal_gone) {
+			FD_SET(0, &read_fds);
+		}
 		FD_SET(insockfd, &read_fds);
+
 		timeout.tv_sec = 1;
 		timeout.tv_usec = 0;
 
@@ -558,16 +587,21 @@ int main (int argc, char **argv) {
 				handle_packet(buff, result);
 			}
 			/* Handle data from keyboard/local terminal */
-			if (FD_ISSET(0, &read_fds)) {
+			if (FD_ISSET(0, &read_fds) && terminal_mode) {
 				unsigned char keydata[512];
 				int datalen;
 
 				datalen = read(STDIN_FILENO, &keydata, 512);
 
-				init_packet(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
-				add_control_packet(&data, MT_CPTYPE_PLAINDATA, &keydata, datalen);
-				outcounter += datalen;
-				send_udp(&data, 1);
+				if (datalen > 0) {
+					/* Data received, transmit to server */
+					init_packet(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
+					add_control_packet(&data, MT_CPTYPE_PLAINDATA, &keydata, datalen);
+					outcounter += datalen;
+					send_udp(&data, 1);
+				} else {
+					terminal_gone = 1;
+				}
 			}
 		/* Handle select() timeout */
 		} else {
@@ -581,7 +615,7 @@ int main (int argc, char **argv) {
 		}
 	}
 
-	if (terminal_mode) {
+	if (is_a_tty && terminal_mode) {
 		/* Reset terminal back to old settings */
 		reset_term();
 	}

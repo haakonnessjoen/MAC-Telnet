@@ -922,6 +922,11 @@ int main (int argc, char **argv) {
 
 	if (!foreground) {
 		daemonize();
+	} else {
+		signal(SIGCHLD,SIG_IGN);
+		signal(SIGTSTP,SIG_IGN);
+		signal(SIGTTOU,SIG_IGN);
+		signal(SIGTTIN,SIG_IGN);	
 	}
 
 	openlog("mactelnetd", LOG_PID, LOG_DAEMON);

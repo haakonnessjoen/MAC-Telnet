@@ -84,8 +84,6 @@ static struct in_addr sourceip;
 static struct in_addr destip;
 static int sourceport;
 
-static unsigned char trypassword[17];
-
 static time_t last_mndp_time = 0;
 
 /* Protocol data direction */
@@ -115,8 +113,10 @@ struct mt_connection {
 	int slavefd;
 	int pid;
 	int wait_for_ack;
+	int have_enckey;
 
 	char username[30];
+	unsigned char trypassword[17];
 	unsigned char srcip[4];
 	unsigned char srcmac[6];
 	unsigned short srcport;
@@ -412,7 +412,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		}
 	}
 
-	if (user == NULL || memcmp(md5sum, trypassword, 17) != 0) {
+	if (user == NULL || memcmp(md5sum, curconn->trypassword, 17) != 0) {
 		syslog(LOG_NOTICE, "(%d) Invalid login by %s.", curconn->seskey, curconn->username);
 
 		abort_connection(curconn, pkthdr, "Login failed, incorrect username or password\r\n");
@@ -517,7 +517,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 
 			/* Spawn shell */
 			/* TODO: Maybe use "login -f USER" instead? renders motd and executes shell correctly for system */
-			execl(user->pw_shell, user->pw_shell, (char *) 0);
+			execl(user->pw_shell, "-", (char *) 0);
 			exit(0); // just to be sure.
 		}
 		close(curconn->slavefd);
@@ -542,19 +542,20 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 
 	while (success) {
 		if (cpkt.cptype == MT_CPTYPE_BEGINAUTH) {
-
 			int plen,i;
-			for (i = 0; i < 16; ++i) {
-				curconn->enckey[i] = rand() % 256;
-			}
+			if (!curconn->have_enckey) {
+				for (i = 0; i < 16; ++i) {
+					curconn->enckey[i] = rand() % 256;
+				}
+				curconn->have_enckey=1;
 
+				memset(curconn->trypassword, 0, sizeof(curconn->trypassword));
+			}
 			init_packet(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
 			plen = add_control_packet(&pdata, MT_CPTYPE_ENCRYPTIONKEY, (curconn->enckey), 16);
 			curconn->outcounter += plen;
 
 			send_udp(curconn, &pdata);
-
-			memset(trypassword, 0, sizeof(trypassword));
 
 		} else if (cpkt.cptype == MT_CPTYPE_USERNAME) {
 
@@ -579,7 +580,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 
 		} else if (cpkt.cptype == MT_CPTYPE_PASSWORD) {
 
-			memcpy(trypassword, cpkt.data, 17);
+			memcpy(curconn->trypassword, cpkt.data, 17);
 			got_pass_packet = 1;
 
 		} else if (cpkt.cptype == MT_CPTYPE_PLAINDATA) {
@@ -922,6 +923,11 @@ int main (int argc, char **argv) {
 
 	if (!foreground) {
 		daemonize();
+	} else {
+		signal(SIGCHLD,SIG_IGN);
+		signal(SIGTSTP,SIG_IGN);
+		signal(SIGTTOU,SIG_IGN);
+		signal(SIGTTIN,SIG_IGN);	
 	}
 
 	openlog("mactelnetd", LOG_PID, LOG_DAEMON);

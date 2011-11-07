@@ -128,7 +128,7 @@ int get_macs(int sockfd, char *name, int name_len, unsigned char *mac) {
 				strncpy(name, int_cursor->ifa_name, name_len - 1);
 				name[name_len - 1] = '\0';
 				int_cursor = int_cursor->ifa_next;
-				if (get_device_mac(sockfd, name, mac)) {
+				if (get_device_mac(sockfd, name, mac)!=-1) {
 					return 1;
 				}
 			}

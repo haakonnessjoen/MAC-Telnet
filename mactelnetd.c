@@ -547,7 +547,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 				for (i = 0; i < 16; ++i) {
 					curconn->enckey[i] = rand() % 256;
 				}
-				curconn->have_enckey=1;
+				curconn->have_enckey = 1;
 
 				memset(curconn->trypassword, 0, sizeof(curconn->trypassword));
 			}
@@ -754,11 +754,6 @@ static void daemonize() {
 	fd = open("/dev/null",O_RDWR);
 	dup(fd);
 	dup(fd);
-
-	signal(SIGCHLD,SIG_IGN);
-	signal(SIGTSTP,SIG_IGN);
-	signal(SIGTTOU,SIG_IGN);
-	signal(SIGTTIN,SIG_IGN);	
 }
 
 static void print_version() {
@@ -927,12 +922,13 @@ int main (int argc, char **argv) {
 
 	if (!foreground) {
 		daemonize();
-	} else {
-		signal(SIGCHLD,SIG_IGN);
-		signal(SIGTSTP,SIG_IGN);
-		signal(SIGTTOU,SIG_IGN);
-		signal(SIGTTIN,SIG_IGN);	
 	}
+
+	/* Handle zombies etc */
+	signal(SIGCHLD,SIG_IGN);
+	signal(SIGTSTP,SIG_IGN);
+	signal(SIGTTOU,SIG_IGN);
+	signal(SIGTTIN,SIG_IGN);	
 
 	openlog("mactelnetd", LOG_PID, LOG_DAEMON);
 

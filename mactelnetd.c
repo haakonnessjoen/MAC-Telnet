@@ -547,7 +547,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 				for (i = 0; i < 16; ++i) {
 					curconn->enckey[i] = rand() % 256;
 				}
-				curconn->have_enckey=1;
+				curconn->have_enckey = 1;
 
 				memset(curconn->trypassword, 0, sizeof(curconn->trypassword));
 			}
@@ -564,13 +564,17 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 			got_user_packet = 1;
 
 		} else if (cpkt.cptype == MT_CPTYPE_TERM_WIDTH) {
-
-			curconn->terminal_width = cpkt.data[0] | (cpkt.data[1]<<8);
+			unsigned short width;
+			
+			memcpy(&width, cpkt.data, 2);
+			curconn->terminal_width = le16toh(width);
 			got_width_packet = 1;
 
 		} else if (cpkt.cptype == MT_CPTYPE_TERM_HEIGHT) {
+			unsigned short height;
 
-			curconn->terminal_height = cpkt.data[0] | (cpkt.data[1]<<8);
+			memcpy(&height, cpkt.data, 2);
+			curconn->terminal_height = le16toh(height);
 			got_height_packet = 1;
 
 		} else if (cpkt.cptype == MT_CPTYPE_TERM_TYPE) {
@@ -750,11 +754,6 @@ static void daemonize() {
 	fd = open("/dev/null",O_RDWR);
 	dup(fd);
 	dup(fd);
-
-	signal(SIGCHLD,SIG_IGN);
-	signal(SIGTSTP,SIG_IGN);
-	signal(SIGTTOU,SIG_IGN);
-	signal(SIGTTIN,SIG_IGN);	
 }
 
 static void print_version() {
@@ -923,12 +922,13 @@ int main (int argc, char **argv) {
 
 	if (!foreground) {
 		daemonize();
-	} else {
-		signal(SIGCHLD,SIG_IGN);
-		signal(SIGTSTP,SIG_IGN);
-		signal(SIGTTOU,SIG_IGN);
-		signal(SIGTTIN,SIG_IGN);	
 	}
+
+	/* Handle zombies etc */
+	signal(SIGCHLD,SIG_IGN);
+	signal(SIGTSTP,SIG_IGN);
+	signal(SIGTTOU,SIG_IGN);
+	signal(SIGTTIN,SIG_IGN);	
 
 	openlog("mactelnetd", LOG_PID, LOG_DAEMON);
 

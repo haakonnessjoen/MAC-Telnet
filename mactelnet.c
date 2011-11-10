@@ -16,12 +16,14 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
+#define _BSD_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <endian.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/ether.h>
@@ -177,11 +179,8 @@ static void send_auth(char *username, char *password) {
 	plen += add_control_packet(&data, MT_CPTYPE_TERM_TYPE, terminal, strlen(terminal));
 	
 	if (is_a_tty && get_terminal_size(&width, &height) != -1) {
-#if BYTE_ORDER == BIG_ENDIAN
-		/* Seems like Mikrotik are sending data little_endianed? */
-		width = ((width & 0xff) << 8) | ((width & 0xff00) >> 8);
-		height = ((height & 0xff) << 8) | ((height & 0xff00) >> 8);
-#endif
+		width = htole16(width);
+		height = htole16(height);
 		plen += add_control_packet(&data, MT_CPTYPE_TERM_WIDTH, &width, 2);
 		plen += add_control_packet(&data, MT_CPTYPE_TERM_HEIGHT, &height, 2);
 	}
@@ -200,6 +199,8 @@ static void sig_winch(int sig) {
 	/* terminal height/width has changed, inform server */
 	if (get_terminal_size(&width, &height) != -1) {
 		init_packet(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
+		width = htole16(width);
+		height = htole16(height);
 		plen = add_control_packet(&data, MT_CPTYPE_TERM_WIDTH, &width, 2);
 		plen += add_control_packet(&data, MT_CPTYPE_TERM_HEIGHT, &height, 2);
 		outcounter += plen;

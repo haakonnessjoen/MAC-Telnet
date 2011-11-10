@@ -16,6 +16,7 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
+#define _BSD_SOURCE
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,6 +26,7 @@
 #include <netinet/in.h>
 #include <netinet/ether.h>
 #include <time.h>
+#include <endian.h>
 #include "protocol.h"
 #include "config.h"
 
@@ -69,7 +71,6 @@ int init_packet(struct mt_packet *packet, enum mt_ptype ptype, unsigned char *sr
 }
 
 int add_control_packet(struct mt_packet *packet, enum mt_cptype cptype, void *cpdata, int data_len) {
-	unsigned int templen;
 	unsigned char *data = packet->data + packet->size;
 
 	/* Something is really wrong. Packets should never become over 1500 bytes */
@@ -95,11 +96,12 @@ int add_control_packet(struct mt_packet *packet, enum mt_cptype cptype, void *cp
 
 	/* Data length */
 #if BYTE_ORDER == LITTLE_ENDIAN
-	templen = data_len;
-	templen = htonl(templen);
-	memcpy(data + 5, &templen, sizeof(templen));
+	{
+		unsigned int templen;
+		templen = htonl(data_len);
+		memcpy(data + 5, &templen, sizeof(templen));
+	}
 #else
-#pragma unused(templen)
 	memcpy(data + 5, &data_len, sizeof(data_len));
 #endif
 
@@ -357,7 +359,7 @@ struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len)
 
 			case MT_MNDPTYPE_TIMESTAMP:
 				memcpy(&(packet.uptime), p, 4);
-/* Seems like ping uptime is transmitted as little endian? */
+				/* Seems like ping uptime is transmitted as little endian? */
 				packet.uptime = le32toh(packet.uptime);
 				break;
 

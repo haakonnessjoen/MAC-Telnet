@@ -35,7 +35,6 @@
 #define MT_INTERFACE_LEN 128
 
 #define PROGRAM_NAME "MAC-Ping"
-#define PROGRAM_VERSION "0.3.2"
 
 static int sockfd, insockfd;
 

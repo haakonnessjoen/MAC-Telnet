@@ -16,8 +16,28 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-#ifndef _UDP_H
-#define _UDP_H 1
-extern int send_custom_udp(const int socket, const int ifindex, const unsigned char *sourcemac, const unsigned char *destmac, const struct in_addr *sourceip, const int sourceport, const struct in_addr *destip, const int destport, const unsigned char *data, const int datalen);
+#ifndef _INTERFACES_H
+#define _INTERFACES_H 1
+
+#define MAX_INTERFACES 32
+
+struct net_interface {
+	char name[256];
+	unsigned char ipv4_addr[IPV4_ALEN];
+	unsigned char mac_addr[ETH_ALEN];
+
+	/* used by mactelnetd */
+	int socketfd;
+
+#ifdef __linux__
+	int ifindex;
+#endif
+	int in_use;
+};
+
+
+extern int net_get_interfaces(struct net_interface *interfaces, int max_devices);
+extern int net_init_raw_socket();
+extern int net_send_udp(const int socket, struct net_interface *interface, const unsigned char *sourcemac, const unsigned char *destmac, const struct in_addr *sourceip, const int sourceport, const struct in_addr *destip, const int destport, const unsigned char *data, const int datalen);
 extern unsigned short in_cksum(unsigned short *addr, int len);
 #endif

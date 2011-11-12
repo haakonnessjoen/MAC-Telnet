@@ -1,4 +1,4 @@
-/*
+/*find
     Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
     Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
 
@@ -32,21 +32,22 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <string.h>
+#ifdef __LINUX__
 #include <linux/if_ether.h>
+#endif
 #include "md5.h"
 #include "protocol.h"
-#include "udp.h"
 #include "console.h"
-#include "devices.h"
+#include "interfaces.h"
 #include "config.h"
 #include "mactelnet.h"
 
 #define PROGRAM_NAME "MAC-Telnet"
 #define PROGRAM_VERSION "0.3.2"
 
-static int sockfd;
+static int sockfd = 0;
 static int insockfd;
-static int device_index;
+
 static unsigned int outcounter = 0;
 static unsigned int incounter = 0;
 static int sessionkey = 0;
@@ -72,6 +73,9 @@ static int keepalive_counter = 0;
 static unsigned char encryptionkey[128];
 static char username[255];
 static char password[255];
+
+struct net_interface interfaces[MAX_INTERFACES];
+struct net_interface *active_interface;
 
 /* Protocol data direction */
 unsigned char mt_direction_fromserver = 0;
@@ -99,7 +103,7 @@ static int send_udp(struct mt_packet *packet, int retransmit) {
 
 		sent_bytes = sendto(send_socket, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
 	} else {
-		sent_bytes = send_custom_udp(sockfd, device_index, srcmac, dstmac, &sourceip,  sourceport, &destip, MT_MACTELNET_PORT, packet->data, packet->size);
+		sent_bytes = net_send_udp(sockfd, active_interface, srcmac, dstmac, &sourceip,  sourceport, &destip, MT_MACTELNET_PORT, packet->data, packet->size);
 	}
 
 	/* 
@@ -126,7 +130,7 @@ static int send_udp(struct mt_packet *packet, int retransmit) {
 			if (reads && FD_ISSET(insockfd, &read_fds)) {
 				unsigned char buff[1500];
 				int result;
-				
+
 				bzero(buff, 1500);
 				result = recvfrom(insockfd, buff, 1500, 0, 0, 0);
 
@@ -307,28 +311,39 @@ static int handle_packet(unsigned char *data, int data_len) {
 }
 
 static int find_interface() {
+	fd_set read_fds;
 	struct mt_packet data;
 	struct sockaddr_in myip;
-	int success;
-	char devicename[128];
-	int testsocket;
-	fd_set read_fds;
+	unsigned char emptymac[ETH_ALEN];
+	int i, testsocket;
 	struct timeval timeout;
 	int optval = 1;
-	
-	while ((success = get_ips(devicename, 128, &myip))) {
-		char str[INET_ADDRSTRLEN];
+
+	/* TODO: reread interfaces on HUP */
+	bzero(&interfaces, sizeof(struct net_interface) * MAX_INTERFACES);
+
+	bzero(emptymac, ETH_ALEN);
+
+	if (net_get_interfaces(interfaces, MAX_INTERFACES) <= 0) {
+		fprintf(stderr, "Error: No suitable devices found\n");
+		exit(1);
+	}
+
+	for (i = 0; i < MAX_INTERFACES; ++i) {
+		if (!interfaces[i].in_use) {
+			break;
+		}
 
 		/* Skip loopback interfaces */
-		if (memcmp("lo", devicename, 2) == 0) {
+		if (memcmp("lo", interfaces[i].name, 2) == 0) {
 			continue;
 		}
 
-		inet_ntop(AF_INET, &(myip.sin_addr), str, INET_ADDRSTRLEN);
-
 		/* Initialize receiving socket on the device chosen */
+		myip.sin_family = AF_INET;
+		memcpy((void *)&myip.sin_addr, interfaces[i].ipv4_addr, IPV4_ALEN);
 		myip.sin_port = htons(sourceport);
-	
+
 		/* Initialize socket and bind to udp port */
 		if ((testsocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
 			continue;
@@ -342,15 +357,16 @@ static int find_interface() {
 			continue;
 		}
 
-		/* Find the mac address for the current device */
-		if (get_device_mac(testsocket, devicename, srcmac) < 0) {
+		/* Ensure that we have mac-address for this interface  */
+		if (memcmp(interfaces[i].mac_addr, emptymac, ETH_ALEN) == 0) {
 			close(testsocket);
 			continue;
 		}
 
-		/* Set the global socket handle for send_udp() */
+		/* Set the global socket handle and source mac address for send_udp() */
 		send_socket = testsocket;
-		device_index = get_device_index(testsocket, devicename);
+		memcpy(srcmac, interfaces[i].mac_addr, ETH_ALEN);
+		active_interface = &interfaces[i];
 
 		/* Send a SESSIONSTART message with the current device */
 		init_packet(&data, MT_PTYPE_SESSIONSTART, srcmac, dstmac, sessionkey, 0);
@@ -369,8 +385,6 @@ static int find_interface() {
 
 		close(testsocket);
 	}
-
-	/* We didn't find anything */
 	return 0;
 }
 
@@ -466,12 +480,7 @@ int main (int argc, char **argv) {
 			return 1;
 		}
 
-		/* Transmit raw packets with this socket */
-		sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-		if (sockfd < 0) {
-			perror("sockfd");
-			return 1;
-		}
+		sockfd = net_init_raw_socket();
 	}
 
 	/* Receive regular udp packets with this socket */
@@ -522,7 +531,7 @@ int main (int argc, char **argv) {
 
 	/* Set up global info about the connection */
 	inet_pton(AF_INET, (char *)"255.255.255.255", &destip);
-	memcpy(&sourceip, &(si_me.sin_addr), 4);
+	memcpy(&sourceip, &(si_me.sin_addr), IPV4_ALEN);
 
 	/* Sessioon key */
 	sessionkey = rand() % 65535;

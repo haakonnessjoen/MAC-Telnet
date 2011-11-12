@@ -33,6 +33,13 @@
 #define MT_MNDP_TIMEOUT 5
 #define MT_MNDP_LONGTIMEOUT 120
 
+#ifndef ETH_ALEN
+#define ETH_ALEN 6
+#endif
+#ifndef IPV4_ALEN
+#define IPV4_ALEN 4
+#endif
+
 /* Packet type */
 enum mt_ptype {
 	MT_PTYPE_SESSIONSTART,

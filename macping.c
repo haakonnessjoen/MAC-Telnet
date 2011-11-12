@@ -28,8 +28,7 @@
 #include <stdio.h>
 #include <float.h>
 #include "protocol.h"
-#include "udp.h"
-#include "devices.h"
+#include "interfaces.h"
 #include "config.h"
 
 #define MAX_DEVICES 128
@@ -40,18 +39,13 @@
 
 static int sockfd, insockfd;
 
-struct mt_device {
-	unsigned char mac[ETH_ALEN];
-	char name[MT_INTERFACE_LEN];
-	int device_index;
-};
-
 static unsigned short ping_size = 38;
-static struct mt_device devices[MAX_DEVICES];
-static int devices_count = 0;
+
+struct net_interface interfaces[MAX_INTERFACES];
+
 static struct in_addr sourceip;
 static struct in_addr destip;
-static unsigned char dstmac[6];
+static unsigned char dstmac[ETH_ALEN];
 
 static int ping_sent = 0;
 static int pong_received = 0;
@@ -64,29 +58,6 @@ unsigned char mt_direction_fromserver = 0;
 
 static void print_version() {
 	fprintf(stderr, PROGRAM_NAME " " PROGRAM_VERSION "\n");
-}
-
-static void setup_devices() {
-	char devicename[MT_INTERFACE_LEN];
-	unsigned char mac[ETH_ALEN];
-	unsigned char emptymac[ETH_ALEN];
-	int success;
-
-	memset(emptymac, 0, ETH_ALEN);
-
-	while ((success = get_macs(insockfd, devicename, MT_INTERFACE_LEN, mac))) {
-		if (memcmp(mac, emptymac, ETH_ALEN) != 0) {
-			struct mt_device *device = &(devices[devices_count]);
-
-			memcpy(device->mac, mac, ETH_ALEN);
-			strncpy(device->name, devicename, MT_INTERFACE_LEN - 1);
-			device->name[MT_INTERFACE_LEN - 1] = '\0';
-
-			device->device_index = get_device_index(insockfd, devicename);
-
-			devices_count++;
-		}
-	}
 }
 
 static long long int toddiff(struct timeval *tod1, struct timeval *tod2)
@@ -204,12 +175,7 @@ int main(int argc, char **argv)  {
 		return 1;
 	}
 
-	/* Open a UDP socket handle */
-	sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-	if (sockfd < 0) {
-		perror("sockfd");
-		return 1;
-	}
+	sockfd = net_init_raw_socket();
 
 	insockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (insockfd < 0) {
@@ -239,7 +205,8 @@ int main(int argc, char **argv)  {
 
 	srand(time(NULL));
 
-	setup_devices();
+	/* Enumerate available interfaces */
+	net_get_interfaces(interfaces, MAX_INTERFACES);
 
 	if (ping_size < sizeof(struct timeval)) {
 		ping_size = sizeof(struct timeval);
@@ -257,6 +224,7 @@ int main(int argc, char **argv)  {
 		int waitforpacket;
 		struct timeval timestamp;
 		unsigned char pingdata[1500];
+		unsigned char emptymac[ETH_ALEN] = {0, 0, 0, 0, 0, 0};
 
 		gettimeofday(&timestamp, NULL);
 		memcpy(pingdata, &timestamp, sizeof(timestamp));
@@ -264,12 +232,20 @@ int main(int argc, char **argv)  {
 			pingdata[ii] = rand() % 256;
 		}
 
-		for (ii = 0; ii < devices_count; ++ii) {
-			struct mt_device *device = &devices[ii];
+		for (ii = 0; ii < MAX_INTERFACES; ++ii) {
+			struct net_interface *interface = &interfaces[ii];
 
-			init_pingpacket(&packet, device->mac, dstmac);
+			if (!interface->in_use) {
+				break;
+			}
+
+			if (memcmp(emptymac, interface->mac_addr, ETH_ALEN) == 0) {
+				continue;
+			}
+
+			init_pingpacket(&packet, interface->mac_addr, dstmac);
 			add_packetdata(&packet, pingdata, ping_size);
-			result = send_custom_udp(sockfd, device->device_index, device->mac, dstmac, &sourceip, MT_MACTELNET_PORT, &destip, MT_MACTELNET_PORT, packet.data, packet.size);
+			result = net_send_udp(sockfd, interface, interface->mac_addr, dstmac, &sourceip, MT_MACTELNET_PORT, &destip, MT_MACTELNET_PORT, packet.data, packet.size);
 
 			if (result > 0) {
 				sent++;

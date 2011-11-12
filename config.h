@@ -51,6 +51,8 @@
 #elif defined(__riscos__)
 #define PLATFORM_NAME "RISC OS"
 
+#elif defined(__FreeBSD_kernel__)
+#define PLATFORM_NAME "kFreeBSD"
 #else
 #define PLATFORM_NAME "Unknown"
 

@@ -42,7 +42,7 @@
 #include "interfaces.h"
 
 
-static struct net_interface *net_get_interface_ptr(struct net_interface *interfaces, int max_devices, char *name, int create) {
+struct net_interface *net_get_interface_ptr(struct net_interface *interfaces, int max_devices, char *name, int create) {
 	int i;
 
 	for (i = 0; i < max_devices; ++i) {

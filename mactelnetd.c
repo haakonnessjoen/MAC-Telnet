@@ -95,6 +95,8 @@ enum mt_connection_state {
 /** Connection struct */
 struct mt_connection {
 	struct net_interface *interface;
+	char interface_name[256];
+
 	unsigned short seskey;
 	unsigned int incounter;
 	unsigned int outcounter;
@@ -206,40 +208,41 @@ static int find_socket(unsigned char *mac) {
 static void setup_sockets() {
 	int i;
 
-	if (net_get_interfaces(interfaces, MAX_INTERFACES) <= 0) {
-		fprintf(stderr, "Error: No suitable devices found\n");
-		exit(1);
-	}
-
 	for (i = 0; i < MAX_INTERFACES; ++i) {
+		int optval = 1;
+		struct sockaddr_in si_me;
+		struct ether_addr *mac = (struct ether_addr *)&(interfaces[i].mac_addr);
+
 		if (interfaces[i].in_use == 0 || !interfaces[i].has_mac) {
 			continue;
 		}
 
-		int optval = 1;
-		struct sockaddr_in si_me;
+		if (!use_raw_socket) {
+			interfaces[i].socketfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+			if (interfaces[i].socketfd < 0) {
+				continue;
+			}
 
-		interfaces[i].socketfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-		if (interfaces[i].socketfd < 0) {
-			continue;
+			if (setsockopt(interfaces[i].socketfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof (optval))==-1) {
+				perror("SO_BROADCAST");
+				continue;
+			}
+
+			setsockopt(interfaces[i].socketfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+
+			/* Initialize receiving socket on the device chosen */
+			si_me.sin_family = AF_INET;
+			si_me.sin_port = htons(MT_MACTELNET_PORT);
+			memcpy(&(si_me.sin_addr.s_addr), interfaces[i].ipv4_addr, IPV4_ALEN);
+
+			if (bind(interfaces[i].socketfd, (struct sockaddr *)&si_me, sizeof(si_me))==-1) {
+				fprintf(stderr, "Error binding to %s:%d, %s\n", inet_ntoa(si_me.sin_addr), sourceport, strerror(errno));
+				continue;
+			}
 		}
 
-		if (setsockopt(interfaces[i].socketfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof (optval))==-1) {
-			perror("SO_BROADCAST");
-			continue;
-		}
+		syslog(LOG_NOTICE, "Listening on %s for %s\n", interfaces[i].name, ether_ntoa(mac));
 
-		setsockopt(interfaces[i].socketfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
-
-		/* Initialize receiving socket on the device chosen */
-		si_me.sin_family = AF_INET;
-		si_me.sin_port = htons(MT_MACTELNET_PORT);
-		memcpy(&(si_me.sin_addr.s_addr), interfaces[i].ipv4_addr, IPV4_ALEN);
-
-		if (bind(interfaces[i].socketfd, (struct sockaddr *)&si_me, sizeof(si_me))==-1) {
-			fprintf(stderr, "Error binding to %s:%d, %s\n", inet_ntoa(si_me.sin_addr), sourceport, strerror(errno));
-			continue;
-		}
 	}
 }
 
@@ -604,11 +607,6 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 	}
 }
 
-static void terminate() {
-	syslog(LOG_NOTICE, "Exiting.");
-	exit(0);
-}
-
 static void handle_packet(unsigned char *data, int data_len, const struct sockaddr_in *address) {
 	struct mt_mactelnet_hdr pkthdr;
 	struct mt_connection *curconn = NULL;
@@ -644,6 +642,8 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 			curconn->lastdata = time(NULL);
 			curconn->state = STATE_AUTH;
 			curconn->interface = &interfaces[interface_index];
+			strncpy(curconn->interface_name, interfaces[interface_index].name, 254);
+			curconn->interface_name[255] = '\0';
 			memcpy(curconn->srcmac, pkthdr.srcaddr, ETH_ALEN);
 			memcpy(curconn->srcip, &(address->sin_addr), IPV4_ALEN);
 			curconn->srcport = htons(address->sin_port);
@@ -799,6 +799,76 @@ void mndp_broadcast() {
 	}
 }
 
+void sigterm_handler() {
+	struct mt_connection *p;
+	struct mt_packet pdata;
+	char message[] = "\r\n\r\nDaemon shutting down.\r\n";
+
+	syslog(LOG_NOTICE, "Daemon shutting down");
+
+	for (p = connections_head; p != NULL; p = p->next) {
+		if (p->state == STATE_ACTIVE) {
+			init_packet(&pdata, MT_PTYPE_DATA, p->interface->mac_addr, p->srcmac, p->seskey, p->outcounter);
+			add_control_packet(&pdata, MT_CPTYPE_PLAINDATA, message, strlen(message));
+			send_udp(p, &pdata);
+
+			init_packet(&pdata, MT_PTYPE_END, p->interface->mac_addr, p->srcmac, p->seskey, p->outcounter);
+			send_udp(p, &pdata);
+		}
+	}
+
+	/* Doesn't hurt to tidy up */
+	close(sockfd);
+	close(insockfd);
+	if (!use_raw_socket) {
+		int i;
+		for (i = 0; i < MAX_INTERFACES; ++i) {
+			if (interfaces[i].in_use && interfaces[i].socketfd > 0)
+				close(interfaces[i].socketfd);
+		}
+	}
+	closelog();
+	exit(0);
+}
+
+void sighup_handler() {
+	int i;
+	struct mt_connection *p;
+
+	syslog(LOG_NOTICE, "SIGHUP: Reloading interfaces");
+
+	if (!use_raw_socket) {
+		for (i = 0; i < MAX_INTERFACES; ++i) {
+			close(interfaces[i].socketfd);
+		}
+	}
+
+	bzero(interfaces, sizeof(interfaces));
+
+	if (net_get_interfaces(interfaces, MAX_INTERFACES) <= 0) {
+		syslog(LOG_ERR, "No devices found! Exiting.\n");
+		exit(1);
+	}
+
+	setup_sockets();
+
+	/* Reassign outgoing interfaces to connections again, since they may have changed */
+	for (p = connections_head; p != NULL; p = p->next) {
+		if (p->interface_name != NULL) {
+			struct net_interface *interface = net_get_interface_ptr(interfaces, MAX_INTERFACES, p->interface_name, 0);
+			if (interface != NULL) {
+				p->interface = interface;
+			} else {
+				struct mt_connection tmp;
+				syslog(LOG_NOTICE, "(%d) Connection closed because interface %s is gone.", p->seskey, p->interface_name);
+				tmp.next = p->next;
+				list_remove_connection(p);
+				p = &tmp;
+			}
+		}
+	}
+}
+
 /*
  * TODO: Rewrite main() when all sub-functionality is tested
  */
@@ -918,12 +988,13 @@ int main (int argc, char **argv) {
 		fprintf(stderr, "MNDP: Error binding to %s:%d, %s\n", inet_ntoa(si_me_mndp.sin_addr), MT_MNDP_PORT, strerror(errno));
 	}
 
+	openlog("mactelnetd", LOG_PID, LOG_DAEMON);
+	syslog(LOG_NOTICE, "Bound to %s:%d", inet_ntoa(si_me.sin_addr), sourceport);
+
 	/* Enumerate available interfaces */
 	net_get_interfaces(interfaces, MAX_INTERFACES);
 
-	if (!use_raw_socket) {
-		setup_sockets();
-	}
+	setup_sockets();
 
 	if (!foreground) {
 		daemonize();
@@ -934,15 +1005,11 @@ int main (int argc, char **argv) {
 	signal(SIGTSTP,SIG_IGN);
 	signal(SIGTTOU,SIG_IGN);
 	signal(SIGTTIN,SIG_IGN);	
-
-	openlog("mactelnetd", LOG_PID, LOG_DAEMON);
-
-	syslog(LOG_NOTICE, "Bound to %s:%d", inet_ntoa(si_me.sin_addr), sourceport);
+	signal(SIGHUP, sighup_handler);
+	signal(SIGTERM, sigterm_handler);
 
 	for (i = 0; i < MAX_INTERFACES; ++i) {
 		if (interfaces[i].in_use && interfaces[i].has_mac) {
-			struct ether_addr *mac = (struct ether_addr *)&(interfaces[i].mac_addr);
-			syslog(LOG_NOTICE, "Listening on %s for %16s\n", interfaces[i].name, ether_ntoa(mac));
 			interface_count++;
 		}
 	}
@@ -951,8 +1018,6 @@ int main (int argc, char **argv) {
 		syslog(LOG_ERR, "Unable to find any valid network interfaces\n");
 		exit(1);
 	}
-
-	signal(SIGTERM, terminate);
 
 	while (1) {
 		int reads;
@@ -1067,14 +1132,6 @@ int main (int argc, char **argv) {
 		}
 	}
 
-	close(sockfd);
-	close(insockfd);
-	if (!use_raw_socket) {
-		for (i = 0; i < MAX_INTERFACES; ++i) {
-			if (interfaces[i].in_use && interfaces[i].socketfd > 0)
-				close(interfaces[i].socketfd);
-		}
-	}
-	closelog();
+	/* Never reached */
 	return 0;
 }

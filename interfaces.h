@@ -32,6 +32,7 @@ struct net_interface {
 #ifdef __linux__
 	int ifindex;
 #endif
+	int has_mac;
 	int in_use;
 };
 

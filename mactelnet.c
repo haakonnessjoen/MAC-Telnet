@@ -357,7 +357,7 @@ static int find_interface() {
 		}
 
 		/* Ensure that we have mac-address for this interface  */
-		if (memcmp(interfaces[i].mac_addr, emptymac, ETH_ALEN) == 0) {
+		if (!interfaces[i].has_mac) {
 			close(testsocket);
 			continue;
 		}

@@ -200,10 +200,7 @@ static int find_socket(unsigned char *mac) {
 }
 
 static void setup_sockets() {
-	unsigned char emptymac[ETH_ALEN];
 	int i;
-
-	bzero(emptymac, ETH_ALEN);
 
 	if (net_get_interfaces(interfaces, MAX_INTERFACES) <= 0) {
 		fprintf(stderr, "Error: No suitable devices found\n");
@@ -211,7 +208,7 @@ static void setup_sockets() {
 	}
 
 	for (i = 0; i < MAX_INTERFACES; ++i) {
-		if (interfaces[i].in_use == 0 || memcmp(interfaces[i].mac_addr, emptymac, ETH_ALEN) == 0) {
+		if (interfaces[i].in_use == 0 || !interfaces[i].has_mac) {
 			continue;
 		}
 
@@ -746,7 +743,6 @@ static void print_version() {
 void mndp_broadcast() {
 	struct mt_packet pdata;
 	struct utsname s_uname;
-	unsigned char emptymac[ETH_ALEN] = {0, 0, 0, 0, 0, 0};
 	int i;
 	unsigned int uptime;
 #ifdef __linux__
@@ -774,7 +770,7 @@ void mndp_broadcast() {
 		struct net_interface *interface = &interfaces[i];
 		struct mt_mndp_hdr *header = (struct mt_mndp_hdr *)&(pdata.data);
 
-		if (interfaces[i].in_use == 0 || memcmp(emptymac, interfaces[i].mac_addr, ETH_ALEN) == 0) {
+		if (interfaces[i].in_use == 0 || interfaces[i].has_mac == 0) {
 			continue;
 		}
 
@@ -932,10 +928,7 @@ int main (int argc, char **argv) {
 	syslog(LOG_NOTICE, "Bound to %s:%d", inet_ntoa(si_me.sin_addr), sourceport);
 
 	for (i = 0; i < MAX_INTERFACES; ++i) {
-		unsigned char emptymac[ETH_ALEN];
-		bzero(emptymac, ETH_ALEN);
-
-		if (interfaces[i].in_use && memcmp(interfaces[i].mac_addr, emptymac, ETH_ALEN) != 0) {
+		if (interfaces[i].in_use && interfaces[i].has_mac) {
 			struct ether_addr *mac = (struct ether_addr *)&(interfaces[i].mac_addr);
 			syslog(LOG_NOTICE, "Listening on %s for %16s\n", interfaces[i].name, ether_ntoa(mac));
 			interface_count++;

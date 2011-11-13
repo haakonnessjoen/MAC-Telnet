@@ -223,7 +223,6 @@ int main(int argc, char **argv)  {
 		int waitforpacket;
 		struct timeval timestamp;
 		unsigned char pingdata[1500];
-		unsigned char emptymac[ETH_ALEN] = {0, 0, 0, 0, 0, 0};
 
 		gettimeofday(&timestamp, NULL);
 		memcpy(pingdata, &timestamp, sizeof(timestamp));
@@ -238,7 +237,7 @@ int main(int argc, char **argv)  {
 				break;
 			}
 
-			if (memcmp(emptymac, interface->mac_addr, ETH_ALEN) == 0) {
+			if (!interface->has_mac) {
 				continue;
 			}
 

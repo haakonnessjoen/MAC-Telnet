@@ -66,6 +66,7 @@ static struct net_interface *net_get_interface_ptr(struct net_interface *interfa
 
 #ifdef __linux__
 static void net_update_mac(struct net_interface *interfaces, int max_devices) {
+	unsigned char emptymac[] = {0, 0, 0, 0, 0, 0};
 	struct ifreq ifr;
 	int i,tmpsock;
 
@@ -82,7 +83,9 @@ static void net_update_mac(struct net_interface *interfaces, int max_devices) {
 			if (ioctl(tmpsock, SIOCGIFHWADDR, &ifr) == 0) {
 				/* Fetch mac address */
 				memcpy(interfaces[i].mac_addr, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
-				interfaces[i].has_mac = 1;
+				if (memcmp(interfaces[i].mac_addr, &emptymac, ETH_ALEN) != 0) {
+					interfaces[i].has_mac = 1;
+				}
 			}
  
 		}
@@ -141,8 +144,8 @@ int net_get_interfaces(struct net_interface *interfaces, int max_devices) {
 			struct sockaddr_dl *sdl = (struct sockaddr_dl *)int_cursor->ifa_addr;
 			if (sdl->sdl_alen == ETH_ALEN) {
 				struct net_interface *interface = net_get_interface_ptr(interfaces, max_devices, int_cursor->ifa_name, 1);
-				if (interface != NULL && memcmp(interfaces->mac_addr, emptymac, ETH_ALEN) != 0) {
-					memcpy(interface->mac_addr, LLADDR(sdl), ETH_ALEN);
+				memcpy(interface->mac_addr, LLADDR(sdl), ETH_ALEN);
+				if (interface != NULL && memcmp(interface->mac_addr, &emptymac, ETH_ALEN) != 0) {
 					interface->has_mac = 1;
 				}
 			}

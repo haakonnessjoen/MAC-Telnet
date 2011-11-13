@@ -195,6 +195,10 @@ static int find_socket(unsigned char *mac) {
 		if (interfaces[i].in_use && memcmp(mac, interfaces[i].mac_addr, ETH_ALEN) == 0) {
 			return i;
 		}
+
+		if (!interfaces[i].in_use) {
+			break;
+		}
 	}
 	return -1;
 }
@@ -455,8 +459,13 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 			close(sockfd);
 			close(insockfd);
 			for (i = 0; i < MAX_INTERFACES; ++i) {
-				if (interfaces[i].in_use && interfaces[i].socketfd > 0)
+				if (interfaces[i].in_use && interfaces[i].socketfd > 0) {
 					close(interfaces[i].socketfd);
+				}
+				if (!interfaces[i].in_use) {
+					break;
+				}
+				
 			}
 			setsid();
 
@@ -770,8 +779,11 @@ void mndp_broadcast() {
 		struct net_interface *interface = &interfaces[i];
 		struct mt_mndp_hdr *header = (struct mt_mndp_hdr *)&(pdata.data);
 
-		if (interfaces[i].in_use == 0 || interfaces[i].has_mac == 0) {
+		if (interfaces[i].has_mac == 0) {
 			continue;
+		}
+		if (interfaces[i].in_use == 0) {
+			break;
 		}
 
 		mndp_init_packet(&pdata, 0, 1);

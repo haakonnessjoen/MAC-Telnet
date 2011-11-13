@@ -163,6 +163,10 @@ int main(int argc, char **argv)  {
 		exit(1);
 	}
 
+	/* Mikrotik RouterOS does not answer unless the packet has the correct recipient mac-address in
+	 * the ethernet frame. Unlike real MacTelnet connections where the OS is ok with it being a
+	 * broadcast mac address.
+	 */
 	if (geteuid() != 0) {
 		fprintf(stderr, "You need to have root privileges to use %s.\n", argv[0]);
 		return 1;

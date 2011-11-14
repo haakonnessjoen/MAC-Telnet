@@ -21,7 +21,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#ifdef __LINUX__
 #include <linux/if_ether.h>
+#endif
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/ether.h>
@@ -157,10 +159,10 @@ void parse_packet(unsigned char *data, struct mt_mactelnet_hdr *pkthdr) {
 	pkthdr->ptype = data[1];
 
 	/* src ethernet addr */
-	memcpy(pkthdr->srcaddr, data+2,6);
+	memcpy(pkthdr->srcaddr, data + 2, ETH_ALEN);
 
 	/* dst ethernet addr */
-	memcpy(pkthdr->dstaddr, data+8,6);
+	memcpy(pkthdr->dstaddr, data + 8, ETH_ALEN);
 
 	if (mt_direction_fromserver) {
 		/* Session key */
@@ -168,10 +170,10 @@ void parse_packet(unsigned char *data, struct mt_mactelnet_hdr *pkthdr) {
 		pkthdr->seskey = ntohs(pkthdr->seskey);
 
 		/* server type */
-		memcpy(&(pkthdr->clienttype), data+16, 2);
+		memcpy(&(pkthdr->clienttype), data + 16, 2);
 	} else {
 		/* server type */
-		memcpy(&(pkthdr->clienttype), data+14, 2);
+		memcpy(&(pkthdr->clienttype), data + 14, 2);
 
 		/* Session key */
 		memcpy(&(pkthdr->seskey), data + 16, sizeof(pkthdr->seskey));

@@ -21,6 +21,8 @@
 
 #define DEBUG 0
 
+#define PROGRAM_VERSION "0.3.3"
+
 #if defined(__APPLE__) && defined(__MACH__)
 #define PLATFORM_NAME "Mac OS X"
 
@@ -51,6 +53,8 @@
 #elif defined(__riscos__)
 #define PLATFORM_NAME "RISC OS"
 
+#elif defined(__FreeBSD_kernel__)
+#define PLATFORM_NAME "kFreeBSD"
 #else
 #define PLATFORM_NAME "Unknown"
 

@@ -1,6 +1,8 @@
 
 CC?=gcc
-CFLAGS+= -lrt
+
+# Run this with make CFLAGS=-lrt if you want to compile on kfreebsd
+#CFLAGS+= -lrt
 
 all: macping mndp mactelnet mactelnetd
 

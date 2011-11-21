@@ -1,8 +1,7 @@
 
 CC?=gcc
 
-# Run this with make CFLAGS=-lrt if you want to compile on kfreebsd
-#CFLAGS+= -lrt
+# Run this with make LIBS=-lrt if you want to compile on kfreebsd
 
 all: macping mndp mactelnet mactelnetd
 
@@ -39,13 +38,13 @@ md5.o: md5.c md5.h
 	${CC} -Wall ${CFLAGS} -c md5.c
 
 mactelnet: config.h mactelnet.c mactelnet.h protocol.o console.c console.h interfaces.o md5.o
-	${CC} -Wall ${CFLAGS} -o mactelnet mactelnet.c protocol.o console.c interfaces.o md5.o
+	${CC} -Wall ${CFLAGS} ${LDFLAGS} -o mactelnet mactelnet.c protocol.o console.c interfaces.o md5.o ${LIBS}
 
 mactelnetd: config.h mactelnetd.c protocol.o interfaces.o console.c console.h users.o users.h md5.o
-	${CC} -Wall ${CFLAGS} -o mactelnetd mactelnetd.c protocol.o console.c interfaces.o users.o md5.o
+	${CC} -Wall ${CFLAGS} ${LDFLAGS} -o mactelnetd mactelnetd.c protocol.o console.c interfaces.o users.o md5.o ${LIBS}
 
 mndp: config.h mndp.c protocol.o
-	${CC} -Wall ${CFLAGS} -o mndp mndp.c protocol.o
+	${CC} -Wall ${CFLAGS} ${LDFLAGS} -o mndp mndp.c protocol.o ${LIBS}
 
 macping: config.h macping.c interfaces.o protocol.o
-	${CC} -Wall ${CFLAGS} -o macping macping.c interfaces.o protocol.o
+	${CC} -Wall ${CFLAGS} ${LDFLAGS} -o macping macping.c interfaces.o protocol.o ${LIBS}

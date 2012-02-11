@@ -122,13 +122,12 @@ int net_get_interfaces(struct net_interface *interfaces, int max_devices) {
 	}
 
 	for (int_cursor = int_addrs; int_cursor != NULL; int_cursor = int_cursor->ifa_next) {
-		int family = int_cursor->ifa_addr->sa_family;
 		dl_addr = (const struct sockaddr_in *) int_cursor->ifa_addr;
 
 		if (int_cursor->ifa_addr == NULL)
 			continue;
 
-		if (family == AF_INET) {
+		if (int_cursor->ifa_addr->sa_family == AF_INET) {
 			struct net_interface *interface = net_get_interface_ptr(interfaces, max_devices, int_cursor->ifa_name, 1);
 			if (interface != NULL) {
 				found++;

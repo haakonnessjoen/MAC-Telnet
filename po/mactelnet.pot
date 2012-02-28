@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mactelnet\n"
 "Report-Msgid-Bugs-To: haakon.nessjoen@gmail.com\n"
-"POT-Creation-Date: 2012-02-28 14:29+0100\n"
+"POT-Creation-Date: 2012-02-28 14:38+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -49,31 +49,12 @@ msgstr ""
 msgid ""
 "\n"
 "Parameters:\n"
-msgstr ""
-
-#: macping.c:159
-#, c-format
-msgid "  MAC       MAC-Address of the RouterOS/mactelnetd device.\n"
-msgstr ""
-
-#: macping.c:160
-#, c-format
-msgid "  -f        Fast mode, do not wait before sending next ping request.\n"
-msgstr ""
-
-#: macping.c:161
-#, c-format
-msgid "  -s        Specify size of ping packet.\n"
-msgstr ""
-
-#: macping.c:162
-#, c-format
-msgid "  -c        Number of packets to send. (0 = unlimited)\n"
-msgstr ""
-
-#: macping.c:163
-#, c-format
-msgid "  -h        This help.\n"
+"  MAC       MAC-Address of the RouterOS/mactelnetd device.\n"
+"  -f        Fast mode, do not wait before sending next ping request.\n"
+"  -s        Specify size of ping packet.\n"
+"  -c        Number of packets to send. (0 = unlimited)\n"
+"  -h        This help.\n"
+"\n"
 msgstr ""
 
 #: macping.c:170

@@ -17,6 +17,8 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #define _BSD_SOURCE
+#include <libintl.h>
+#include <locale.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +33,8 @@
 #include <endian.h>
 #include "protocol.h"
 #include "config.h"
+
+#define _(String) gettext (String)
 
 int init_packet(struct mt_packet *packet, enum mt_ptype ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned int counter) {
 	unsigned char *data = packet->data;
@@ -77,7 +81,7 @@ int add_control_packet(struct mt_packet *packet, enum mt_cptype cptype, void *cp
 
 	/* Something is really wrong. Packets should never become over 1500 bytes */
 	if (packet->size + MT_CPHEADER_LEN + data_len > MT_PACKET_LEN) {
-		fprintf(stderr, "add_control_packet: ERROR, too large packet. Exceeds %d bytes\n", MT_PACKET_LEN);
+		fprintf(stderr, _("add_control_packet: ERROR, too large packet. Exceeds %d bytes\n"), MT_PACKET_LEN);
 		return -1;
 		//exit(1);
 	}
@@ -141,7 +145,7 @@ int init_pongpacket(struct mt_packet *packet, unsigned char *srcmac, unsigned ch
 
 int add_packetdata(struct mt_packet *packet, unsigned char *data, unsigned short length) {
 	if (packet->size + length > MT_PACKET_LEN) {
-		fprintf(stderr, "add_control_packet: ERROR, too large packet. Exceeds %d bytes\n", MT_PACKET_LEN);
+		fprintf(stderr, _("add_control_packet: ERROR, too large packet. Exceeds %d bytes\n"), MT_PACKET_LEN);
 		return -1;
 	}
 
@@ -273,7 +277,7 @@ int mndp_add_attribute(struct mt_packet *packet, enum mt_mndp_attrtype attrtype,
 
 	/* Something is really wrong. Packets should never become over 1500 bytes */
 	if (packet->size + 4 + data_len > MT_PACKET_LEN) {
-		fprintf(stderr, "mndp_add_attribute: ERROR, too large packet. Exceeds %d bytes\n", MT_PACKET_LEN);
+		fprintf(stderr, _("mndp_add_attribute: ERROR, too large packet. Exceeds %d bytes\n"), MT_PACKET_LEN);
 		return -1;
 	}
 
@@ -422,7 +426,7 @@ int query_mndp(const char *identity, unsigned char *mac) {
 
 	/* Bind to specified address/port */
 	if (bind(sock, (struct sockaddr *)&si_me, sizeof(si_me)) == -1) {
-		fprintf(stderr, "Error binding to %s:%d\n", inet_ntoa(si_me.sin_addr), MT_MNDP_PORT);
+		fprintf(stderr, _("Error binding to %s:%d\n"), inet_ntoa(si_me.sin_addr), MT_MNDP_PORT);
 		close(sock);
 		return 0;
 	}
@@ -437,7 +441,7 @@ int query_mndp(const char *identity, unsigned char *mac) {
 	si_remote.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 
 	if (sendto(sock, &message, sizeof (message), 0, (struct sockaddr *)&si_remote, sizeof(si_remote)) == -1) {
-		fprintf(stderr, "Unable to send broadcast packet: Router lookup will be slow\n");
+		fprintf(stderr, _("Unable to send broadcast packet: Router lookup will be slow\n"));
 		fastlookup = 0;
 	} else {
 		fastlookup = 1;
@@ -520,18 +524,18 @@ int query_mndp_or_mac(char *address, unsigned char *dstmac, int verbose) {
 		 * Search for Router by identity name, using MNDP
 		 */
 		if (verbose) {
-			fprintf(stderr, "Searching for '%s'...", address);
+			fprintf(stderr, _("Searching for '%s'..."), address);
 		}
 		if (!query_mndp(address, dstmac)) {
 			if (verbose) {
-				fprintf(stderr, "not found\n");
+				fprintf(stderr, _("not found\n"));
 			}
 			return 0;
 		}
 
 		/* Router found, display mac and continue */
 		if (verbose) {
-			fprintf(stderr, "found\n");
+			fprintf(stderr, _("found\n"));
 		}
 	} else {
 		/* Convert mac address string to ether_addr struct */

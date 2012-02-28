@@ -1,0 +1,397 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: mactelnet\n"
+"Report-Msgid-Bugs-To: haakon.nessjoen@gmail.com\n"
+"POT-Creation-Date: 2012-02-28 14:29+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: interfaces.c:287
+#, c-format
+msgid "packet size too large\n"
+msgstr ""
+
+#: macping.c:89
+#, c-format
+msgid "%d packets transmitted, %d packets received, %d%% packet loss\n"
+msgstr ""
+
+#: macping.c:90
+#, c-format
+msgid "round-trip min/avg/max = %.2f/%.2f/%.2f ms\n"
+msgstr ""
+
+#: macping.c:149
+#, c-format
+msgid ""
+"Number of packets to send must be more than 0 and less than 100 in fast "
+"mode.\n"
+msgstr ""
+
+#: macping.c:155
+#, c-format
+msgid "Usage: %s <MAC> [-h] [-f] [-c <count>] [-s <packet size>]\n"
+msgstr ""
+
+#: macping.c:158
+#, c-format
+msgid ""
+"\n"
+"Parameters:\n"
+msgstr ""
+
+#: macping.c:159
+#, c-format
+msgid "  MAC       MAC-Address of the RouterOS/mactelnetd device.\n"
+msgstr ""
+
+#: macping.c:160
+#, c-format
+msgid "  -f        Fast mode, do not wait before sending next ping request.\n"
+msgstr ""
+
+#: macping.c:161
+#, c-format
+msgid "  -s        Specify size of ping packet.\n"
+msgstr ""
+
+#: macping.c:162
+#, c-format
+msgid "  -c        Number of packets to send. (0 = unlimited)\n"
+msgstr ""
+
+#: macping.c:163
+#, c-format
+msgid "  -h        This help.\n"
+msgstr ""
+
+#: macping.c:170
+#, c-format
+msgid "Packet size must be between 18 and %d\n"
+msgstr ""
+
+#: macping.c:179 mactelnetd.c:934
+#, c-format
+msgid "You need to have root privileges to use %s.\n"
+msgstr ""
+
+#: macping.c:207 mndp.c:57 protocol.c:429
+#, c-format
+msgid "Error binding to %s:%d\n"
+msgstr ""
+
+#: macping.c:266
+#, c-format
+msgid "Error sending packet.\n"
+msgstr ""
+
+#: macping.c:284
+#, c-format
+msgid "%s ping timeout\n"
+msgstr ""
+
+#: macping.c:322
+#, c-format
+msgid "%s %d byte, ping time %.2f ms%s\n"
+msgstr ""
+
+#: macping.c:324
+#, c-format
+msgid "%s Reply of %d bytes of unequal data\n"
+msgstr ""
+
+#: mactelnet.c:154
+#, c-format
+msgid ""
+"\n"
+"Connection timed out\n"
+msgstr ""
+
+#: mactelnet.c:303
+#, c-format
+msgid "Connection closed.\n"
+msgstr ""
+
+#: mactelnet.c:309
+#, c-format
+msgid "Unhandeled packet type: %d received from server %s\n"
+msgstr ""
+
+#: mactelnet.c:331
+#, c-format
+msgid "Error: No suitable devices found\n"
+msgstr ""
+
+#: mactelnet.c:459
+#, c-format
+msgid ""
+"Usage: %s <MAC|identity> [-h] [-n] [-t <timeout>] [-u <username>] [-p "
+"<password>]\n"
+msgstr ""
+
+#: mactelnet.c:462
+#, c-format
+msgid ""
+"\n"
+"Parameters:\n"
+"  MAC       MAC-Address of the RouterOS/mactelnetd device. Use mndp to "
+"discover it.\n"
+"  identity  The identity/name of your destination device. Uses MNDP protocol "
+"to find it.\n"
+"  -n        Do not use broadcast packets. Less insecure but requires root "
+"privileges.\n"
+"  -t        Amount of seconds to wait for a response on each interface.\n"
+"  -u        Specify username on command line.\n"
+"  -p        Specify password on command line.\n"
+"  -q        Quiet mode.\n"
+"  -h        This help.\n"
+"\n"
+msgstr ""
+
+#: mactelnet.c:486
+#, c-format
+msgid "You need to have root privileges to use the -n parameter.\n"
+msgstr ""
+
+#: mactelnet.c:518
+#, c-format
+msgid "Login: "
+msgstr ""
+
+#: mactelnet.c:525
+msgid "Password: "
+msgstr ""
+
+#: mactelnet.c:550
+#, c-format
+msgid "Connecting to %s..."
+msgstr ""
+
+#: mactelnet.c:560 mactelnetd.c:244 mactelnetd.c:975
+#, c-format
+msgid "Error binding to %s:%d, %s\n"
+msgstr ""
+
+#: mactelnet.c:565
+#, c-format
+msgid "Connection failed.\n"
+msgstr ""
+
+#: mactelnet.c:569
+#, c-format
+msgid "done\n"
+msgstr ""
+
+#: mactelnetd.c:249
+#, c-format
+msgid "Listening on %s for %s\n"
+msgstr ""
+
+#: mactelnetd.c:409
+#, c-format
+msgid "(%d) Invalid login by %s."
+msgstr ""
+
+#: mactelnetd.c:411
+msgid "Login failed, incorrect username or password\r\n"
+msgstr ""
+
+#: mactelnetd.c:427
+msgid "Terminal error\r\n"
+msgstr ""
+
+#: mactelnetd.c:438
+#, c-format
+msgid "(%d) Login ok, but local user not accessible (%s)."
+msgstr ""
+
+#: mactelnetd.c:439
+msgid "Local user not accessible\r\n"
+msgstr ""
+
+#: mactelnetd.c:448
+#, c-format
+msgid "Error opening %s: %s"
+msgstr ""
+
+#: mactelnetd.c:449
+msgid "Error opening terminal\r\n"
+msgstr ""
+
+#: mactelnetd.c:460
+#, c-format
+msgid "(%d) User %s logged in."
+msgstr ""
+
+#: mactelnetd.c:498
+#, c-format
+msgid "(%d) Could not log in %s (%d:%d): setuid/setgid: %s"
+msgstr ""
+
+#: mactelnetd.c:499
+msgid "Internal error\r\n"
+msgstr ""
+
+#: mactelnetd.c:505
+#, c-format
+msgid "(%d) User %s disconnected with "
+msgstr ""
+
+#: mactelnetd.c:598
+#, c-format
+msgid "(%d) Unhandeled control packet type: %d"
+msgstr ""
+
+#: mactelnetd.c:644
+#, c-format
+msgid "(%d) New connection from %s."
+msgstr ""
+
+#: mactelnetd.c:672 mactelnetd.c:1105
+#, c-format
+msgid "(%d) Connection closed."
+msgstr ""
+
+#: mactelnetd.c:718
+#, c-format
+msgid "(%d) Unhandeled packet type: %d"
+msgstr ""
+
+#: mactelnetd.c:810
+msgid ""
+"\r\n"
+"\r\n"
+"Daemon shutting down.\r\n"
+msgstr ""
+
+#: mactelnetd.c:812
+msgid "Daemon shutting down"
+msgstr ""
+
+#: mactelnetd.c:843
+msgid "SIGHUP: Reloading interfaces"
+msgstr ""
+
+#: mactelnetd.c:854
+msgid "No devices found! Exiting.\n"
+msgstr ""
+
+#: mactelnetd.c:868
+#, c-format
+msgid "(%d) Connection closed because interface %s is gone."
+msgstr ""
+
+#: mactelnetd.c:921
+#, c-format
+msgid "Usage: %s [-f|-n|-h]\n"
+msgstr ""
+
+#: mactelnetd.c:924
+#, c-format
+msgid ""
+"\n"
+"Parameters:\n"
+"  -f        Run process in foreground.\n"
+"  -n        Do not use broadcast packets. Just a tad less insecure.\n"
+"  -h        This help.\n"
+"\n"
+msgstr ""
+
+#: mactelnetd.c:997
+#, c-format
+msgid "MNDP: Error binding to %s:%d, %s\n"
+msgstr ""
+
+#: mactelnetd.c:1001
+#, c-format
+msgid "Bound to %s:%d"
+msgstr ""
+
+#: mactelnetd.c:1027
+msgid "Unable to find any valid network interfaces\n"
+msgstr ""
+
+#: mactelnetd.c:1103
+#, c-format
+msgid "(%d) Connection to user %s closed."
+msgstr ""
+
+#: mactelnetd.c:1113
+#, c-format
+msgid "(%d) Waiting for ack\n"
+msgstr ""
+
+#: mactelnetd.c:1129
+#, c-format
+msgid "(%d) Session timed out"
+msgstr ""
+
+#: mactelnetd.c:1131
+msgid "Timeout\r\n"
+msgstr ""
+
+#: mndp.c:62
+#, c-format
+msgid "Searching for MikroTik routers... Abort with CTRL+C.\n"
+msgstr ""
+
+#: mndp.c:66
+#, c-format
+msgid "Unable to send broadcast packets: Operating in receive only mode.\n"
+msgstr ""
+
+#: mndp.c:76
+#, c-format
+msgid "Unable to send broadcast packet: Operating in receive only mode.\n"
+msgstr ""
+
+#: mndp.c:85
+#, c-format
+msgid "An error occured. aborting\n"
+msgstr ""
+
+#: mndp.c:99
+#, c-format
+msgid " up %d days %d hours"
+msgstr ""
+
+#: protocol.c:84 protocol.c:148
+#, c-format
+msgid "add_control_packet: ERROR, too large packet. Exceeds %d bytes\n"
+msgstr ""
+
+#: protocol.c:280
+#, c-format
+msgid "mndp_add_attribute: ERROR, too large packet. Exceeds %d bytes\n"
+msgstr ""
+
+#: protocol.c:444
+#, c-format
+msgid "Unable to send broadcast packet: Router lookup will be slow\n"
+msgstr ""
+
+#: protocol.c:527
+#, c-format
+msgid "Searching for '%s'..."
+msgstr ""
+
+#: protocol.c:531
+#, c-format
+msgid "not found\n"
+msgstr ""
+
+#: protocol.c:538
+#, c-format
+msgid "found\n"
+msgstr ""

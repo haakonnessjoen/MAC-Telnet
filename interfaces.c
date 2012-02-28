@@ -16,6 +16,8 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
+#include <libintl.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,6 +43,7 @@
 #include "protocol.h"
 #include "interfaces.h"
 
+#define _(String) gettext (String)
 
 struct net_interface *net_get_interface_ptr(struct net_interface *interfaces, int max_devices, char *name, int create) {
 	int i;
@@ -281,7 +284,7 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 	unsigned char *rest = (unsigned char *)(buffer + 20 + 14 + sizeof(struct udphdr));
 
 	if (((void *)rest - (void*)buffer) + datalen  > ETH_FRAME_LEN) {
-		fprintf(stderr, "packet size too large\n");
+		fprintf(stderr, _("packet size too large\n"));
 		free(buffer);
 		return 0;
 	}

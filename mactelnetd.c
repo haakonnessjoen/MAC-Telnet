@@ -408,6 +408,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 	if (user == NULL || memcmp(md5sum, curconn->trypassword, 17) != 0) {
 		syslog(LOG_NOTICE, _("(%d) Invalid login by %s."), curconn->seskey, curconn->username);
 
+		/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
 		abort_connection(curconn, pkthdr, _("Login failed, incorrect username or password\r\n"));
 
 		/* TODO: should wait some time (not with sleep) before returning, to minimalize brute force attacks */
@@ -424,6 +425,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 	curconn->ptsfd = posix_openpt(O_RDWR);
 	if (curconn->ptsfd == -1 || grantpt(curconn->ptsfd) == -1 || unlockpt(curconn->ptsfd) == -1) {
 			syslog(LOG_ERR, "posix_openpt: %s", strerror(errno));
+			/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
 			abort_connection(curconn, pkthdr, _("Terminal error\r\n"));
 			return;
 	}
@@ -436,6 +438,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		struct passwd *user = (struct passwd *)getpwnam(curconn->username);
 		if (user == NULL) {
 			syslog(LOG_WARNING, _("(%d) Login ok, but local user not accessible (%s)."), curconn->seskey, curconn->username);
+			/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
 			abort_connection(curconn, pkthdr, _("Local user not accessible\r\n"));
 			return;
 		}
@@ -446,6 +449,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		curconn->slavefd = open(slavename, O_RDWR);
 		if (curconn->slavefd == -1) {
 			syslog(LOG_ERR, _("Error opening %s: %s"), slavename, strerror(errno));
+			/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
 			abort_connection(curconn, pkthdr, _("Error opening terminal\r\n"));
 			list_remove_connection(curconn);
 			return;
@@ -496,6 +500,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 			/* Set user id/group id */
 			if ((setgid(user->pw_gid) != 0) || (setuid(user->pw_uid) != 0)) {
 				syslog(LOG_ERR, _("(%d) Could not log in %s (%d:%d): setuid/setgid: %s"), curconn->seskey, curconn->username, user->pw_uid, user->pw_gid, strerror(errno));
+				/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
 				abort_connection(curconn, pkthdr, _("Internal error\r\n"));
 				exit(0);
 			}
@@ -807,6 +812,7 @@ void mndp_broadcast() {
 void sigterm_handler() {
 	struct mt_connection *p;
 	struct mt_packet pdata;
+	/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
 	char message[] = gettext_noop("\r\n\r\nDaemon shutting down.\r\n");
 
 	syslog(LOG_NOTICE, _("Daemon shutting down"));
@@ -1128,6 +1134,7 @@ int main (int argc, char **argv) {
 				if (now - p->lastdata >= MT_CONNECTION_TIMEOUT) {
 					syslog(LOG_INFO, _("(%d) Session timed out"), p->seskey);
 					init_packet(&pdata, MT_PTYPE_DATA, p->dstmac, p->srcmac, p->seskey, p->outcounter);
+					/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
 					add_control_packet(&pdata, MT_CPTYPE_PLAINDATA, _("Timeout\r\n"), 9);
 					send_udp(p, &pdata);
 					init_packet(&pdata, MT_PTYPE_END, p->dstmac, p->srcmac, p->seskey, p->outcounter);

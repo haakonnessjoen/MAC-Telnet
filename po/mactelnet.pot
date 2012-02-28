@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mactelnet\n"
 "Report-Msgid-Bugs-To: haakon.nessjoen@gmail.com\n"
-"POT-Creation-Date: 2012-02-28 14:38+0100\n"
+"POT-Creation-Date: 2012-02-28 15:15+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -62,7 +62,7 @@ msgstr ""
 msgid "Packet size must be between 18 and %d\n"
 msgstr ""
 
-#: macping.c:179 mactelnetd.c:934
+#: macping.c:179 mactelnetd.c:940
 #, c-format
 msgid "You need to have root privileges to use %s.\n"
 msgstr ""
@@ -159,7 +159,7 @@ msgstr ""
 msgid "Connecting to %s..."
 msgstr ""
 
-#: mactelnet.c:560 mactelnetd.c:244 mactelnetd.c:975
+#: mactelnet.c:560 mactelnetd.c:244 mactelnetd.c:981
 #, c-format
 msgid "Error binding to %s:%d, %s\n"
 msgstr ""
@@ -184,101 +184,107 @@ msgstr ""
 msgid "(%d) Invalid login by %s."
 msgstr ""
 
-#: mactelnetd.c:411
+#. _ Please include both \r and \n in translation, this is needed for the terminal emulator.
+#: mactelnetd.c:412
 msgid "Login failed, incorrect username or password\r\n"
 msgstr ""
 
-#: mactelnetd.c:427
+#. _ Please include both \r and \n in translation, this is needed for the terminal emulator.
+#: mactelnetd.c:429
 msgid "Terminal error\r\n"
 msgstr ""
 
-#: mactelnetd.c:438
+#: mactelnetd.c:440
 #, c-format
 msgid "(%d) Login ok, but local user not accessible (%s)."
 msgstr ""
 
-#: mactelnetd.c:439
+#. _ Please include both \r and \n in translation, this is needed for the terminal emulator.
+#: mactelnetd.c:442
 msgid "Local user not accessible\r\n"
 msgstr ""
 
-#: mactelnetd.c:448
+#: mactelnetd.c:451
 #, c-format
 msgid "Error opening %s: %s"
 msgstr ""
 
-#: mactelnetd.c:449
+#. _ Please include both \r and \n in translation, this is needed for the terminal emulator.
+#: mactelnetd.c:453
 msgid "Error opening terminal\r\n"
 msgstr ""
 
-#: mactelnetd.c:460
+#: mactelnetd.c:464
 #, c-format
 msgid "(%d) User %s logged in."
 msgstr ""
 
-#: mactelnetd.c:498
+#: mactelnetd.c:502
 #, c-format
 msgid "(%d) Could not log in %s (%d:%d): setuid/setgid: %s"
 msgstr ""
 
-#: mactelnetd.c:499
+#. _ Please include both \r and \n in translation, this is needed for the terminal emulator.
+#: mactelnetd.c:504
 msgid "Internal error\r\n"
 msgstr ""
 
-#: mactelnetd.c:505
+#: mactelnetd.c:510
 #, c-format
 msgid "(%d) User %s disconnected with "
 msgstr ""
 
-#: mactelnetd.c:598
+#: mactelnetd.c:603
 #, c-format
 msgid "(%d) Unhandeled control packet type: %d"
 msgstr ""
 
-#: mactelnetd.c:644
+#: mactelnetd.c:649
 #, c-format
 msgid "(%d) New connection from %s."
 msgstr ""
 
-#: mactelnetd.c:672 mactelnetd.c:1105
+#: mactelnetd.c:677 mactelnetd.c:1111
 #, c-format
 msgid "(%d) Connection closed."
 msgstr ""
 
-#: mactelnetd.c:718
+#: mactelnetd.c:723
 #, c-format
 msgid "(%d) Unhandeled packet type: %d"
 msgstr ""
 
-#: mactelnetd.c:810
+#. _ Please include both \r and \n in translation, this is needed for the terminal emulator.
+#: mactelnetd.c:816
 msgid ""
 "\r\n"
 "\r\n"
 "Daemon shutting down.\r\n"
 msgstr ""
 
-#: mactelnetd.c:812
+#: mactelnetd.c:818
 msgid "Daemon shutting down"
 msgstr ""
 
-#: mactelnetd.c:843
+#: mactelnetd.c:849
 msgid "SIGHUP: Reloading interfaces"
 msgstr ""
 
-#: mactelnetd.c:854
+#: mactelnetd.c:860
 msgid "No devices found! Exiting.\n"
 msgstr ""
 
-#: mactelnetd.c:868
+#: mactelnetd.c:874
 #, c-format
 msgid "(%d) Connection closed because interface %s is gone."
 msgstr ""
 
-#: mactelnetd.c:921
+#: mactelnetd.c:927
 #, c-format
 msgid "Usage: %s [-f|-n|-h]\n"
 msgstr ""
 
-#: mactelnetd.c:924
+#: mactelnetd.c:930
 #, c-format
 msgid ""
 "\n"
@@ -289,36 +295,37 @@ msgid ""
 "\n"
 msgstr ""
 
-#: mactelnetd.c:997
+#: mactelnetd.c:1003
 #, c-format
 msgid "MNDP: Error binding to %s:%d, %s\n"
 msgstr ""
 
-#: mactelnetd.c:1001
+#: mactelnetd.c:1007
 #, c-format
 msgid "Bound to %s:%d"
 msgstr ""
 
-#: mactelnetd.c:1027
+#: mactelnetd.c:1033
 msgid "Unable to find any valid network interfaces\n"
 msgstr ""
 
-#: mactelnetd.c:1103
+#: mactelnetd.c:1109
 #, c-format
 msgid "(%d) Connection to user %s closed."
 msgstr ""
 
-#: mactelnetd.c:1113
+#: mactelnetd.c:1119
 #, c-format
 msgid "(%d) Waiting for ack\n"
 msgstr ""
 
-#: mactelnetd.c:1129
+#: mactelnetd.c:1135
 #, c-format
 msgid "(%d) Session timed out"
 msgstr ""
 
-#: mactelnetd.c:1131
+#. _ Please include both \r and \n in translation, this is needed for the terminal emulator.
+#: mactelnetd.c:1138
 msgid "Timeout\r\n"
 msgstr ""
 

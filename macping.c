@@ -155,13 +155,13 @@ int main(int argc, char **argv)  {
 		fprintf(stderr, _("Usage: %s <MAC> [-h] [-f] [-c <count>] [-s <packet size>]\n"), argv[0]);
 
 		if (print_help) {
-			fprintf(stderr, _("\nParameters:\n"));
-			fprintf(stderr, _("  MAC       MAC-Address of the RouterOS/mactelnetd device.\n"));
-			fprintf(stderr, _("  -f        Fast mode, do not wait before sending next ping request.\n"));
-			fprintf(stderr, _("  -s        Specify size of ping packet.\n"));
-			fprintf(stderr, _("  -c        Number of packets to send. (0 = unlimited)\n"));
-			fprintf(stderr, _("  -h        This help.\n"));
-			fprintf(stderr, "\n");
+			fprintf(stderr, _("\nParameters:\n"
+			"  MAC       MAC-Address of the RouterOS/mactelnetd device.\n"
+			"  -f        Fast mode, do not wait before sending next ping request.\n"
+			"  -s        Specify size of ping packet.\n"
+			"  -c        Number of packets to send. (0 = unlimited)\n"
+			"  -h        This help.\n"
+			"\n"));
 		}
 		return 1;
 	}

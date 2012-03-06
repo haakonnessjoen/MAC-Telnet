@@ -18,6 +18,8 @@
 */
 #define _XOPEN_SOURCE 600
 #define _BSD_SOURCE
+#include <libintl.h>
+#include <locale.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -62,6 +64,9 @@
 
 /* Max ~5 pings per second */
 #define MT_MAXPPS MT_MNDP_BROADCAST_INTERVAL * 5
+
+#define _(String) gettext (String)
+#define gettext_noop(String) String
 
 static int sockfd;
 static int insockfd;
@@ -236,12 +241,12 @@ static void setup_sockets() {
 			memcpy(&(si_me.sin_addr.s_addr), interfaces[i].ipv4_addr, IPV4_ALEN);
 
 			if (bind(interfaces[i].socketfd, (struct sockaddr *)&si_me, sizeof(si_me))==-1) {
-				fprintf(stderr, "Error binding to %s:%d, %s\n", inet_ntoa(si_me.sin_addr), sourceport, strerror(errno));
+				fprintf(stderr, _("Error binding to %s:%d, %s\n"), inet_ntoa(si_me.sin_addr), sourceport, strerror(errno));
 				continue;
 			}
 		}
 
-		syslog(LOG_NOTICE, "Listening on %s for %s\n", interfaces[i].name, ether_ntoa(mac));
+		syslog(LOG_NOTICE, _("Listening on %s for %s\n"), interfaces[i].name, ether_ntoa(mac));
 
 	}
 }
@@ -401,9 +406,10 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 	}
 
 	if (user == NULL || memcmp(md5sum, curconn->trypassword, 17) != 0) {
-		syslog(LOG_NOTICE, "(%d) Invalid login by %s.", curconn->seskey, curconn->username);
+		syslog(LOG_NOTICE, _("(%d) Invalid login by %s."), curconn->seskey, curconn->username);
 
-		abort_connection(curconn, pkthdr, "Login failed, incorrect username or password\r\n");
+		/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
+		abort_connection(curconn, pkthdr, _("Login failed, incorrect username or password\r\n"));
 
 		/* TODO: should wait some time (not with sleep) before returning, to minimalize brute force attacks */
 		return;
@@ -419,7 +425,8 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 	curconn->ptsfd = posix_openpt(O_RDWR);
 	if (curconn->ptsfd == -1 || grantpt(curconn->ptsfd) == -1 || unlockpt(curconn->ptsfd) == -1) {
 			syslog(LOG_ERR, "posix_openpt: %s", strerror(errno));
-			abort_connection(curconn, pkthdr, "Terminal error\r\n");
+			/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
+			abort_connection(curconn, pkthdr, _("Terminal error\r\n"));
 			return;
 	}
 
@@ -430,8 +437,9 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		struct stat sb;
 		struct passwd *user = (struct passwd *)getpwnam(curconn->username);
 		if (user == NULL) {
-			syslog(LOG_WARNING, "(%d) Login ok, but local user not accessible (%s).", curconn->seskey, curconn->username);
-			abort_connection(curconn, pkthdr, "Local user not accessible\r\n");
+			syslog(LOG_WARNING, _("(%d) Login ok, but local user not accessible (%s)."), curconn->seskey, curconn->username);
+			/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
+			abort_connection(curconn, pkthdr, _("Local user not accessible\r\n"));
 			return;
 		}
 
@@ -440,8 +448,9 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 
 		curconn->slavefd = open(slavename, O_RDWR);
 		if (curconn->slavefd == -1) {
-			syslog(LOG_ERR, "Error opening %s: %s", slavename, strerror(errno));
-			abort_connection(curconn, pkthdr, "Error opening terminal\r\n");
+			syslog(LOG_ERR, _("Error opening %s: %s"), slavename, strerror(errno));
+			/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
+			abort_connection(curconn, pkthdr, _("Error opening terminal\r\n"));
 			list_remove_connection(curconn);
 			return;
 		}
@@ -452,7 +461,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 			/* Add login information to utmp/wtmp */
 			uwtmp_login(curconn);
 
-			syslog(LOG_INFO, "(%d) User %s logged in.", curconn->seskey, curconn->username);
+			syslog(LOG_INFO, _("(%d) User %s logged in."), curconn->seskey, curconn->username);
 
 			/* Initialize terminal environment */
 			setenv("USER", user->pw_name, 1);
@@ -490,14 +499,15 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 
 			/* Set user id/group id */
 			if ((setgid(user->pw_gid) != 0) || (setuid(user->pw_uid) != 0)) {
-				syslog(LOG_ERR, "(%d) Could not log in %s (%d:%d): setuid/setgid: %s", curconn->seskey, curconn->username, user->pw_uid, user->pw_gid, strerror(errno));
-				abort_connection(curconn, pkthdr, "Internal error\r\n");
+				syslog(LOG_ERR, _("(%d) Could not log in %s (%d:%d): setuid/setgid: %s"), curconn->seskey, curconn->username, user->pw_uid, user->pw_gid, strerror(errno));
+				/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
+				abort_connection(curconn, pkthdr, _("Internal error\r\n"));
 				exit(0);
 			}
 
 			/* Abort login if /etc/nologin exists */
 			if (stat(_PATH_NOLOGIN, &sb) == 0 && getuid() != 0) {
-				syslog(LOG_NOTICE, "(%d) User %s disconnected with " _PATH_NOLOGIN " message.", curconn->seskey, curconn->username);
+				syslog(LOG_NOTICE, _("(%d) User %s disconnected with " _PATH_NOLOGIN " message."), curconn->seskey, curconn->username);
 				display_nologin();
 				curconn->state = STATE_CLOSED;
 				init_packet(&pdata, MT_PTYPE_END, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
@@ -590,7 +600,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 			}
 
 		} else {
-			syslog(LOG_WARNING, "(%d) Unhandeled control packet type: %d", curconn->seskey, cpkt.cptype);
+			syslog(LOG_WARNING, _("(%d) Unhandeled control packet type: %d"), curconn->seskey, cpkt.cptype);
 		}
 
 		/* Parse next control packet */
@@ -636,7 +646,7 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 			break;
 
 		case MT_PTYPE_SESSIONSTART:
-			syslog(LOG_DEBUG, "(%d) New connection from %s.", pkthdr.seskey, ether_ntoa((struct ether_addr*)&(pkthdr.srcaddr)));
+			syslog(LOG_DEBUG, _("(%d) New connection from %s."), pkthdr.seskey, ether_ntoa((struct ether_addr*)&(pkthdr.srcaddr)));
 			curconn = calloc(1, sizeof(struct mt_connection));
 			curconn->seskey = pkthdr.seskey;
 			curconn->lastdata = time(NULL);
@@ -664,7 +674,7 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 				init_packet(&pdata, MT_PTYPE_END, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter);
 				send_udp(curconn, &pdata);
 			}
-			syslog(LOG_DEBUG, "(%d) Connection closed.", curconn->seskey);
+			syslog(LOG_DEBUG, _("(%d) Connection closed."), curconn->seskey);
 			list_remove_connection(curconn);
 			return;
 
@@ -710,7 +720,7 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 			break;
 		default:
 			if (curconn) {
-				syslog(LOG_WARNING, "(%d) Unhandeled packet type: %d", curconn->seskey, pkthdr.ptype);
+				syslog(LOG_WARNING, _("(%d) Unhandeled packet type: %d"), curconn->seskey, pkthdr.ptype);
 				init_packet(&pdata, MT_PTYPE_ACK, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter);
 				send_udp(curconn, &pdata);
 			}
@@ -802,14 +812,15 @@ void mndp_broadcast() {
 void sigterm_handler() {
 	struct mt_connection *p;
 	struct mt_packet pdata;
-	char message[] = "\r\n\r\nDaemon shutting down.\r\n";
+	/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
+	char message[] = gettext_noop("\r\n\r\nDaemon shutting down.\r\n");
 
-	syslog(LOG_NOTICE, "Daemon shutting down");
+	syslog(LOG_NOTICE, _("Daemon shutting down"));
 
 	for (p = connections_head; p != NULL; p = p->next) {
 		if (p->state == STATE_ACTIVE) {
 			init_packet(&pdata, MT_PTYPE_DATA, p->interface->mac_addr, p->srcmac, p->seskey, p->outcounter);
-			add_control_packet(&pdata, MT_CPTYPE_PLAINDATA, message, strlen(message));
+			add_control_packet(&pdata, MT_CPTYPE_PLAINDATA, _(message), strlen(_(message)));
 			send_udp(p, &pdata);
 
 			init_packet(&pdata, MT_PTYPE_END, p->interface->mac_addr, p->srcmac, p->seskey, p->outcounter);
@@ -835,7 +846,7 @@ void sighup_handler() {
 	int i;
 	struct mt_connection *p;
 
-	syslog(LOG_NOTICE, "SIGHUP: Reloading interfaces");
+	syslog(LOG_NOTICE, _("SIGHUP: Reloading interfaces"));
 
 	if (!use_raw_socket) {
 		for (i = 0; i < MAX_INTERFACES; ++i) {
@@ -846,7 +857,7 @@ void sighup_handler() {
 	bzero(interfaces, sizeof(interfaces));
 
 	if (net_get_interfaces(interfaces, MAX_INTERFACES) <= 0) {
-		syslog(LOG_ERR, "No devices found! Exiting.\n");
+		syslog(LOG_ERR, _("No devices found! Exiting.\n"));
 		exit(1);
 	}
 
@@ -860,7 +871,7 @@ void sighup_handler() {
 				p->interface = interface;
 			} else {
 				struct mt_connection tmp;
-				syslog(LOG_NOTICE, "(%d) Connection closed because interface %s is gone.", p->seskey, p->interface_name);
+				syslog(LOG_NOTICE, _("(%d) Connection closed because interface %s is gone."), p->seskey, p->interface_name);
 				tmp.next = p->next;
 				list_remove_connection(p);
 				p = &tmp;
@@ -883,6 +894,10 @@ int main (int argc, char **argv) {
 	int print_help = 0;
 	int foreground = 0;
 	int interface_count = 0;
+
+	setlocale(LC_ALL, "");
+	bindtextdomain("mactelnet","/usr/share/locale");
+	textdomain("mactelnet");
 
 	while ((c = getopt(argc, argv, "fnvh?")) != -1) {
 		switch (c) {
@@ -909,20 +924,20 @@ int main (int argc, char **argv) {
 
 	if (print_help) {
 		print_version();
-		fprintf(stderr, "Usage: %s [-f|-n|-h]\n", argv[0]);
+		fprintf(stderr, _("Usage: %s [-f|-n|-h]\n"), argv[0]);
 
 		if (print_help) {
-			fprintf(stderr, "\nParameters:\n");
-			fprintf(stderr, "  -f        Run process in foreground.\n");
-			fprintf(stderr, "  -n        Do not use broadcast packets. Just a tad less insecure.\n");
-			fprintf(stderr, "  -h        This help.\n");
-			fprintf(stderr, "\n");
+			fprintf(stderr, _("\nParameters:\n"
+			"  -f        Run process in foreground.\n"
+			"  -n        Do not use broadcast packets. Just a tad less insecure.\n"
+			"  -h        This help.\n"
+			"\n"));
 		}
 		return 1;
 	}
 
 	if (geteuid() != 0) {
-		fprintf(stderr, "You need to have root privileges to use %s.\n", argv[0]);
+		fprintf(stderr, _("You need to have root privileges to use %s.\n"), argv[0]);
 		return 1;
 	}
 
@@ -963,7 +978,7 @@ int main (int argc, char **argv) {
 
 	/* Bind to udp port */
 	if (bind(insockfd, (struct sockaddr *)&si_me, sizeof(si_me))==-1) {
-		fprintf(stderr, "Error binding to %s:%d, %s\n", inet_ntoa(si_me.sin_addr), sourceport, strerror(errno));
+		fprintf(stderr, _("Error binding to %s:%d, %s\n"), inet_ntoa(si_me.sin_addr), sourceport, strerror(errno));
 		return 1;
 	}
 
@@ -985,11 +1000,11 @@ int main (int argc, char **argv) {
 
 	/* Bind to udp port */
 	if (bind(mndpsockfd, (struct sockaddr *)&si_me_mndp, sizeof(si_me_mndp))==-1) {
-		fprintf(stderr, "MNDP: Error binding to %s:%d, %s\n", inet_ntoa(si_me_mndp.sin_addr), MT_MNDP_PORT, strerror(errno));
+		fprintf(stderr, _("MNDP: Error binding to %s:%d, %s\n"), inet_ntoa(si_me_mndp.sin_addr), MT_MNDP_PORT, strerror(errno));
 	}
 
 	openlog("mactelnetd", LOG_PID, LOG_DAEMON);
-	syslog(LOG_NOTICE, "Bound to %s:%d", inet_ntoa(si_me.sin_addr), sourceport);
+	syslog(LOG_NOTICE, _("Bound to %s:%d"), inet_ntoa(si_me.sin_addr), sourceport);
 
 	/* Enumerate available interfaces */
 	net_get_interfaces(interfaces, MAX_INTERFACES);
@@ -1015,7 +1030,7 @@ int main (int argc, char **argv) {
 	}
 	
 	if (interface_count == 0) {
-		syslog(LOG_ERR, "Unable to find any valid network interfaces\n");
+		syslog(LOG_ERR, _("Unable to find any valid network interfaces\n"));
 		exit(1);
 	}
 
@@ -1091,9 +1106,9 @@ int main (int argc, char **argv) {
 						init_packet(&pdata, MT_PTYPE_END, p->dstmac, p->srcmac, p->seskey, p->outcounter);
 						send_udp(p, &pdata);
 						if (p->username != NULL) {
-							syslog(LOG_INFO, "(%d) Connection to user %s closed.", p->seskey, p->username);
+							syslog(LOG_INFO, _("(%d) Connection to user %s closed."), p->seskey, p->username);
 						} else {
-							syslog(LOG_INFO, "(%d) Connection closed.", p->seskey);
+							syslog(LOG_INFO, _("(%d) Connection closed."), p->seskey);
 						}
 						tmp.next = p->next;
 						list_remove_connection(p);
@@ -1101,7 +1116,7 @@ int main (int argc, char **argv) {
 					}
 				}
 				else if (p->state == STATE_ACTIVE && p->ptsfd > 0 && p->wait_for_ack == 1 && FD_ISSET(p->ptsfd, &read_fds)) {
-					printf("(%d) Waiting for ack\n", p->seskey);
+					printf(_("(%d) Waiting for ack\n"), p->seskey);
 				}
 			}
 		/* Handle select() timeout */
@@ -1117,9 +1132,10 @@ int main (int argc, char **argv) {
 			struct mt_connection *p,tmp;
 			for (p = connections_head; p != NULL; p = p->next) {
 				if (now - p->lastdata >= MT_CONNECTION_TIMEOUT) {
-					syslog(LOG_INFO, "(%d) Session timed out", p->seskey);
+					syslog(LOG_INFO, _("(%d) Session timed out"), p->seskey);
 					init_packet(&pdata, MT_PTYPE_DATA, p->dstmac, p->srcmac, p->seskey, p->outcounter);
-					add_control_packet(&pdata, MT_CPTYPE_PLAINDATA, "Timeout\r\n", 9);
+					/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
+					add_control_packet(&pdata, MT_CPTYPE_PLAINDATA, _("Timeout\r\n"), 9);
 					send_udp(p, &pdata);
 					init_packet(&pdata, MT_PTYPE_END, p->dstmac, p->srcmac, p->seskey, p->outcounter);
 					send_udp(p, &pdata);

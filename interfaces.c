@@ -16,6 +16,8 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
+#include <libintl.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,6 +43,7 @@
 #include "protocol.h"
 #include "interfaces.h"
 
+#define _(String) gettext (String)
 
 struct net_interface *net_get_interface_ptr(struct net_interface *interfaces, int max_devices, char *name, int create) {
 	int i;
@@ -122,13 +125,12 @@ int net_get_interfaces(struct net_interface *interfaces, int max_devices) {
 	}
 
 	for (int_cursor = int_addrs; int_cursor != NULL; int_cursor = int_cursor->ifa_next) {
-		int family = int_cursor->ifa_addr->sa_family;
 		dl_addr = (const struct sockaddr_in *) int_cursor->ifa_addr;
 
 		if (int_cursor->ifa_addr == NULL)
 			continue;
 
-		if (family == AF_INET) {
+		if (int_cursor->ifa_addr->sa_family == AF_INET) {
 			struct net_interface *interface = net_get_interface_ptr(interfaces, max_devices, int_cursor->ifa_name, 1);
 			if (interface != NULL) {
 				found++;
@@ -282,7 +284,7 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 	unsigned char *rest = (unsigned char *)(buffer + 20 + 14 + sizeof(struct udphdr));
 
 	if (((void *)rest - (void*)buffer) + datalen  > ETH_FRAME_LEN) {
-		fprintf(stderr, "packet size too large\n");
+		fprintf(stderr, _("packet size too large\n"));
 		free(buffer);
 		return 0;
 	}

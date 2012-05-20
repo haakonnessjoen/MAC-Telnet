@@ -5,13 +5,14 @@ CC?=gcc
 
 all: macping mndp mactelnet mactelnetd
 
-clean: dist-clean
+clean: distclean
 
-dist-clean:
+distclean:
 	rm -f mactelnet macping mactelnetd mndp
+	rm po/*.pot
 	rm -f *.o
 
-dist: dist-clean po/mactelnet.pot
+dist: distclean po
 
 install: all install-docs
 	install -d $(DESTDIR)/usr/bin
@@ -26,6 +27,8 @@ install: all install-docs
 install-docs:
 	install -d $(DESTDIR)/usr/share/man/man1/
 	install docs/*.1 $(DESTDIR)/usr/share/man/man1/
+
+po: po/mactelnet.pot
 
 po/mactelnet.pot: *.c
 	xgettext --package-name=mactelnet --msgid-bugs-address=haakon.nessjoen@gmail.com -d mactelnet -C -c_ -k_ -kgettext_noop *.c -o po/mactelnet.pot

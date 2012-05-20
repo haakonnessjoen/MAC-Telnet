@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mactelnet\n"
 "Report-Msgid-Bugs-To: haakon.nessjoen@gmail.com\n"
-"POT-Creation-Date: 2012-02-28 15:15+0100\n"
+"POT-Creation-Date: 2012-05-20 17:16+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -67,7 +67,7 @@ msgstr ""
 msgid "You need to have root privileges to use %s.\n"
 msgstr ""
 
-#: macping.c:207 mndp.c:57 protocol.c:429
+#: macping.c:207 mndp.c:68 protocol.c:429
 #, c-format
 msgid "Error binding to %s:%d\n"
 msgstr ""
@@ -92,36 +92,36 @@ msgstr ""
 msgid "%s Reply of %d bytes of unequal data\n"
 msgstr ""
 
-#: mactelnet.c:154
+#: mactelnet.c:155
 #, c-format
 msgid ""
 "\n"
 "Connection timed out\n"
 msgstr ""
 
-#: mactelnet.c:303
+#: mactelnet.c:304
 #, c-format
 msgid "Connection closed.\n"
 msgstr ""
 
-#: mactelnet.c:309
+#: mactelnet.c:310
 #, c-format
 msgid "Unhandeled packet type: %d received from server %s\n"
 msgstr ""
 
-#: mactelnet.c:331
+#: mactelnet.c:332
 #, c-format
 msgid "Error: No suitable devices found\n"
 msgstr ""
 
-#: mactelnet.c:459
+#: mactelnet.c:464
 #, c-format
 msgid ""
 "Usage: %s <MAC|identity> [-h] [-n] [-t <timeout>] [-u <username>] [-p "
-"<password>]\n"
+"<password>] | -l\n"
 msgstr ""
 
-#: mactelnet.c:462
+#: mactelnet.c:467
 #, c-format
 msgid ""
 "\n"
@@ -130,6 +130,7 @@ msgid ""
 "discover it.\n"
 "  identity  The identity/name of your destination device. Uses MNDP protocol "
 "to find it.\n"
+"  -l        List/Search for routers nearby. (using MNDP)\n"
 "  -n        Do not use broadcast packets. Less insecure but requires root "
 "privileges.\n"
 "  -t        Amount of seconds to wait for a response on each interface.\n"
@@ -140,36 +141,36 @@ msgid ""
 "\n"
 msgstr ""
 
-#: mactelnet.c:486
+#: mactelnet.c:492
 #, c-format
 msgid "You need to have root privileges to use the -n parameter.\n"
 msgstr ""
 
-#: mactelnet.c:518
+#: mactelnet.c:524
 #, c-format
 msgid "Login: "
 msgstr ""
 
-#: mactelnet.c:525
+#: mactelnet.c:531
 msgid "Password: "
 msgstr ""
 
-#: mactelnet.c:550
+#: mactelnet.c:556
 #, c-format
 msgid "Connecting to %s..."
 msgstr ""
 
-#: mactelnet.c:560 mactelnetd.c:244 mactelnetd.c:981
+#: mactelnet.c:566 mactelnetd.c:244 mactelnetd.c:981
 #, c-format
 msgid "Error binding to %s:%d, %s\n"
 msgstr ""
 
-#: mactelnet.c:565
+#: mactelnet.c:571
 #, c-format
 msgid "Connection failed.\n"
 msgstr ""
 
-#: mactelnet.c:569
+#: mactelnet.c:575
 #, c-format
 msgid "done\n"
 msgstr ""
@@ -329,27 +330,35 @@ msgstr ""
 msgid "Timeout\r\n"
 msgstr ""
 
-#: mndp.c:62
+#: mndp.c:73
 #, c-format
 msgid "Searching for MikroTik routers... Abort with CTRL+C.\n"
 msgstr ""
 
-#: mndp.c:66
+#: mndp.c:77
 #, c-format
 msgid "Unable to send broadcast packets: Operating in receive only mode.\n"
 msgstr ""
 
-#: mndp.c:76
+#: mndp.c:87
 #, c-format
 msgid "Unable to send broadcast packet: Operating in receive only mode.\n"
 msgstr ""
 
-#: mndp.c:85
+#: mndp.c:91
+msgid "MAC-Address"
+msgstr ""
+
+#: mndp.c:91
+msgid "Identity (platform version hardware) uptime"
+msgstr ""
+
+#: mndp.c:98
 #, c-format
 msgid "An error occured. aborting\n"
 msgstr ""
 
-#: mndp.c:99
+#: mndp.c:112
 #, c-format
 msgid " up %d days %d hours"
 msgstr ""

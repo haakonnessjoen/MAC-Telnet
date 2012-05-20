@@ -88,7 +88,7 @@ int mndp(void)  {
 		}
 	}
 
-	printf("\n\E[1m%-17s Identity (platform version hardware) uptime\E[m\n", "MAC-Address");
+	printf("\n\E[1m%-17s %s\E[m\n", _("MAC-Address"), _("Identity (platform version hardware) uptime"));
 
 	while(1) {
 		struct mt_mndp_info *packet;
@@ -104,7 +104,7 @@ int mndp(void)  {
 
 		if (packet != NULL) {
 			/* Print it */
-			printf(" %-17s %s", ether_ntoa((struct ether_addr *)packet->address), packet->identity);
+			printf("%-17s %s", ether_ntoa((struct ether_addr *)packet->address), packet->identity);
 			if (packet->platform != NULL) {
 				printf(" (%s %s %s)", packet->platform, packet->version, packet->hardware);
 			}

@@ -12,6 +12,13 @@ If specified, the hostname (identity) will be looked up via MNDP discovery.
 These programs follow the usual GNU command line syntax.
 A summary of options is included below.
 .TP
+.B \-l
+This will discover RouterOS or MAC-Telnetd enabled devices. It will
+list the MAC-address software version, and uptime of every device
+or machine it discovers. To exit the discovery, use
+.B Control + C
+\.
+.TP
 .B \-n
 Do not use broadcast packets. A tad less insecure but requires root privileges.
 This means that ethernet packets will have the specified mac-address as the packet

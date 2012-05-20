@@ -42,8 +42,8 @@ interfaces.o: interfaces.c interfaces.h
 md5.o: md5.c md5.h
 	${CC} -Wall ${CFLAGS} -c md5.c
 
-mactelnet: config.h mactelnet.c mactelnet.h protocol.o console.c console.h interfaces.o md5.o
-	${CC} -Wall ${CFLAGS} ${LDFLAGS} -o mactelnet mactelnet.c protocol.o console.c interfaces.o md5.o ${LIBS}
+mactelnet: config.h mactelnet.c mactelnet.h protocol.o console.c console.h interfaces.o md5.o mndp.c
+	${CC} -Wall ${CFLAGS} ${LDFLAGS} -o mactelnet mactelnet.c protocol.o console.c interfaces.o md5.o -DFROM_MACTELNET mndp.c ${LIBS}
 
 mactelnetd: config.h mactelnetd.c protocol.o interfaces.o console.c console.h users.o users.h md5.o
 	${CC} -Wall ${CFLAGS} ${LDFLAGS} -o mactelnetd mactelnetd.c protocol.o console.c interfaces.o users.o md5.o ${LIBS}

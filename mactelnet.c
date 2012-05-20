@@ -43,6 +43,7 @@
 #include "interfaces.h"
 #include "config.h"
 #include "mactelnet.h"
+#include "mndp.h"
 
 #define PROGRAM_NAME "MAC-Telnet"
 
@@ -408,7 +409,7 @@ int main (int argc, char **argv) {
 	textdomain("mactelnet");
 
 	while (1) {
-		c = getopt(argc, argv, "nqt:u:p:vh?");
+		c = getopt(argc, argv, "lnqt:u:p:vh?");
 
 		if (c == -1) {
 			break;
@@ -447,6 +448,10 @@ int main (int argc, char **argv) {
 				quiet_mode = 1;
 				break;
 
+			case 'l':
+				return mndp();
+				break;
+
 			case 'h':
 			case '?':
 				print_help = 1;
@@ -456,12 +461,13 @@ int main (int argc, char **argv) {
 	}
 	if (argc - optind < 1 || print_help) {
 		print_version();
-		fprintf(stderr, _("Usage: %s <MAC|identity> [-h] [-n] [-t <timeout>] [-u <username>] [-p <password>]\n"), argv[0]);
+		fprintf(stderr, _("Usage: %s <MAC|identity> [-h] [-n] [-t <timeout>] [-u <username>] [-p <password>] | <-l>\n"), argv[0]);
 
 		if (print_help) {
 			fprintf(stderr, _("\nParameters:\n"
 			"  MAC       MAC-Address of the RouterOS/mactelnetd device. Use mndp to discover it.\n"
 			"  identity  The identity/name of your destination device. Uses MNDP protocol to find it.\n"
+			"  -l        List/Search for routers nearby. (using MNDP)\n"
 			"  -n        Do not use broadcast packets. Less insecure but requires root privileges.\n"
 			"  -t        Amount of seconds to wait for a response on each interface.\n"
 			"  -u        Specify username on command line.\n"

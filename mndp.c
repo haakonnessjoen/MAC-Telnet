@@ -28,14 +28,25 @@
 
 #define _(String) gettext (String)
 
+/* This file is also used for the -l option in mactelnet */
+#ifndef FROM_MACTELNET
+
 /* Protocol data direction, not used here, but obligatory for protocol.c */
 unsigned char mt_direction_fromserver = 0;
 
 int main(int argc, char **argv)  {
+#else
+int mndp(void)  {
+#endif
 	int sock,result;
 	int optval = 1;
 	struct sockaddr_in si_me, si_remote;
 	unsigned char buff[MT_PACKET_LEN];
+
+#ifdef FROM_MACTELNET
+	/* mactelnet.c has this set to 1 */
+	mt_direction_fromserver = 0;
+#endif
 
 	setlocale(LC_ALL, "");
 	bindtextdomain("mactelnet","/usr/share/locale");
@@ -76,6 +87,8 @@ int main(int argc, char **argv)  {
 			fprintf(stderr, _("Unable to send broadcast packet: Operating in receive only mode.\n"));
 		}
 	}
+
+	printf("\n\E[1m%-17s Identity (platform version hardware) uptime\E[m\n", "MAC-Address");
 
 	while(1) {
 		struct mt_mndp_info *packet;

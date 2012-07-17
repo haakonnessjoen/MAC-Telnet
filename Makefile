@@ -9,7 +9,7 @@ clean: distclean
 
 distclean:
 	rm -f mactelnet macping mactelnetd mndp
-	rm po/*.pot
+	rm -f po/*.pot
 	rm -f *.o
 
 dist: distclean po

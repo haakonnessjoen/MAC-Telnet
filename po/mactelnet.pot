@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mactelnet\n"
 "Report-Msgid-Bugs-To: haakon.nessjoen@gmail.com\n"
-"POT-Creation-Date: 2012-05-20 17:16+0200\n"
+"POT-Creation-Date: 2012-07-17 21:29+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -92,85 +92,115 @@ msgstr ""
 msgid "%s Reply of %d bytes of unequal data\n"
 msgstr ""
 
-#: mactelnet.c:155
+#: mactelnet.c:100
+#, c-format
+msgid ""
+"Failed dropping privileges. The user %s is not a valid username on local "
+"system.\n"
+msgstr ""
+
+#: mactelnet.c:106
+#, c-format
+msgid "setgid: Error dropping group privileges\n"
+msgstr ""
+
+#: mactelnet.c:110
+#, c-format
+msgid "setuid: Error dropping user privileges\n"
+msgstr ""
+
+#: mactelnet.c:115
+#, c-format
+msgid "Failed to drop privileges\n"
+msgstr ""
+
+#: mactelnet.c:181
 #, c-format
 msgid ""
 "\n"
 "Connection timed out\n"
 msgstr ""
 
-#: mactelnet.c:304
+#: mactelnet.c:330
 #, c-format
 msgid "Connection closed.\n"
 msgstr ""
 
-#: mactelnet.c:310
+#: mactelnet.c:336
 #, c-format
 msgid "Unhandeled packet type: %d received from server %s\n"
 msgstr ""
 
-#: mactelnet.c:332
+#: mactelnet.c:358
 #, c-format
 msgid "Error: No suitable devices found\n"
 msgstr ""
 
-#: mactelnet.c:464
+#: mactelnet.c:498
 #, c-format
 msgid ""
-"Usage: %s <MAC|identity> [-h] [-n] [-t <timeout>] [-u <username>] [-p "
-"<password>] | -l\n"
+"Usage: %s <MAC|identity> [-h] [-n] [-t <timeout>] [-u <user>] [-p "
+"<password>] [-U <user>] | -l\n"
 msgstr ""
 
-#: mactelnet.c:467
+#: mactelnet.c:501
 #, c-format
 msgid ""
 "\n"
 "Parameters:\n"
-"  MAC       MAC-Address of the RouterOS/mactelnetd device. Use mndp to "
-"discover it.\n"
-"  identity  The identity/name of your destination device. Uses MNDP protocol "
-"to find it.\n"
-"  -l        List/Search for routers nearby. (using MNDP)\n"
-"  -n        Do not use broadcast packets. Less insecure but requires root "
-"privileges.\n"
-"  -t        Amount of seconds to wait for a response on each interface.\n"
-"  -u        Specify username on command line.\n"
-"  -p        Specify password on command line.\n"
-"  -q        Quiet mode.\n"
-"  -h        This help.\n"
+"  MAC            MAC-Address of the RouterOS/mactelnetd device. Use mndp to\n"
+"                 discover it.\n"
+"  identity       The identity/name of your destination device. Uses\n"
+"                 MNDP protocol to find it.\n"
+"  -l             List/Search for routers nearby. (using MNDP)\n"
+"  -n             Do not use broadcast packets. Less insecure but requires\n"
+"                 root privileges.\n"
+"  -t <timeout>   Amount of seconds to wait for a response on each "
+"interface.\n"
+"  -u <user>      Specify username on command line.\n"
+"  -p <password>  Specify password on command line.\n"
+"  -U <user>      Drop privileges to this user. Used in conjunction with -n\n"
+"                 for security.\n"
+"  -q             Quiet mode.\n"
+"  -h             This help.\n"
 "\n"
 msgstr ""
 
-#: mactelnet.c:492
+#: mactelnet.c:531
 #, c-format
 msgid "You need to have root privileges to use the -n parameter.\n"
 msgstr ""
 
-#: mactelnet.c:524
+#: mactelnet.c:541
+#, c-format
+msgid "The -U option must be used in conjunction with the -n parameter.\n"
+msgstr ""
+
+#: mactelnet.c:570
 #, c-format
 msgid "Login: "
 msgstr ""
 
-#: mactelnet.c:531
+#: mactelnet.c:577
 msgid "Password: "
 msgstr ""
 
-#: mactelnet.c:556
+#: mactelnet.c:602
 #, c-format
 msgid "Connecting to %s..."
 msgstr ""
 
-#: mactelnet.c:566 mactelnetd.c:244 mactelnetd.c:981
+#: mactelnet.c:612 mactelnetd.c:244 mactelnetd.c:981
 #, c-format
 msgid "Error binding to %s:%d, %s\n"
 msgstr ""
 
-#: mactelnet.c:571
+#: mactelnet.c:617
 #, c-format
 msgid "Connection failed.\n"
 msgstr ""
 
-#: mactelnet.c:575
+#: mactelnet.c:621
 #, c-format
 msgid "done\n"
 msgstr ""

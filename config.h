@@ -21,7 +21,7 @@
 
 #define DEBUG 0
 
-#define PROGRAM_VERSION "0.3.3"
+#define PROGRAM_VERSION "0.3.4"
 
 #if defined(__APPLE__) && defined(__MACH__)
 #define PLATFORM_NAME "Mac OS X"

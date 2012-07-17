@@ -289,7 +289,7 @@ static int handle_packet(unsigned char *data, int data_len) {
 			   the data is raw terminal data to be outputted to the terminal. */
 			else if (cpkt.cptype == MT_CPTYPE_PLAINDATA) {
 				cpkt.data[cpkt.length] = 0;
-				printf("%s", cpkt.data);
+				fputs((const char *)cpkt.data, stdout);
 			}
 
 			/* END_AUTH means that the user/password negotiation is done, and after this point

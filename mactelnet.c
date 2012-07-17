@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <pwd.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -77,6 +78,7 @@ static int keepalive_counter = 0;
 static unsigned char encryptionkey[128];
 static char username[255];
 static char password[255];
+static char nonpriv_username[255];
 
 struct net_interface interfaces[MAX_INTERFACES];
 struct net_interface *active_interface;
@@ -90,6 +92,30 @@ static int handle_packet(unsigned char *data, int data_len);
 
 static void print_version() {
 	fprintf(stderr, PROGRAM_NAME " " PROGRAM_VERSION "\n");
+}
+
+void drop_privileges(char *username) {
+	struct passwd *user = (struct passwd *) getpwnam(username);
+	if (user == NULL) {
+		fprintf(stderr, _("Failed dropping privileges. The user %s is not a valid username on local system.\n"), username);
+		exit(1);
+	}
+	if (getuid() == 0) {
+		/* process is running as root, drop privileges */
+		if (setgid(user->pw_gid) != 0) {
+			fprintf(stderr, _("setgid: Error dropping group privileges\n"));
+			exit(1);
+		}
+		if (setuid(user->pw_uid) != 0) {
+			fprintf(stderr, _("setuid: Error dropping user privileges\n"));
+			exit(1);
+		}
+		/* Verify if the privileges were developed. */
+		if (setuid(0) != -1) {
+			fprintf(stderr, _("Failed to drop privileges\n"));
+			exit(1);
+		}
+	}
 }
 
 static int send_udp(struct mt_packet *packet, int retransmit) {
@@ -401,6 +427,7 @@ int main (int argc, char **argv) {
 	struct sockaddr_in si_me;
 	unsigned char buff[1500];
 	unsigned char print_help = 0, have_username = 0, have_password = 0;
+	unsigned char drop_priv = 0;
 	int c;
 	int optval = 1;
 
@@ -409,7 +436,7 @@ int main (int argc, char **argv) {
 	textdomain("mactelnet");
 
 	while (1) {
-		c = getopt(argc, argv, "lnqt:u:p:vh?");
+		c = getopt(argc, argv, "lnqt:u:p:U:vh?");
 
 		if (c == -1) {
 			break;
@@ -433,6 +460,13 @@ int main (int argc, char **argv) {
 				strncpy(password, optarg, sizeof(password) - 1);
 				password[sizeof(password) - 1] = '\0';
 				have_password = 1;
+				break;
+
+			case 'U':
+				/* Save nonpriv_username */
+				strncpy(nonpriv_username, optarg, sizeof(nonpriv_username) - 1);
+				nonpriv_username[sizeof(nonpriv_username) - 1] = '\0';
+				drop_priv = 1;
 				break;
 
 			case 't':
@@ -461,19 +495,24 @@ int main (int argc, char **argv) {
 	}
 	if (argc - optind < 1 || print_help) {
 		print_version();
-		fprintf(stderr, _("Usage: %s <MAC|identity> [-h] [-n] [-t <timeout>] [-u <username>] [-p <password>] | -l\n"), argv[0]);
+		fprintf(stderr, _("Usage: %s <MAC|identity> [-h] [-n] [-t <timeout>] [-u <user>] [-p <password>] [-U <user>] | -l\n"), argv[0]);
 
 		if (print_help) {
 			fprintf(stderr, _("\nParameters:\n"
-			"  MAC       MAC-Address of the RouterOS/mactelnetd device. Use mndp to discover it.\n"
-			"  identity  The identity/name of your destination device. Uses MNDP protocol to find it.\n"
-			"  -l        List/Search for routers nearby. (using MNDP)\n"
-			"  -n        Do not use broadcast packets. Less insecure but requires root privileges.\n"
-			"  -t        Amount of seconds to wait for a response on each interface.\n"
-			"  -u        Specify username on command line.\n"
-			"  -p        Specify password on command line.\n"
-			"  -q        Quiet mode.\n"
-			"  -h        This help.\n"
+			"  MAC            MAC-Address of the RouterOS/mactelnetd device. Use mndp to\n"
+			"                 discover it.\n"
+			"  identity       The identity/name of your destination device. Uses\n"
+			"                 MNDP protocol to find it.\n"
+			"  -l             List/Search for routers nearby. (using MNDP)\n"
+			"  -n             Do not use broadcast packets. Less insecure but requires\n"
+			"                 root privileges.\n"
+			"  -t <timeout>   Amount of seconds to wait for a response on each interface.\n"
+			"  -u <user>      Specify username on command line.\n"
+			"  -p <password>  Specify password on command line.\n"
+			"  -U <user>      Drop privileges to this user. Used in conjunction with -n\n"
+			"                 for security.\n"
+			"  -q             Quiet mode.\n"
+			"  -h             This help.\n"
 			"\n"));
 		}
 		return 1;
@@ -494,6 +533,13 @@ int main (int argc, char **argv) {
 		}
 
 		sockfd = net_init_raw_socket();
+
+		if (drop_priv) {
+			drop_privileges(nonpriv_username);
+		}
+	} else if (drop_priv) {
+		fprintf(stderr, _("The -U option must be used in conjunction with the -n parameter.\n"));
+		return 1;
 	}
 
 	/* Receive regular udp packets with this socket */

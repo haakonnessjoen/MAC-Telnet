@@ -1,8 +1,7 @@
 MAC-Telnet for Linux
 ====================
 
-A linux console tool for connecting to MikroTik RouterOS devices via their
-ethernet address.
+Console tools for connecting to, and serving, devices using MikroTik RouterOS MAC-Telnet protocol.
 
 Installation
 ------------
@@ -22,17 +21,23 @@ Usage
 -----
 
     # mactelnet -h
-    Usage: mactelnet <MAC|identity> [-h] [-n] [-t <timeout>] [-u <username>] [-p <password>]
+    Usage: mactelnet <MAC|identity> [-h] [-n] [-t <timeout>] [-u <user>] [-p <password>] [-U <user>] | -l
     
     Parameters:
-      MAC       MAC-Address of the RouterOS device. Use mndp to discover them.
-      identity  The identity/name of your RouterOS device. Uses MNDP protocol to find it..
-      -n        Do not use broadcast packets. Less insecure but requires root privileges.
-      -t        Amount of seconds to wait for a response on each interface.
-      -u        Specify username on command line.
-      -p        Specify password on command line.
-      -h        This help.
-
+      MAC            MAC-Address of the RouterOS/mactelnetd device. Use mndp to
+                     discover it.
+      identity       The identity/name of your destination device. Uses
+                     MNDP protocol to find it.
+      -l             List/Search for routers nearby. (using MNDP)
+      -n             Do not use broadcast packets. Less insecure but requires
+                     root privileges.
+      -t <timeout>   Amount of seconds to wait for a response on each interface.
+      -u <user>      Specify username on command line.
+      -p <password>  Specify password on command line.
+      -U <user>      Drop privileges to this user. Used in conjunction with -n
+                     for security.
+      -q             Quiet mode.
+      -h             This help.
 
 Example:
 

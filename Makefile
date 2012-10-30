@@ -5,13 +5,16 @@ CC?=gcc
 
 all: macping mndp mactelnet mactelnetd
 
-clean: dist-clean
+clean: distclean
 
-dist-clean:
+distclean:
 	rm -f mactelnet macping mactelnetd mndp
 	rm -f *.o
 
-dist: dist-clean po/mactelnet.pot
+potclean:
+	rm -f po/*.pot
+
+dist: distclean potclean pot
 
 install: all install-docs
 	install -d $(DESTDIR)/usr/bin
@@ -26,6 +29,8 @@ install: all install-docs
 install-docs:
 	install -d $(DESTDIR)/usr/share/man/man1/
 	install docs/*.1 $(DESTDIR)/usr/share/man/man1/
+
+pot: po/mactelnet.pot
 
 po/mactelnet.pot: *.c
 	xgettext --package-name=mactelnet --msgid-bugs-address=haakon.nessjoen@gmail.com -d mactelnet -C -c_ -k_ -kgettext_noop *.c -o po/mactelnet.pot
@@ -42,8 +47,8 @@ interfaces.o: interfaces.c interfaces.h
 md5.o: md5.c md5.h
 	${CC} -Wall ${CFLAGS} -c md5.c
 
-mactelnet: config.h mactelnet.c mactelnet.h protocol.o console.c console.h interfaces.o md5.o
-	${CC} -Wall ${CFLAGS} ${LDFLAGS} -o mactelnet mactelnet.c protocol.o console.c interfaces.o md5.o ${LIBS}
+mactelnet: config.h mactelnet.c mactelnet.h protocol.o console.c console.h interfaces.o md5.o mndp.c
+	${CC} -Wall ${CFLAGS} ${LDFLAGS} -o mactelnet mactelnet.c protocol.o console.c interfaces.o md5.o -DFROM_MACTELNET mndp.c ${LIBS}
 
 mactelnetd: config.h mactelnetd.c protocol.o interfaces.o console.c console.h users.o users.h md5.o
 	${CC} -Wall ${CFLAGS} ${LDFLAGS} -o mactelnetd mactelnetd.c protocol.o console.c interfaces.o users.o md5.o ${LIBS}

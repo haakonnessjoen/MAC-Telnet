@@ -58,7 +58,7 @@ msgid ""
 msgstr ""
 "\n"
 "Параметри:\n"
-"  MAC       MAC-Адрес на RouterOS/mactelnetd устройство.\n"
+"  MAC       MAC-Адрес на RouterOS/mactelnetd устройството.\n"
 "  -f        Бърз режим, не се чака преди изпращането на следващият пакет.\n"
 "  -s        Определя размера на пинг пакета.\n"
 "  -c        Брой на пакетите за изпращане. (0 = неограничен)\n"
@@ -69,12 +69,12 @@ msgstr ""
 #: macping.c:170
 #, c-format
 msgid "Packet size must be between 18 and %d\n"
-msgstr "Размера на пакета трябва да е от 18 до %d\n"
+msgstr "Размерът на пакета трябва да е от 18 до %d\n"
 
 #: macping.c:179 mactelnetd.c:940
 #, c-format
 msgid "You need to have root privileges to use %s.\n"
-msgstr "Необходими са права на root, за да използвате %s.\n"
+msgstr "Необходими са права на потребител root, за да използвате %s.\n"
 
 #: macping.c:207 mndp.c:68 protocol.c:429
 #, c-format
@@ -89,7 +89,7 @@ msgstr "Грешка при изпращане на пакет.\n"
 #: macping.c:284
 #, c-format
 msgid "%s ping timeout\n"
-msgstr "%s изтекло време за изчакване"
+msgstr "%s изтекло време за изчакване\n"
 
 #: macping.c:322
 #, c-format
@@ -114,17 +114,17 @@ msgstr ""
 #: mactelnet.c:106
 #, c-format
 msgid "setgid: Error dropping group privileges\n"
-msgstr "setgid: Грешка при намаляване на групови права\n"
+msgstr "setgid: Грешка при намаляване на груповите права\n"
 
 #: mactelnet.c:110
 #, c-format
-msgid "setuid: Грешка при намаляване на потребителски права\n"
+msgid "setuid: Грешка при намаляване на потребителските права\n"
 msgstr ""
 
 #: mactelnet.c:115
 #, c-format
 msgid "Failed to drop privileges\n"
-msgstr "Грешка при намаляване на права\n"
+msgstr "Грешка при намаляване на правата\n"
 
 #: mactelnet.c:181
 #, c-format
@@ -133,7 +133,7 @@ msgid ""
 "Connection timed out\n"
 msgstr ""
 "\n"
-"Изтекло време за свързване\n"
+"Изтече времето за свързване\n"
 
 #: mactelnet.c:330
 #, c-format
@@ -190,8 +190,8 @@ msgstr ""
 "                  MNDP протокол.\n"
 "  -l              Показва/Търси за устройства наоколо. (използва MNDP)\n"
 "  -n              Да не се използват броудкаст пакети. По-малко несигурно, но пък\n"
-"                  изисква root права.\n"
-"  -t <изчакване>  Брой секунди за изчакване на отговор по всеки интерфейс.\n"
+"                  изисква права на потребител root.\n"
+"  -t <изчакване>  Брой секунди за изчакване на отговор за всеки интерфейс.\n"
 "  -u <потребител> Задава потребител от командния ред.\n"
 "  -p <парола>     Задава парола от командния ред.\n"
 "  -U <user>       Намалява правата до този потребител. Може да се използва заедно\n"
@@ -204,7 +204,7 @@ msgstr ""
 #: mactelnet.c:531
 #, c-format
 msgid "You need to have root privileges to use the -n parameter.\n"
-msgstr "Необходими са root права, за да използвате опция -n.\n"
+msgstr "Необходими са права на потребител root, за да използвате опция -n.\n"
 
 #: mactelnet.c:541
 #, c-format
@@ -441,17 +441,17 @@ msgstr " от %d дни %d часа"
 #: protocol.c:84 protocol.c:148
 #, c-format
 msgid "add_control_packet: ERROR, too large packet. Exceeds %d bytes\n"
-msgstr "add_control_packet: Грешка, пакета е твърде голям. Надхвърля %d байта\n"
+msgstr "add_control_packet: Грешка, пакетът е твърде голям. Надхвърля %d байта\n"
 
 #: protocol.c:280
 #, c-format
 msgid "mndp_add_attribute: ERROR, too large packet. Exceeds %d bytes\n"
-msgstr "mndp_add_attribute: Грешка, пакета е твърде голям. Надхвърля %d байта\n"
+msgstr "mndp_add_attribute: Грешка, пакетът е твърде голям. Надхвърля %d байта\n"
 
 #: protocol.c:444
 #, c-format
 msgid "Unable to send broadcast packet: Router lookup will be slow\n"
-msgstr "Не е възможно да се изпрати броудкаст пакет: Откриването на рутери ще работи бавно\n"
+msgstr "Не е възможно да се изпрати броудкаст пакет: Търсенето на рутери ще работи бавно\n"
 
 #: protocol.c:527
 #, c-format

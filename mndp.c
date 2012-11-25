@@ -109,7 +109,10 @@ int mndp(void)  {
 				printf(" (%s %s %s)", packet->platform, packet->version, packet->hardware);
 			}
 			if (packet->uptime > 0) {
-				printf(_(" up %d days %d hours"), packet->uptime / 86400, packet->uptime % 86400 / 3600);
+				printf(_("  up %d days %d hours"), packet->uptime / 86400, packet->uptime % 86400 / 3600);
+			}
+			if (packet->softid != NULL) {
+				printf("  %s", packet->softid);
 			}
 			putchar('\n');
 		}

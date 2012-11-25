@@ -592,7 +592,7 @@ int main (int argc, char **argv) {
 	inet_pton(AF_INET, (char *)"255.255.255.255", &destip);
 	memcpy(&sourceip, &(si_me.sin_addr), IPV4_ALEN);
 
-	/* Sessioon key */
+	/* Session key */
 	sessionkey = rand() % 65535;
 
 	/* stop output buffering */

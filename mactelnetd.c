@@ -803,6 +803,7 @@ void mndp_broadcast() {
 		mndp_add_attribute(&pdata, MT_MNDPTYPE_PLATFORM, PLATFORM_NAME, strlen(PLATFORM_NAME));
 		mndp_add_attribute(&pdata, MT_MNDPTYPE_HARDWARE, s_uname.machine, strlen(s_uname.machine));
 		mndp_add_attribute(&pdata, MT_MNDPTYPE_TIMESTAMP, &uptime, 4);
+		mndp_add_attribute(&pdata, MT_MNDPTYPE_SOFTID, MT_SOFTID_MACTELNET, strlen(MT_SOFTID_MACTELNET));
 
 		header->cksum = in_cksum((unsigned short *)&(pdata.data), pdata.size);
 		send_special_udp(interface, MT_MNDP_PORT, &pdata);
@@ -1019,7 +1020,7 @@ int main (int argc, char **argv) {
 	signal(SIGCHLD,SIG_IGN);
 	signal(SIGTSTP,SIG_IGN);
 	signal(SIGTTOU,SIG_IGN);
-	signal(SIGTTIN,SIG_IGN);	
+	signal(SIGTTIN,SIG_IGN);
 	signal(SIGHUP, sighup_handler);
 	signal(SIGTERM, sigterm_handler);
 

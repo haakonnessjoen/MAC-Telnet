@@ -69,6 +69,7 @@ static struct in_addr destip;
 static int sourceport;
 
 static int connect_timeout = CONNECT_TIMEOUT;
+static int mndp_timeout = 0;
 
 static int is_a_tty = 1;
 static int quiet_mode = 0;
@@ -471,6 +472,7 @@ int main (int argc, char **argv) {
 
 			case 't':
 				connect_timeout = atoi(optarg);
+				mndp_timeout = connect_timeout;
 				break;
 
 			case 'v':
@@ -483,7 +485,7 @@ int main (int argc, char **argv) {
 				break;
 
 			case 'l':
-				return mndp(connect_timeout);
+				return mndp(mndp_timeout);
 				break;
 
 			case 'h':

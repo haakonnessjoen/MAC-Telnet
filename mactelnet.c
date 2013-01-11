@@ -69,6 +69,7 @@ static struct in_addr destip;
 static int sourceport;
 
 static int connect_timeout = CONNECT_TIMEOUT;
+static char run_mndp = 0;
 static int mndp_timeout = 0;
 
 static int is_a_tty = 1;
@@ -485,7 +486,7 @@ int main (int argc, char **argv) {
 				break;
 
 			case 'l':
-				return mndp(mndp_timeout);
+				run_mndp = 1;
 				break;
 
 			case 'h':
@@ -494,6 +495,9 @@ int main (int argc, char **argv) {
 				break;
 
 		}
+	}
+	if (run_mndp) {
+		return mndp(mndp_timeout);
 	}
 	if (argc - optind < 1 || print_help) {
 		print_version();

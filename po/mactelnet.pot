@@ -8,11 +8,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mactelnet\n"
 "Report-Msgid-Bugs-To: haakon.nessjoen@gmail.com\n"
-"POT-Creation-Date: 2012-07-17 21:29+0200\n"
+"POT-Creation-Date: 2013-01-13 17:53+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -62,12 +61,12 @@ msgstr ""
 msgid "Packet size must be between 18 and %d\n"
 msgstr ""
 
-#: macping.c:179 mactelnetd.c:940
+#: macping.c:179 mactelnetd.c:954
 #, c-format
 msgid "You need to have root privileges to use %s.\n"
 msgstr ""
 
-#: macping.c:207 mndp.c:68 protocol.c:429
+#: macping.c:207 mndp.c:78 protocol.c:429
 #, c-format
 msgid "Error binding to %s:%d\n"
 msgstr ""
@@ -92,58 +91,58 @@ msgstr ""
 msgid "%s Reply of %d bytes of unequal data\n"
 msgstr ""
 
-#: mactelnet.c:100
+#: mactelnet.c:104
 #, c-format
 msgid ""
 "Failed dropping privileges. The user %s is not a valid username on local "
 "system.\n"
 msgstr ""
 
-#: mactelnet.c:106
+#: mactelnet.c:110
 #, c-format
 msgid "setgid: Error dropping group privileges\n"
 msgstr ""
 
-#: mactelnet.c:110
+#: mactelnet.c:114
 #, c-format
 msgid "setuid: Error dropping user privileges\n"
 msgstr ""
 
-#: mactelnet.c:115
+#: mactelnet.c:119
 #, c-format
 msgid "Failed to drop privileges\n"
 msgstr ""
 
-#: mactelnet.c:181
+#: mactelnet.c:185
 #, c-format
 msgid ""
 "\n"
 "Connection timed out\n"
 msgstr ""
 
-#: mactelnet.c:330
+#: mactelnet.c:339
 #, c-format
 msgid "Connection closed.\n"
 msgstr ""
 
-#: mactelnet.c:336
+#: mactelnet.c:345
 #, c-format
 msgid "Unhandeled packet type: %d received from server %s\n"
 msgstr ""
 
-#: mactelnet.c:358
+#: mactelnet.c:367
 #, c-format
 msgid "Error: No suitable devices found\n"
 msgstr ""
 
-#: mactelnet.c:498
+#: mactelnet.c:517
 #, c-format
 msgid ""
 "Usage: %s <MAC|identity> [-h] [-n] [-t <timeout>] [-u <user>] [-p "
 "<password>] [-U <user>] | -l\n"
 msgstr ""
 
-#: mactelnet.c:501
+#: mactelnet.c:520
 #, c-format
 msgid ""
 "\n"
@@ -152,7 +151,10 @@ msgid ""
 "                 discover it.\n"
 "  identity       The identity/name of your destination device. Uses\n"
 "                 MNDP protocol to find it.\n"
-"  -l             List/Search for routers nearby. (using MNDP)\n"
+"  -l             List/Search for routers nearby (MNDP). You may use -t to "
+"set timeout.\n"
+"  -B             Batch mode. Use computer readable output (CSV), for use "
+"with -l.\n"
 "  -n             Do not use broadcast packets. Less insecure but requires\n"
 "                 root privileges.\n"
 "  -t <timeout>   Amount of seconds to wait for a response on each "
@@ -166,156 +168,156 @@ msgid ""
 "\n"
 msgstr ""
 
-#: mactelnet.c:531
+#: mactelnet.c:551
 #, c-format
 msgid "You need to have root privileges to use the -n parameter.\n"
 msgstr ""
 
-#: mactelnet.c:541
+#: mactelnet.c:561
 #, c-format
 msgid "The -U option must be used in conjunction with the -n parameter.\n"
 msgstr ""
 
-#: mactelnet.c:570
+#: mactelnet.c:590
 #, c-format
 msgid "Login: "
 msgstr ""
 
-#: mactelnet.c:577
+#: mactelnet.c:597
 msgid "Password: "
 msgstr ""
 
-#: mactelnet.c:602
+#: mactelnet.c:625
 #, c-format
 msgid "Connecting to %s..."
 msgstr ""
 
-#: mactelnet.c:612 mactelnetd.c:244 mactelnetd.c:981
+#: mactelnet.c:635 mactelnetd.c:245 mactelnetd.c:995
 #, c-format
 msgid "Error binding to %s:%d, %s\n"
 msgstr ""
 
-#: mactelnet.c:617
+#: mactelnet.c:640
 #, c-format
 msgid "Connection failed.\n"
 msgstr ""
 
-#: mactelnet.c:621
+#: mactelnet.c:644
 #, c-format
 msgid "done\n"
 msgstr ""
 
-#: mactelnetd.c:249
+#: mactelnetd.c:250
 #, c-format
 msgid "Listening on %s for %s\n"
 msgstr ""
 
-#: mactelnetd.c:409
+#: mactelnetd.c:418
 #, c-format
 msgid "(%d) Invalid login by %s."
 msgstr ""
 
 #. _ Please include both \r and \n in translation, this is needed for the terminal emulator.
-#: mactelnetd.c:412
+#: mactelnetd.c:421
 msgid "Login failed, incorrect username or password\r\n"
 msgstr ""
 
 #. _ Please include both \r and \n in translation, this is needed for the terminal emulator.
-#: mactelnetd.c:429
+#: mactelnetd.c:438
 msgid "Terminal error\r\n"
 msgstr ""
 
-#: mactelnetd.c:440
+#: mactelnetd.c:449
 #, c-format
 msgid "(%d) Login ok, but local user not accessible (%s)."
 msgstr ""
 
 #. _ Please include both \r and \n in translation, this is needed for the terminal emulator.
-#: mactelnetd.c:442
+#: mactelnetd.c:451
 msgid "Local user not accessible\r\n"
 msgstr ""
 
-#: mactelnetd.c:451
+#: mactelnetd.c:460
 #, c-format
 msgid "Error opening %s: %s"
 msgstr ""
 
 #. _ Please include both \r and \n in translation, this is needed for the terminal emulator.
-#: mactelnetd.c:453
+#: mactelnetd.c:462
 msgid "Error opening terminal\r\n"
 msgstr ""
 
-#: mactelnetd.c:464
+#: mactelnetd.c:473
 #, c-format
 msgid "(%d) User %s logged in."
 msgstr ""
 
-#: mactelnetd.c:502
+#: mactelnetd.c:511
 #, c-format
 msgid "(%d) Could not log in %s (%d:%d): setuid/setgid: %s"
 msgstr ""
 
 #. _ Please include both \r and \n in translation, this is needed for the terminal emulator.
-#: mactelnetd.c:504
+#: mactelnetd.c:513
 msgid "Internal error\r\n"
 msgstr ""
 
-#: mactelnetd.c:510
+#: mactelnetd.c:519
 #, c-format
 msgid "(%d) User %s disconnected with "
 msgstr ""
 
-#: mactelnetd.c:603
+#: mactelnetd.c:615
 #, c-format
 msgid "(%d) Unhandeled control packet type: %d"
 msgstr ""
 
-#: mactelnetd.c:649
+#: mactelnetd.c:661
 #, c-format
 msgid "(%d) New connection from %s."
 msgstr ""
 
-#: mactelnetd.c:677 mactelnetd.c:1111
+#: mactelnetd.c:689 mactelnetd.c:1125
 #, c-format
 msgid "(%d) Connection closed."
 msgstr ""
 
-#: mactelnetd.c:723
+#: mactelnetd.c:735
 #, c-format
 msgid "(%d) Unhandeled packet type: %d"
 msgstr ""
 
 #. _ Please include both \r and \n in translation, this is needed for the terminal emulator.
-#: mactelnetd.c:816
+#: mactelnetd.c:830
 msgid ""
 "\r\n"
 "\r\n"
 "Daemon shutting down.\r\n"
 msgstr ""
 
-#: mactelnetd.c:818
+#: mactelnetd.c:832
 msgid "Daemon shutting down"
 msgstr ""
 
-#: mactelnetd.c:849
+#: mactelnetd.c:863
 msgid "SIGHUP: Reloading interfaces"
 msgstr ""
 
-#: mactelnetd.c:860
+#: mactelnetd.c:874
 msgid "No devices found! Exiting.\n"
 msgstr ""
 
-#: mactelnetd.c:874
+#: mactelnetd.c:888
 #, c-format
 msgid "(%d) Connection closed because interface %s is gone."
 msgstr ""
 
-#: mactelnetd.c:927
+#: mactelnetd.c:941
 #, c-format
 msgid "Usage: %s [-f|-n|-h]\n"
 msgstr ""
 
-#: mactelnetd.c:930
+#: mactelnetd.c:944
 #, c-format
 msgid ""
 "\n"
@@ -326,71 +328,75 @@ msgid ""
 "\n"
 msgstr ""
 
-#: mactelnetd.c:1003
+#: mactelnetd.c:1017
 #, c-format
 msgid "MNDP: Error binding to %s:%d, %s\n"
 msgstr ""
 
-#: mactelnetd.c:1007
+#: mactelnetd.c:1021
 #, c-format
 msgid "Bound to %s:%d"
 msgstr ""
 
-#: mactelnetd.c:1033
+#: mactelnetd.c:1047
 msgid "Unable to find any valid network interfaces\n"
 msgstr ""
 
-#: mactelnetd.c:1109
+#: mactelnetd.c:1123
 #, c-format
 msgid "(%d) Connection to user %s closed."
 msgstr ""
 
-#: mactelnetd.c:1119
+#: mactelnetd.c:1133
 #, c-format
 msgid "(%d) Waiting for ack\n"
 msgstr ""
 
-#: mactelnetd.c:1135
+#: mactelnetd.c:1149
 #, c-format
 msgid "(%d) Session timed out"
 msgstr ""
 
 #. _ Please include both \r and \n in translation, this is needed for the terminal emulator.
-#: mactelnetd.c:1138
+#: mactelnetd.c:1152
 msgid "Timeout\r\n"
 msgstr ""
 
-#: mndp.c:73
+#: mndp.c:83
 #, c-format
 msgid "Searching for MikroTik routers... Abort with CTRL+C.\n"
 msgstr ""
 
-#: mndp.c:77
+#: mndp.c:87
 #, c-format
 msgid "Unable to send broadcast packets: Operating in receive only mode.\n"
 msgstr ""
 
-#: mndp.c:87
+#: mndp.c:97
 #, c-format
 msgid "Unable to send broadcast packet: Operating in receive only mode.\n"
 msgstr ""
 
-#: mndp.c:91
+#: mndp.c:102
+msgid "MAC-Address,Identity,Platform,Version,Hardware,Uptime,Softid,Ifname"
+msgstr ""
+
+#: mndp.c:104
 msgid "MAC-Address"
 msgstr ""
 
-#: mndp.c:91
+#: mndp.c:104
 msgid "Identity (platform version hardware) uptime"
 msgstr ""
 
-#: mndp.c:98
+#: mndp.c:117
 #, c-format
 msgid "An error occured. aborting\n"
 msgstr ""
 
-#: mndp.c:112
+#: mndp.c:131
 #, c-format
-msgid " up %d days %d hours"
+msgid "  up %d days %d hours"
 msgstr ""
 
 #: protocol.c:84 protocol.c:148

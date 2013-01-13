@@ -74,6 +74,7 @@ static int mndp_timeout = 0;
 
 static int is_a_tty = 1;
 static int quiet_mode = 0;
+static int batch_mode = 0;
 
 static int keepalive_counter = 0;
 
@@ -438,7 +439,7 @@ int main (int argc, char **argv) {
 	textdomain("mactelnet");
 
 	while (1) {
-		c = getopt(argc, argv, "lnqt:u:p:U:vh?");
+		c = getopt(argc, argv, "lnqt:u:p:U:vh?B");
 
 		if (c == -1) {
 			break;
@@ -489,6 +490,9 @@ int main (int argc, char **argv) {
 				run_mndp = 1;
 				break;
 
+			case 'B':
+				batch_mode = 1;
+
 			case 'h':
 			case '?':
 				print_help = 1;
@@ -497,7 +501,7 @@ int main (int argc, char **argv) {
 		}
 	}
 	if (run_mndp) {
-		return mndp(mndp_timeout);
+		return mndp(mndp_timeout, batch_mode);
 	}
 	if (argc - optind < 1 || print_help) {
 		print_version();
@@ -509,7 +513,8 @@ int main (int argc, char **argv) {
 			"                 discover it.\n"
 			"  identity       The identity/name of your destination device. Uses\n"
 			"                 MNDP protocol to find it.\n"
-			"  -l             List/Search for routers nearby. (using MNDP)\n"
+			"  -l             List/Search for routers nearby (MNDP). You may use -t to set timeout.\n"
+			"  -B             Batch mode. Use computer readable output (CSV), for use with -l.\n"
 			"  -n             Do not use broadcast packets. Less insecure but requires\n"
 			"                 root privileges.\n"
 			"  -t <timeout>   Amount of seconds to wait for a response on each interface.\n"

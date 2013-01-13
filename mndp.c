@@ -143,6 +143,7 @@ int mndp(int timeout, int batch_mode)  {
 			printf("'%s','%s','%s',", packet->platform, packet->version, packet->hardware);
 			printf("'%d','%s','%s'", packet->uptime, packet->softid, packet->ifname);
 			putchar('\n');
+			fflush(stdout);
 		}
 	}
 

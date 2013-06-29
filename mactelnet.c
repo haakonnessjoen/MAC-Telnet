@@ -37,6 +37,7 @@
 #include <string.h>
 #ifdef __LINUX__
 #include <linux/if_ether.h>
+#include <sys/mman.h>
 #endif
 #include "md5.h"
 #include "protocol.h"
@@ -196,6 +197,11 @@ static void send_auth(char *username, char *password) {
 	unsigned char md5sum[17];
 	int plen;
 	md5_state_t state;
+
+#if defined(__LINUX__) && defined(_POSIX_MEMLOCK_RANGE)
+	mlock(md5data, sizeof(md5data));
+	mlock(md5sum, sizeof(md5data));
+#endif
 
 	/* Concat string of 0 + password + encryptionkey */
 	md5data[0] = 0;
@@ -460,6 +466,9 @@ int main (int argc, char **argv) {
 
 			case 'p':
 				/* Save password */
+#if defined(__LINUX__) && defined(_POSIX_MEMLOCK_RANGE)
+				mlock(password, sizeof(password));
+#endif
 				strncpy(password, optarg, sizeof(password) - 1);
 				password[sizeof(password) - 1] = '\0';
 				have_password = 1;
@@ -586,11 +595,14 @@ int main (int argc, char **argv) {
 	if (!have_password) {
 		char *tmp;
 		tmp = getpass(quiet_mode ? "" : _("Password: "));
+#if defined(__LINUX__) && defined(_POSIX_MEMLOCK_RANGE)
+		mlock(password, sizeof(password));
+#endif
 		strncpy(password, tmp, sizeof(password) - 1);
 		password[sizeof(password) - 1] = '\0';
 		/* security */
 		memset(tmp, 0, strlen(tmp));
-#ifdef __GNUC__
+#ifdef __LINUX__
 		free(tmp);
 #endif
 	}

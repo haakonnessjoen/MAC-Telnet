@@ -39,13 +39,13 @@
 #include <string.h>
 #ifdef __linux__
 #include <linux/if_ether.h>
+#include <sys/mman.h>
 #else
 #include <sys/time.h>
 #endif
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/sysinfo.h>
-#include <sys/mman.h>
 #include <pwd.h>
 #include <utmp.h>
 #include <syslog.h>
@@ -386,7 +386,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 
 	if ((user = find_user(curconn->username)) != NULL) {
 		md5_state_t state;
-#ifdef _POSIX_MEMLOCK_RANGE
+#if defined(__linux__) && defined(_POSIX_MEMLOCK_RANGE)
 		mlock(md5data, sizeof(md5data));
 		mlock(md5sum, sizeof(md5sum));
 		if (user->password != NULL) {
@@ -598,7 +598,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 
 		} else if (cpkt.cptype == MT_CPTYPE_PASSWORD) {
 
-#ifdef _POSIX_MEMLOCK_RANGE
+#if defined(__linux__) && defined(_POSIX_MEMLOCK_RANGE)
 			mlock(curconn->trypassword, 17);
 #endif
 			memcpy(curconn->trypassword, cpkt.data, 17);

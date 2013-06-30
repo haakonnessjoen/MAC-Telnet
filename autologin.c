@@ -18,9 +18,12 @@ struct autologin logins[AUTOLOGIN_MAXPROFILES];
 
 enum autologin_state {
 	ALS_NONE,
+	ALS_PREIDENTIFIER,
 	ALS_IDENTIFIER,
+	ALS_PREKEY,
 	ALS_KEY,
-	ALS_VALUE,
+	ALS_PREVALUE,
+	ALS_VALUE
 };
 #define AL_NONE 0
 
@@ -38,40 +41,56 @@ int main() {
 		if (c == '#') {
 			while ((c = fgetc(fp)) != '\n' && !feof(fp));
 		}
+
+		switch (state) {
+			case ALS_PREIDENTIFIER:
+				i++;
+				if (i == AUTOLOGIN_MAXPROFILES) {
+					goto done;
+				}
+				p = logins[i].identifier;
+				state++;
+				break;
+
+			case ALS_PREKEY:
+				memset(key, 0, AUTOLOGIN_MAXSTR);
+				memset(value, 0, AUTOLOGIN_MAXSTR);
+				p = key;
+				logins[i].inuse = 1;
+				state++;
+				break;
+
+			case ALS_PREVALUE:
+				memset(value, 0, AUTOLOGIN_MAXSTR);
+				p = value;
+				state++;
+				break;
+		}
+
 		switch (state) {
 			case ALS_NONE:
 				if (c == '[') {
-					state = ALS_IDENTIFIER;
-					i++;
-					p = logins[i].identifier;
+					state = ALS_PREIDENTIFIER;
 				}
 				break;
 
 			case ALS_IDENTIFIER:
 				if (c == ']') {
 					//fprintf(stderr, "debug: identifier %s on line %d\n", logins[i].identifier, line_counter);
-					state = ALS_KEY;
-					memset(key, 0, AUTOLOGIN_MAXSTR);
-					memset(value, 0, AUTOLOGIN_MAXSTR);
-					p = key;
-					logins[i].inuse = 1;
+					state = ALS_PREKEY;
 					break;
 				}
 				if (c == '\n') {
 					fprintf(stderr, "Error on line %d in %s: New line in middle of identifier\n", line_counter, AUTOLOGIN_PATH);
 					state = ALS_NONE;
-					line_counter++;
 					break;
 				}
 				*p++ = c;
-				if (p - logins[i].identifier > AUTOLOGIN_MAXSTR) {
+				if (p - logins[i].identifier == AUTOLOGIN_MAXSTR-1) {
+					*p = 0;
 					fprintf(stderr, "Error on line %d in %s: Identifier string too long.\n", line_counter, AUTOLOGIN_PATH);
 					while ((c = fgetc(fp)) != '\n' && c != ']' && !feof(fp));
-					if (c == '\n') line_counter++;
-					state = ALS_KEY;
-					memset(key,0,AUTOLOGIN_MAXSTR);
-					memset(value, 0, AUTOLOGIN_MAXSTR);
-					p = key;
+					state = ALS_PREKEY;
 					break;
 				}
 				break;
@@ -79,15 +98,11 @@ int main() {
 			case ALS_KEY:
 				if (p == key && c == '\n') break;
 				if (c == '=') {
-					state = ALS_VALUE;
-					memset(value, 0, AUTOLOGIN_MAXSTR);
-					p = value;
+					state = ALS_PREVALUE;
 					break;
 				}
 				if (c == '[') {
-					state = ALS_IDENTIFIER;
-					i++;
-					p = logins[i].identifier;
+					state = ALS_PREIDENTIFIER;
 					break;
 				}
 				if (c == ' ') { // ignore whitespace
@@ -95,25 +110,18 @@ int main() {
 				}
 				if (c == '\n') {
 					fprintf(stderr, "Error on line %d in %s: Newline before '=' character\n", line_counter, AUTOLOGIN_PATH);
-					state = ALS_KEY;
-					memset(key, 0, AUTOLOGIN_MAXSTR);
-					memset(value, 0, AUTOLOGIN_MAXSTR);
-					p = key;
+					state = ALS_PREKEY;
 					break;
 				}
 				*p++ = c;
-				if (p - key > AUTOLOGIN_MAXSTR) {
+				if (p - key == AUTOLOGIN_MAXSTR-1) {
+					*p = 0;
 					fprintf(stderr, "Error on line %d in %s: Key string too long.\n", line_counter, AUTOLOGIN_PATH);
 					while ((c = fgetc(fp)) != '\n' && c != '=' && !feof(fp));
 					if (c == '\n') {
-						state = ALS_KEY;
-						memset(key, 0, AUTOLOGIN_MAXSTR);
-						memset(value, 0, AUTOLOGIN_MAXSTR);
-						p = key;
+						state = ALS_PREKEY;
 					} else {
-						state = ALS_VALUE;
-						memset(value, 0, AUTOLOGIN_MAXSTR);
-						p = value;
+						state = ALS_PREVALUE;
 					}
 				}
 				break;
@@ -130,24 +138,19 @@ int main() {
 					} else {
 						fprintf(stderr, "Warning on line %d of %s: Unknown parameter %s, ignoring.\n", line_counter, AUTOLOGIN_PATH, key);
 					}
-					state = ALS_KEY;
-					memset(key, 0, AUTOLOGIN_MAXSTR);
-					memset(value, 0, AUTOLOGIN_MAXSTR);
-					p = key;
+					state = ALS_PREKEY;
 					break;
 				}
 				if (c == ' ') { // ignore whitespace
 					break;
 				}
 				*p++ = c;
-				if (p - value > AUTOLOGIN_MAXSTR) {
+				if (p - value == AUTOLOGIN_MAXSTR-1) {
+					*p = 0;
 					fprintf(stderr, "Error on line %d in %s: Value string too long.\n", line_counter, AUTOLOGIN_PATH);
 					while ((c = fgetc(fp)) != '\n' && !feof(fp));
 					if (c == '\n') {
-						state = ALS_KEY;
-						memset(key, 0, AUTOLOGIN_MAXSTR);
-						memset(value, 0, AUTOLOGIN_MAXSTR);
-						p = key;
+						state = ALS_PREKEY;
 					}
 				}
 				break;
@@ -155,7 +158,12 @@ int main() {
 		if (c == '\n') {
 			line_counter++;
 		}
+		if (feof(fp)) {
+			break;
+		}
 	}
+
+	done:
 	fclose(fp);
 
 	printf("\n\nConfig:\n");

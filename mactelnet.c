@@ -46,6 +46,7 @@
 #include "config.h"
 #include "mactelnet.h"
 #include "mndp.h"
+#include "autologin.h"
 
 #define PROGRAM_NAME "MAC-Telnet"
 
@@ -76,6 +77,9 @@ static int mndp_timeout = 0;
 static int is_a_tty = 1;
 static int quiet_mode = 0;
 static int batch_mode = 0;
+static int no_autologin = 0;
+
+static char autologin_path[255];
 
 static int keepalive_counter = 0;
 
@@ -434,18 +438,21 @@ int main (int argc, char **argv) {
 	int result;
 	struct mt_packet data;
 	struct sockaddr_in si_me;
+	struct autologin_profile *login_profile;
 	unsigned char buff[1500];
 	unsigned char print_help = 0, have_username = 0, have_password = 0;
 	unsigned char drop_priv = 0;
 	int c;
 	int optval = 1;
 
+	strncpy(autologin_path, AUTOLOGIN_PATH, 254);
+
 	setlocale(LC_ALL, "");
 	bindtextdomain("mactelnet","/usr/share/locale");
 	textdomain("mactelnet");
 
 	while (1) {
-		c = getopt(argc, argv, "lnqt:u:p:U:vh?B");
+		c = getopt(argc, argv, "lnqt:u:p:U:vh?BAa:");
 
 		if (c == -1) {
 			break;
@@ -501,6 +508,15 @@ int main (int argc, char **argv) {
 
 			case 'B':
 				batch_mode = 1;
+				break;
+
+			case 'A':
+				no_autologin = 1;
+				break;
+
+			case 'a':
+				strncpy(autologin_path, optarg, 254);
+				break;
 
 			case 'h':
 			case '?':
@@ -514,7 +530,7 @@ int main (int argc, char **argv) {
 	}
 	if (argc - optind < 1 || print_help) {
 		print_version();
-		fprintf(stderr, _("Usage: %s <MAC|identity> [-h] [-n] [-t <timeout>] [-u <user>] [-p <password>] [-U <user>] | -l [-B] [-t <timeout>]\n"), argv[0]);
+		fprintf(stderr, _("Usage: %s <MAC|identity> [-h] [-n] [-a <path>] [-A] [-t <timeout>] [-u <user>] [-p <password>] [-U <user>] | -l [-B] [-t <timeout>]\n"), argv[0]);
 
 		if (print_help) {
 			fprintf(stderr, _("\nParameters:\n"
@@ -526,6 +542,8 @@ int main (int argc, char **argv) {
 			"  -B             Batch mode. Use computer readable output (CSV), for use with -l.\n"
 			"  -n             Do not use broadcast packets. Less insecure but requires\n"
 			"                 root privileges.\n"
+			"  -a <path>      Use specified path instead of the default: " AUTOLOGIN_PATH " for autologin config file.\n"
+			"  -A             Disable autologin feature.\n"
 			"  -t <timeout>   Amount of seconds to wait for a response on each interface.\n"
 			"  -u <user>      Specify username on command line.\n"
 			"  -p <password>  Specify password on command line.\n"
@@ -541,6 +559,30 @@ int main (int argc, char **argv) {
 	is_a_tty = isatty(fileno(stdout)) && isatty(fileno(stdin));
 	if (!is_a_tty) {
 		quiet_mode = 1;
+	}
+
+	if (!no_autologin) {
+		autologin_readfile(autologin_path);
+		login_profile = autologin_find_profile(argv[optind]);
+
+		if (!quiet_mode && login_profile != NULL && (login_profile->hasUsername || login_profile->hasPassword)) {
+			fprintf(stderr, _("Using autologin credentials from %s\n"), autologin_path);
+		}
+		if (!have_username) {
+			if (login_profile != NULL && login_profile->hasUsername) {
+				have_username = 1;
+				strncpy(username, login_profile->username, sizeof(username) - 1);
+				username[sizeof(username) - 1] = '\0';
+			}
+		}
+
+		if (!have_password) {
+			if (login_profile != NULL && login_profile->hasPassword) {
+				have_password = 1;
+				strncpy(password, login_profile->password, sizeof(password) - 1);
+				password[sizeof(password) - 1] = '\0';
+			}
+		}
 	}
 
 	/* Seed randomizer */

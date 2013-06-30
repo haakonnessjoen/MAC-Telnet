@@ -1,42 +1,89 @@
+/*
+    Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
+    Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+#include <libintl.h>
+#include <locale.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <errno.h>
+#include <unistd.h>
+#include "autologin.h"
+#include "config.h"
 
-#define AUTOLOGIN_PATH ".mactelnet"
-#define AUTOLOGIN_MAXSTR 100
-#define AUTOLOGIN_MAXPROFILES 100
+#define _(String) gettext (String)
 
-struct autologin {
-	char identifier[AUTOLOGIN_MAXSTR];
-	char username[AUTOLOGIN_MAXSTR];
-	char password[AUTOLOGIN_MAXSTR];
-	char inuse:1;
-	char hasUsername:1;
-	char hasPassword:1;
-};
+struct autologin_profile login_profiles[AUTOLOGIN_MAXPROFILES];
 
-struct autologin logins[AUTOLOGIN_MAXPROFILES];
+struct autologin_profile *autologin_find_profile(char *identifier) {
+	int i;
+	struct autologin_profile *default_profile = NULL;
 
-enum autologin_state {
-	ALS_NONE,
-	ALS_PREIDENTIFIER,
-	ALS_IDENTIFIER,
-	ALS_PREKEY,
-	ALS_KEY,
-	ALS_PREVALUE,
-	ALS_VALUE
-};
-#define AL_NONE 0
+	if (strlen(identifier) == 0) return NULL;
 
-int main() {
+	for (i = 0; i < AUTOLOGIN_MAXPROFILES; ++i) {
+		if (login_profiles[i].inuse && strcasecmp(identifier, login_profiles[i].identifier) == 0) {
+			return &login_profiles[i];
+		}
+		if (login_profiles[i].inuse && strcasecmp("default", login_profiles[i].identifier) == 0) {
+			default_profile = &login_profiles[i];
+		}
+	}
+	return default_profile;
+}
+
+static char *tilde_to_path(char *path) {
+	char *homepath;
+	if (*path == '~' && (homepath = getenv("HOME"))) {
+		static char newpath[256];
+		memset(newpath, 0, sizeof(newpath));
+		strncpy(newpath, homepath, 255);
+		strncat(newpath, path+1, 255);
+		return newpath;
+	}
+	return path;
+}
+
+int autologin_readfile(char *configfile) {
 	FILE *fp;
 	char c;
 	int i = -1;
 	char *p;
+	char *file_to_read;
 	char key[AUTOLOGIN_MAXSTR];
 	char value[AUTOLOGIN_MAXSTR];
 	int line_counter=1;
 	enum autologin_state state = ALS_NONE;
-	fp = fopen(AUTOLOGIN_PATH, "r");
+
+	memset(login_profiles, 0, sizeof(login_profiles));
+
+	/* Convert ~/path to /home/username/path */
+	file_to_read = tilde_to_path(configfile);
+
+	fp = fopen(file_to_read, "r");
+	if (fp <= 0) {
+		if (strcmp(configfile, AUTOLOGIN_PATH) == 0) {
+			/* Silent ignore? */
+		} else {
+			fprintf(stderr, _("Error opening autologin file %s: %s\n"), file_to_read, strerror(errno));
+		}
+		return 0;
+	}
 	while ((c = fgetc(fp)) && !feof(fp)) {
 		if (c == '#') {
 			while ((c = fgetc(fp)) != '\n' && !feof(fp));
@@ -48,7 +95,7 @@ int main() {
 				if (i == AUTOLOGIN_MAXPROFILES) {
 					goto done;
 				}
-				p = logins[i].identifier;
+				p = login_profiles[i].identifier;
 				state++;
 				break;
 
@@ -56,7 +103,7 @@ int main() {
 				memset(key, 0, AUTOLOGIN_MAXSTR);
 				memset(value, 0, AUTOLOGIN_MAXSTR);
 				p = key;
-				logins[i].inuse = 1;
+				login_profiles[i].inuse = 1;
 				state++;
 				break;
 
@@ -64,6 +111,8 @@ int main() {
 				memset(value, 0, AUTOLOGIN_MAXSTR);
 				p = value;
 				state++;
+				break;
+			default:
 				break;
 		}
 
@@ -76,19 +125,18 @@ int main() {
 
 			case ALS_IDENTIFIER:
 				if (c == ']') {
-					//fprintf(stderr, "debug: identifier %s on line %d\n", logins[i].identifier, line_counter);
 					state = ALS_PREKEY;
 					break;
 				}
 				if (c == '\n') {
-					fprintf(stderr, "Error on line %d in %s: New line in middle of identifier\n", line_counter, AUTOLOGIN_PATH);
+					fprintf(stderr, _("Error on line %d in %s: New line in middle of identifier\n"), line_counter, configfile);
 					state = ALS_NONE;
 					break;
 				}
 				*p++ = c;
-				if (p - logins[i].identifier == AUTOLOGIN_MAXSTR-1) {
+				if (p - login_profiles[i].identifier == AUTOLOGIN_MAXSTR-1) {
 					*p = 0;
-					fprintf(stderr, "Error on line %d in %s: Identifier string too long.\n", line_counter, AUTOLOGIN_PATH);
+					fprintf(stderr, _("Error on line %d in %s: Identifier string too long.\n"), line_counter, configfile);
 					while ((c = fgetc(fp)) != '\n' && c != ']' && !feof(fp));
 					state = ALS_PREKEY;
 					break;
@@ -105,18 +153,18 @@ int main() {
 					state = ALS_PREIDENTIFIER;
 					break;
 				}
-				if (c == ' ') { // ignore whitespace
+				if (c == ' ') { /* ignore whitespace */
 					break;
 				}
 				if (c == '\n') {
-					fprintf(stderr, "Error on line %d in %s: Newline before '=' character\n", line_counter, AUTOLOGIN_PATH);
+					fprintf(stderr, _("Error on line %d in %s: Newline before '=' character\n"), line_counter, configfile);
 					state = ALS_PREKEY;
 					break;
 				}
 				*p++ = c;
 				if (p - key == AUTOLOGIN_MAXSTR-1) {
 					*p = 0;
-					fprintf(stderr, "Error on line %d in %s: Key string too long.\n", line_counter, AUTOLOGIN_PATH);
+					fprintf(stderr, _("Error on line %d in %s: Key string too long.\n"), line_counter, configfile);
 					while ((c = fgetc(fp)) != '\n' && c != '=' && !feof(fp));
 					if (c == '\n') {
 						state = ALS_PREKEY;
@@ -130,29 +178,32 @@ int main() {
 				if (p == value && c == '\n') break;
 				if (c == '\n') {
 					if (strncasecmp(key, "user", AUTOLOGIN_MAXSTR) == 0) {
-						strncpy(logins[i].username, value, AUTOLOGIN_MAXSTR);
-						logins[i].hasUsername = 1;
+						strncpy(login_profiles[i].username, value, AUTOLOGIN_MAXSTR);
+						login_profiles[i].hasUsername = 1;
 					} else if (strncasecmp(key, "password", AUTOLOGIN_MAXSTR) == 0) {
-						strncpy(logins[i].password, value, AUTOLOGIN_MAXSTR);
-						logins[i].hasPassword = 1;
+						strncpy(login_profiles[i].password, value, AUTOLOGIN_MAXSTR);
+						login_profiles[i].hasPassword = 1;
 					} else {
-						fprintf(stderr, "Warning on line %d of %s: Unknown parameter %s, ignoring.\n", line_counter, AUTOLOGIN_PATH, key);
+						fprintf(stderr, _("Warning on line %d of %s: Unknown parameter %s, ignoring.\n"), line_counter, configfile, key);
 					}
 					state = ALS_PREKEY;
 					break;
 				}
-				if (c == ' ') { // ignore whitespace
+				if (c == ' ') { /* ignore whitespace */
 					break;
 				}
 				*p++ = c;
 				if (p - value == AUTOLOGIN_MAXSTR-1) {
 					*p = 0;
-					fprintf(stderr, "Error on line %d in %s: Value string too long.\n", line_counter, AUTOLOGIN_PATH);
+					fprintf(stderr, _("Error on line %d in %s: Value string too long.\n"), line_counter, configfile);
 					while ((c = fgetc(fp)) != '\n' && !feof(fp));
 					if (c == '\n') {
 						state = ALS_PREKEY;
 					}
 				}
+				break;
+
+			default:
 				break;
 		}
 		if (c == '\n') {
@@ -166,18 +217,5 @@ int main() {
 	done:
 	fclose(fp);
 
-	printf("\n\nConfig:\n");
-	for (i = 0; i < 100; ++i) {
-		if (logins[i].inuse) {
-			printf("Profile: '%s'\n", logins[i].identifier);
-			if (logins[i].hasUsername) {
-				printf("\tUsername: '%s'\n", logins[i].username);
-			}
-			if (logins[i].hasPassword) {
-				printf("\tPassword: '%s'\n", logins[i].password);
-			}
-			printf("\n");
-		}
-	}
-
+	return 1;
 }

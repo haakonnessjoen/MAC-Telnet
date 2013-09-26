@@ -33,6 +33,8 @@
 #define MT_MNDP_TIMEOUT 5
 #define MT_MNDP_LONGTIMEOUT 120
 
+#define MT_SOFTID_MACTELNET "MAC-Telnet"
+
 #ifndef ETH_ALEN
 #define ETH_ALEN 6
 #endif
@@ -73,7 +75,8 @@ enum mt_mndp_attrtype {
 	MT_MNDPTYPE_PLATFORM  = 0x0008,
 	MT_MNDPTYPE_TIMESTAMP = 0x000a,
 	MT_MNDPTYPE_SOFTID    = 0x000b,
-	MT_MNDPTYPE_HARDWARE  = 0x000c
+	MT_MNDPTYPE_HARDWARE  = 0x000c,
+	MT_MNDPTYPE_IFNAME    = 0x0010
 };
 
 /* MNDP packet header */
@@ -109,6 +112,7 @@ struct mt_mndp_info {
 	char platform[MT_MNDP_MAX_STRING_LENGTH];
 	char hardware[MT_MNDP_MAX_STRING_LENGTH];
 	char softid[MT_MNDP_MAX_STRING_LENGTH];
+	char ifname[MT_MNDP_MAX_STRING_LENGTH];
 	unsigned int uptime;
 };
 

@@ -39,6 +39,7 @@
 #include <string.h>
 #ifdef __linux__
 #include <linux/if_ether.h>
+#include <sys/mman.h>
 #else
 #include <sys/time.h>
 #endif
@@ -385,6 +386,14 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 
 	if ((user = find_user(curconn->username)) != NULL) {
 		md5_state_t state;
+#if defined(__linux__) && defined(_POSIX_MEMLOCK_RANGE)
+		mlock(md5data, sizeof(md5data));
+		mlock(md5sum, sizeof(md5sum));
+		if (user->password != NULL) {
+			mlock(user->password, strlen(user->password));
+		}
+#endif
+
 		/* Concat string of 0 + password + encryptionkey */
 		md5data[0] = 0;
 		strncpy(md5data + 1, user->password, 82);
@@ -522,7 +531,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 
 			/* Spawn shell */
 			/* TODO: Maybe use "login -f USER" instead? renders motd and executes shell correctly for system */
-			execl(user->pw_shell, "-", (char *) 0);
+			execl(user->pw_shell, user->pw_shell, "-", (char *) 0);
 			exit(0); // just to be sure.
 		}
 		close(curconn->slavefd);
@@ -589,6 +598,9 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 
 		} else if (cpkt.cptype == MT_CPTYPE_PASSWORD) {
 
+#if defined(__linux__) && defined(_POSIX_MEMLOCK_RANGE)
+			mlock(curconn->trypassword, 17);
+#endif
 			memcpy(curconn->trypassword, cpkt.data, 17);
 			got_pass_packet = 1;
 
@@ -803,6 +815,8 @@ void mndp_broadcast() {
 		mndp_add_attribute(&pdata, MT_MNDPTYPE_PLATFORM, PLATFORM_NAME, strlen(PLATFORM_NAME));
 		mndp_add_attribute(&pdata, MT_MNDPTYPE_HARDWARE, s_uname.machine, strlen(s_uname.machine));
 		mndp_add_attribute(&pdata, MT_MNDPTYPE_TIMESTAMP, &uptime, 4);
+		mndp_add_attribute(&pdata, MT_MNDPTYPE_SOFTID, MT_SOFTID_MACTELNET, strlen(MT_SOFTID_MACTELNET));
+		mndp_add_attribute(&pdata, MT_MNDPTYPE_IFNAME, interface->name, strlen(interface->name));
 
 		header->cksum = in_cksum((unsigned short *)&(pdata.data), pdata.size);
 		send_special_udp(interface, MT_MNDP_PORT, &pdata);
@@ -1019,7 +1033,7 @@ int main (int argc, char **argv) {
 	signal(SIGCHLD,SIG_IGN);
 	signal(SIGTSTP,SIG_IGN);
 	signal(SIGTTOU,SIG_IGN);
-	signal(SIGTTIN,SIG_IGN);	
+	signal(SIGTTIN,SIG_IGN);
 	signal(SIGHUP, sighup_handler);
 	signal(SIGTERM, sigterm_handler);
 

@@ -22,8 +22,15 @@
 #include <stdio.h>
 #include <signal.h>
 #include <unistd.h>
-#include <arpa/inet.h>
+#include <errno.h>
+#if defined(__FreeBSD__)
+#include <net/ethernet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#else
 #include <netinet/ether.h>
+#endif
+#include <arpa/inet.h>
 #include <string.h>
 #include "protocol.h"
 #include "config.h"

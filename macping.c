@@ -22,7 +22,16 @@
 #include <signal.h>
 #include <stdio.h>
 #include <arpa/inet.h>
+#if defined(__FreeBSD__)
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <net/ethernet.h>
+#include <netinet/in.h>
+#define ETH_FRAME_LEN ETHER_MAX_LEN
+#define ETH_ALEN ETHER_ADDR_LEN
+#else
 #include <netinet/ether.h>
+#endif
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>

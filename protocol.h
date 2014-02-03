@@ -151,5 +151,28 @@ static const unsigned char mt_mactelnet_clienttype[2] = { 0x00, 0x15 };
 /* Must be initialized by application */
 extern unsigned char mt_direction_fromserver;
 
+/* Debugging stuff */
+#if defined(DEBUG_PROTO)
+#ifndef hexdump_defined
+void hexdump(const char *title, const void *buf, int len)
+{
+    int i;
+    unsigned char *data = (unsigned char *)buf;
+
+    fprintf(stderr, "%s:\n", title);
+    for (i = 0; i < len; i++) {
+        if (!(i & 0xf))
+            fprintf(stderr, "%04x:", i);
+        fprintf(stderr, " %02x", data[i]);
+        if (!(~i & 0xf) || i == len - 1)
+            fprintf(stderr, "\n");
+    }
+}
+#define HEXDUMP(title, buf, len) hexdump(title, buf, len)
+#define hexdump_defined
+#else
+#define HEXDUMP(title, buf, len)
+#endif
+#endif
 
 #endif

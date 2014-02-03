@@ -16,6 +16,10 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
+#if defined(__FreeBSD__)
+#define __USE_BSD
+#define __FAVOR_BSD
+#endif
 #include <libintl.h>
 #include <locale.h>
 #include <stdio.h>
@@ -25,9 +29,18 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <ifaddrs.h>
+#if defined(__FreeBSD__)
+#include <netinet/in.h>
+#endif
 #include <netinet/ip.h>
 #include <netinet/udp.h>
+#if defined(__FreeBSD__)
+#include <net/ethernet.h>
+#define ETH_FRAME_LEN (ETHER_MAX_LEN - ETHER_CRC_LEN)
+#define ETH_ALEN ETHER_ADDR_LEN
+#else
 #include <netinet/ether.h>
+#endif
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
@@ -78,9 +91,9 @@ static void net_update_mac(struct net_interface *interfaces, int max_devices) {
 		perror("net_update_mac");
 		exit(1);
 	}
-
 	for (i = 0; i < max_devices; ++i) {
-		if (interfaces[i].in_use) {
+        if (!interfaces[i].in_use)
+            continue;
 			/* Find interface hardware address from device_name */
 			strncpy(ifr.ifr_name, interfaces[i].name, 16);
 			if (ioctl(tmpsock, SIOCGIFHWADDR, &ifr) == 0) {
@@ -90,8 +103,6 @@ static void net_update_mac(struct net_interface *interfaces, int max_devices) {
 					interfaces[i].has_mac = 1;
 				}
 			}
- 
-		}
 	}
 	close(tmpsock);
 }
@@ -115,7 +126,7 @@ static int get_device_index(char *device_name) {
 
 int net_get_interfaces(struct net_interface *interfaces, int max_devices) {
 	static struct ifaddrs *int_addrs;
-	static const struct ifaddrs *int_cursor;
+    static const struct ifaddrs *ifaddrsp;
 	const struct sockaddr_in *dl_addr;
 	int found = 0;
 
@@ -124,14 +135,16 @@ int net_get_interfaces(struct net_interface *interfaces, int max_devices) {
 		exit(1);
 	}
 
-	for (int_cursor = int_addrs; int_cursor != NULL; int_cursor = int_cursor->ifa_next) {
-		dl_addr = (const struct sockaddr_in *) int_cursor->ifa_addr;
+    for (ifaddrsp = int_addrs; ifaddrsp; ifaddrsp = ifaddrsp->ifa_next) {
+        dl_addr = (const struct sockaddr_in *) ifaddrsp->ifa_addr;
 
-		if (int_cursor->ifa_addr == NULL)
+        if (ifaddrsp->ifa_addr == NULL)
 			continue;
 
-		if (int_cursor->ifa_addr->sa_family == AF_INET) {
-			struct net_interface *interface = net_get_interface_ptr(interfaces, max_devices, int_cursor->ifa_name, 1);
+        if (ifaddrsp->ifa_addr->sa_family == AF_INET) {
+            struct net_interface *interface =
+                net_get_interface_ptr(interfaces, max_devices,
+                                      ifaddrsp->ifa_name, 1);
 			if (interface != NULL) {
 				found++;
 				memcpy(interface->ipv4_addr, &dl_addr->sin_addr, IPV4_ALEN);
@@ -143,11 +156,15 @@ int net_get_interfaces(struct net_interface *interfaces, int max_devices) {
 #ifndef __linux__
 		{
 			unsigned char emptymac[] = {0, 0, 0, 0, 0, 0};
-			struct sockaddr_dl *sdl = (struct sockaddr_dl *)int_cursor->ifa_addr;
+            struct sockaddr_dl *sdl = (struct sockaddr_dl *)ifaddrsp->ifa_addr;
+
 			if (sdl->sdl_alen == ETH_ALEN) {
-				struct net_interface *interface = net_get_interface_ptr(interfaces, max_devices, int_cursor->ifa_name, 1);
+                struct net_interface *interface =
+                    net_get_interface_ptr(interfaces, max_devices,
+                                          ifaddrsp->ifa_name, 1);
 				memcpy(interface->mac_addr, LLADDR(sdl), ETH_ALEN);
-				if (interface != NULL && memcmp(interface->mac_addr, &emptymac, ETH_ALEN) != 0) {
+                    if (interface != NULL &&
+                        memcmp(interface->mac_addr, &emptymac, ETH_ALEN) != 0) {
 					interface->has_mac = 1;
 				}
 			}
@@ -162,13 +179,16 @@ int net_get_interfaces(struct net_interface *interfaces, int max_devices) {
 
 #if 0
 	{
-		int i = 0;
+        int i;
 		for (i = 0; i < max_devices; ++i) {
 			if (interfaces[i].in_use) {
-				struct in_addr *addr = (struct in_addr *)interfaces[i].ipv4_addr;
+                struct in_addr *addr =
+                    (struct in_addr *)interfaces[i].ipv4_addr;
+
 				printf("Interface %s:\n", interfaces[i].name);
 				printf("\tIP: %s\n", inet_ntoa(*addr));
-				printf("\tMAC: %s\n", ether_ntoa((struct ether_addr *)interfaces[i].mac_addr));
+                printf("\tMAC: %s\n",
+                       ether_ntoa((struct ether_addr *)interfaces[i].mac_addr));
 #ifdef __linux__
 				printf("\tIfIndex: %d\n", interfaces[i].ifindex);
 #endif
@@ -278,10 +298,16 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 	 * and align header pointers to the correct positions.
 	*/
 	void* buffer = (void*)malloc(ETH_FRAME_LEN);
+#if defined(__FreeBSD__)
+    struct ether_header *eh = (struct ether_header *)buffer;
+    struct ip *ip = (struct ip *)(buffer + 14);
+#else
 	struct ethhdr *eh = (struct ethhdr *)buffer;
 	struct iphdr *ip = (struct iphdr *)(buffer + 14);
+#endif
 	struct udphdr *udp = (struct udphdr *)(buffer + 14 + 20);
-	unsigned char *rest = (unsigned char *)(buffer + 20 + 14 + sizeof(struct udphdr));
+    unsigned char *rest =
+        (unsigned char *)(buffer + 20 + 14 + sizeof(struct udphdr));
 
 	if (((void *)rest - (void*)buffer) + datalen  > ETH_FRAME_LEN) {
 		fprintf(stderr, _("packet size too large\n"));
@@ -299,9 +325,15 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 	}
 
 	/* Init ethernet header */
+#if defined(__FreeBSD__)
+    memcpy(eh->ether_shost, sourcemac, ETH_ALEN);
+    memcpy(eh->ether_dhost, destmac, ETH_ALEN);
+    eh->ether_type = htons(ETHERTYPE_IP);
+#else
 	memcpy(eh->h_source, sourcemac, ETH_ALEN);
 	memcpy(eh->h_dest, destmac, ETH_ALEN);
 	eh->h_proto = htons(ETH_P_IP);
+#endif
 
 #ifdef __linux__
 	/* Init SendTo struct */
@@ -318,6 +350,19 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 #endif
 
 	/* Init IP Header */
+#if defined(__FreeBSD__)
+    ip->ip_v = 4;
+    ip->ip_hl = 5;
+    ip->ip_tos = 0x10;
+    ip->ip_len = htons(datalen + 8 + 20);
+    ip->ip_id = htons(id++);
+    ip->ip_off = htons(0x4000);
+    ip->ip_ttl = 64;
+    ip->ip_p = 17; /* UDP */
+    ip->ip_sum = 0;
+    ip->ip_src.s_addr = sourceip->s_addr;
+    ip->ip_dst.s_addr = destip->s_addr;
+#else
 	ip->version = 4;
 	ip->ihl = 5;
 	ip->tos = 0x10;
@@ -329,26 +374,50 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 	ip->check = 0x0000;
 	ip->saddr = sourceip->s_addr;
 	ip->daddr = destip->s_addr;
+#endif
 
 	/* Calculate checksum for IP header */
+#if defined(__FreeBSD__)
+    ip->ip_sum = in_cksum((unsigned short *)ip, sizeof(struct ip));
+#else
 	ip->check = in_cksum((unsigned short *)ip, sizeof(struct iphdr));
+#endif
 
 	/* Init UDP Header */
+#if defined(__FreeBSD__)
+    udp->uh_sport = htons(sourceport);
+    udp->uh_dport = htons(destport);
+    udp->uh_ulen = htons(sizeof(struct udphdr) + datalen);
+    udp->uh_sum = 0;
+#else
 	udp->source = htons(sourceport);
 	udp->dest = htons(destport);
 	udp->len = htons(sizeof(struct udphdr) + datalen);
 	udp->check = 0;
+#endif
 
 	/* Insert actual data */
 	memcpy(rest, data, datalen);
 
 	/* Add UDP checksum */
-	udp->check = udp_sum_calc((unsigned char *)&(ip->saddr), (unsigned char *)&(ip->daddr), (unsigned char *)udp, sizeof(struct udphdr) + datalen);
+#if defined(__FreeBSD__)
+    udp->uh_sum = udp_sum_calc((unsigned char *)&(ip->ip_src.s_addr),
+                               (unsigned char *)&(ip->ip_dst.s_addr),
+                               (unsigned char *)udp,
+                               sizeof(struct udphdr) + datalen);
+    udp->uh_sum = htons(udp->uh_sum);
+#else
+    udp->check = udp_sum_calc((unsigned char *)&(ip->saddr),
+                              (unsigned char *)&(ip->daddr),
+                              (unsigned char *)udp,
+                              sizeof(struct udphdr) + datalen);
 	udp->check = htons(udp->check);
+#endif
 
 #ifdef __linux__
 	/* Send the packet */
-	send_result = sendto(fd, buffer, datalen + 8 + 14 + 20, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
+    send_result = sendto(fd, buffer, datalen + 8 + 14 + 20, 0,
+                    (struct sockaddr*)&socket_address, sizeof(socket_address));
 	if (send_result == -1)
 		perror("sendto");
 #else

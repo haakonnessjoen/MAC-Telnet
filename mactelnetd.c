@@ -16,7 +16,9 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
+#if defined(__linux__)
 #define _XOPEN_SOURCE 600
+#endif
 #define _BSD_SOURCE
 #include <libintl.h>
 #include <locale.h>
@@ -26,15 +28,22 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#if defined(__FreeBSD__)
+#include <paths.h>
+#include <sys/endian.h>
+#else
 #include <endian.h>
+#endif
 #include <time.h>
 #include <arpa/inet.h>
+#include <sys/types.h>
 #include <net/ethernet.h>
 #include <netinet/in.h>
+#if !defined(__FreeBSD__)
 #include <netinet/ether.h>
+#endif
 #include <sys/time.h>
 #include <time.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <string.h>
 #ifdef __linux__
@@ -45,9 +54,17 @@
 #endif
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#if defined(__linux__)
 #include <sys/sysinfo.h>
+#endif
 #include <pwd.h>
+#if defined(__FreeBSD__)
+#include <sys/time.h>
+/* This is the really Posix interface the Linux code should have used !!*/
+#include <utmpx.h>
+#else
 #include <utmp.h>
+#endif
 #include <syslog.h>
 #include <sys/utsname.h>
 #include "md5.h"
@@ -309,7 +326,11 @@ static void display_nologin() {
 }
 
 static void uwtmp_login(struct mt_connection *conn) {
+#if defined(__FreeBSD__)
+        struct utmpx utent;
+#else
 	struct utmp utent;
+#endif
 	pid_t pid;
 
 	pid = getpid();
@@ -326,23 +347,45 @@ static void uwtmp_login(struct mt_connection *conn) {
 	strncpy(utent.ut_user, conn->username, sizeof(utent.ut_user));
 	strncpy(utent.ut_line, line, sizeof(utent.ut_line));
 	strncpy(utent.ut_id, utent.ut_line + 3, sizeof(utent.ut_id));
-	strncpy(utent.ut_host, ether_ntoa((const struct ether_addr *)conn->srcmac), sizeof(utent.ut_host));
+	strncpy(utent.ut_host,
+                ether_ntoa((const struct ether_addr *)conn->srcmac),
+                sizeof(utent.ut_host));
+#if defined(__FreeBSD__)
+        gettimeofday(&utent.ut_tv, NULL);
+#else
 	time((time_t *)&(utent.ut_time));
+#endif
 	
 	/* Update utmp and/or wtmp */
+#if defined(__FreeBSD__)
+	setutxent();
+	pututxline(&utent);
+	endutxent();
+#else
 	setutent();
 	pututline(&utent);
 	endutent();
 	updwtmp(_PATH_WTMP, &utent);
+#endif
 }
 
 static void uwtmp_logout(struct mt_connection *conn) {
 	if (conn->pid > 0) {
+#if defined(__FreeBSD__)
+		struct utmpx *utentp;
+		struct utmpx utent;
+		setutxent();
+#else
 		struct utmp *utentp;
 		struct utmp utent;
 		setutent();
+#endif
 
+#if defined(__FreeBSD__)
+		while ((utentp = getutxent()) != NULL) {
+#else
 		while ((utentp = getutent()) != NULL) {
+#endif
 			if (utentp->ut_pid == conn->pid && utentp->ut_id) {
 				break;
 			}
@@ -354,9 +397,14 @@ static void uwtmp_logout(struct mt_connection *conn) {
 			utent.ut_type = DEAD_PROCESS;
 			utent.ut_tv.tv_sec = time(NULL);
 
+#if defined(__FreeBSD__)
+                        pututxline(&utent);
+                        endutxent();
+#else
 			pututline(&utent);
 			endutent();
 			updwtmp(_PATH_WTMP, &utent);
+#endif
 		}
 	}
 }

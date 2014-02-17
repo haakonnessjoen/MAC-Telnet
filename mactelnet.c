@@ -256,13 +256,11 @@ int main (int argc, char **argv) {
 	unsigned char devicename[30];
 	unsigned char printHelp = 0, haveUsername = 0, havePassword = 0;
 	int c;
-
 	while (1) {
 		c = getopt(argc, argv, "nu:p:h?");
 
 		if (c == -1)
 			break;
-
 		switch (c) {
 
 			case 'n':
@@ -291,19 +289,19 @@ int main (int argc, char **argv) {
 		}
 	}
 	if (argc - optind < 2 || printHelp) {
-		fprintf(stderr, "Usage: %s <ifname> <MAC|identity> [-h] [-n] [-u <username>] [-p <password>]\n", argv[0]);
+		fprintf(stderr, "Usage: %s [-h] [-n] [-u <username>] [-p <password>] <ifname> <MAC|identity>\n", argv[0]);
 
 		if (printHelp) {
 			fprintf(stderr, "\nParameters:\n");
-			fprintf(stderr, "  ifname    Network interface that the RouterOS resides on. (example: eth0)\n");
-			fprintf(stderr, "  MAC       MAC-Address of the RouterOS device. Use mndp to discover them.\n");
-			fprintf(stderr, "  identity  The identity/name of your RouterOS device. Uses MNDP protocol to find it.\n");
 #ifndef __APPLE_CC__
 			fprintf(stderr, "  -n        Do not use broadcast packets. Less insecure but requires root privileges.\n");
 #endif
 			fprintf(stderr, "  -u        Specify username on command line.\n");
 			fprintf(stderr, "  -p        Specify password on command line.\n");
 			fprintf(stderr, "  -h        This help.\n");
+			fprintf(stderr, "  ifname    Network interface that the RouterOS resides on. (example: eth0)\n");
+			fprintf(stderr, "  MAC       MAC-Address of the RouterOS device. Use mndp to discover them.\n");
+			fprintf(stderr, "  identity  The identity/name of your RouterOS device. Uses MNDP protocol to find it.\n");
 			fprintf(stderr, "\n");
 		}
 		return 1;

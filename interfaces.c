@@ -64,7 +64,7 @@ struct net_interface *net_get_interface_ptr(struct net_interface *interfaces, in
 	for (i = 0; i < max_devices; ++i) {
 		if (!interfaces[i].in_use)
 			break;
-		
+
 		if (strncmp(interfaces[i].name, name, 254) == 0) {
 			return interfaces + i;
 		}
@@ -110,7 +110,7 @@ static void net_update_mac(struct net_interface *interfaces, int max_devices) {
 static int get_device_index(char *device_name) {
         struct ifreq ifr;
 	int tmpsock;
-	
+
 	tmpsock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
 	/* Find interface index from device_name */
@@ -126,7 +126,7 @@ static int get_device_index(char *device_name) {
 
 int net_get_interfaces(struct net_interface *interfaces, int max_devices) {
 	static struct ifaddrs *int_addrs;
-    static const struct ifaddrs *ifaddrsp;
+	static const struct ifaddrs *ifaddrsp;
 	const struct sockaddr_in *dl_addr;
 	int found = 0;
 
@@ -135,16 +135,16 @@ int net_get_interfaces(struct net_interface *interfaces, int max_devices) {
 		exit(1);
 	}
 
-    for (ifaddrsp = int_addrs; ifaddrsp; ifaddrsp = ifaddrsp->ifa_next) {
-        dl_addr = (const struct sockaddr_in *) ifaddrsp->ifa_addr;
+	for (ifaddrsp = int_addrs; ifaddrsp; ifaddrsp = ifaddrsp->ifa_next) {
+		dl_addr = (const struct sockaddr_in *) ifaddrsp->ifa_addr;
 
-        if (ifaddrsp->ifa_addr == NULL)
+		if (ifaddrsp->ifa_addr == NULL)
 			continue;
 
-        if (ifaddrsp->ifa_addr->sa_family == AF_INET) {
-            struct net_interface *interface =
-                net_get_interface_ptr(interfaces, max_devices,
-                                      ifaddrsp->ifa_name, 1);
+		if (ifaddrsp->ifa_addr->sa_family == AF_INET) {
+			struct net_interface *interface =
+			  net_get_interface_ptr(interfaces, max_devices,
+			  ifaddrsp->ifa_name, 1);
 			if (interface != NULL) {
 				found++;
 				memcpy(interface->ipv4_addr, &dl_addr->sin_addr, IPV4_ALEN);
@@ -156,15 +156,15 @@ int net_get_interfaces(struct net_interface *interfaces, int max_devices) {
 #ifndef __linux__
 		{
 			unsigned char emptymac[] = {0, 0, 0, 0, 0, 0};
-            struct sockaddr_dl *sdl = (struct sockaddr_dl *)ifaddrsp->ifa_addr;
+			struct sockaddr_dl *sdl = (struct sockaddr_dl *)ifaddrsp->ifa_addr;
 
 			if (sdl->sdl_alen == ETH_ALEN) {
-                struct net_interface *interface =
-                    net_get_interface_ptr(interfaces, max_devices,
-                                          ifaddrsp->ifa_name, 1);
+				struct net_interface *interface =
+				  net_get_interface_ptr(interfaces, max_devices,
+				  ifaddrsp->ifa_name, 1);
 				memcpy(interface->mac_addr, LLADDR(sdl), ETH_ALEN);
-                    if (interface != NULL &&
-                        memcmp(interface->mac_addr, &emptymac, ETH_ALEN) != 0) {
+				if (interface != NULL &&
+				  memcmp(interface->mac_addr, &emptymac, ETH_ALEN) != 0) {
 					interface->has_mac = 1;
 				}
 			}
@@ -179,16 +179,16 @@ int net_get_interfaces(struct net_interface *interfaces, int max_devices) {
 
 #if 0
 	{
-        int i;
+		int i;
 		for (i = 0; i < max_devices; ++i) {
 			if (interfaces[i].in_use) {
-                struct in_addr *addr =
-                    (struct in_addr *)interfaces[i].ipv4_addr;
+				struct in_addr *addr =
+				  (struct in_addr *)interfaces[i].ipv4_addr;
 
 				printf("Interface %s:\n", interfaces[i].name);
 				printf("\tIP: %s\n", inet_ntoa(*addr));
-                printf("\tMAC: %s\n",
-                       ether_ntoa((struct ether_addr *)interfaces[i].mac_addr));
+				printf("\tMAC: %s\n",
+				  ether_ntoa((struct ether_addr *)interfaces[i].mac_addr));
 #ifdef __linux__
 				printf("\tIfIndex: %d\n", interfaces[i].ifindex);
 #endif
@@ -206,17 +206,17 @@ unsigned short in_cksum(unsigned short *addr, int len)
 	int sum = 0;
 	unsigned short *w = addr;
 	unsigned short answer = 0;
-	
+
 	while (nleft > 1) {
 		sum += *w++;
 		nleft -= 2;
 	}
-	
+
 	if (nleft == 1) {
 		*(unsigned char *) (&answer) = *(unsigned char *) w;
 		sum += answer;
 	}
-	
+
 	sum = (sum >> 16) + (sum & 0xFFFF);
 	sum += (sum >> 16);
 	answer = ~sum;
@@ -297,21 +297,21 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 	 * Create a buffer for the full ethernet frame
 	 * and align header pointers to the correct positions.
 	*/
-	void* buffer = (void*)malloc(ETH_FRAME_LEN);
+	static unsigned char stackbuf[ETH_FRAME_LEN];
+	void* buffer = (void*)&stackbuf;
 #if defined(__FreeBSD__)
-    struct ether_header *eh = (struct ether_header *)buffer;
-    struct ip *ip = (struct ip *)(buffer + 14);
+	struct ether_header *eh = (struct ether_header *)buffer;
+	struct ip *ip = (struct ip *)(buffer + 14);
 #else
 	struct ethhdr *eh = (struct ethhdr *)buffer;
 	struct iphdr *ip = (struct iphdr *)(buffer + 14);
 #endif
 	struct udphdr *udp = (struct udphdr *)(buffer + 14 + 20);
-    unsigned char *rest =
-        (unsigned char *)(buffer + 20 + 14 + sizeof(struct udphdr));
+	unsigned char *rest =
+	  (unsigned char *)(buffer + 20 + 14 + sizeof(struct udphdr));
 
 	if (((void *)rest - (void*)buffer) + datalen  > ETH_FRAME_LEN) {
 		fprintf(stderr, _("packet size too large\n"));
-		free(buffer);
 		return 0;
 	}
 
@@ -326,9 +326,9 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 
 	/* Init ethernet header */
 #if defined(__FreeBSD__)
-    memcpy(eh->ether_shost, sourcemac, ETH_ALEN);
-    memcpy(eh->ether_dhost, destmac, ETH_ALEN);
-    eh->ether_type = htons(ETHERTYPE_IP);
+	memcpy(eh->ether_shost, sourcemac, ETH_ALEN);
+	memcpy(eh->ether_dhost, destmac, ETH_ALEN);
+	eh->ether_type = htons(ETHERTYPE_IP);
 #else
 	memcpy(eh->h_source, sourcemac, ETH_ALEN);
 	memcpy(eh->h_dest, destmac, ETH_ALEN);
@@ -351,17 +351,17 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 
 	/* Init IP Header */
 #if defined(__FreeBSD__)
-    ip->ip_v = 4;
-    ip->ip_hl = 5;
-    ip->ip_tos = 0x10;
-    ip->ip_len = htons(datalen + 8 + 20);
-    ip->ip_id = htons(id++);
-    ip->ip_off = htons(0x4000);
-    ip->ip_ttl = 64;
-    ip->ip_p = 17; /* UDP */
-    ip->ip_sum = 0;
-    ip->ip_src.s_addr = sourceip->s_addr;
-    ip->ip_dst.s_addr = destip->s_addr;
+	ip->ip_v = 4;
+	ip->ip_hl = 5;
+	ip->ip_tos = 0x10;
+	ip->ip_len = htons(datalen + 8 + 20);
+	ip->ip_id = htons(id++);
+	ip->ip_off = htons(0x4000);
+	ip->ip_ttl = 64;
+	ip->ip_p = 17; /* UDP */
+	ip->ip_sum = 0;
+	ip->ip_src.s_addr = sourceip->s_addr;
+	ip->ip_dst.s_addr = destip->s_addr;
 #else
 	ip->version = 4;
 	ip->ihl = 5;
@@ -378,17 +378,17 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 
 	/* Calculate checksum for IP header */
 #if defined(__FreeBSD__)
-    ip->ip_sum = in_cksum((unsigned short *)ip, sizeof(struct ip));
+	ip->ip_sum = in_cksum((unsigned short *)ip, sizeof(struct ip));
 #else
 	ip->check = in_cksum((unsigned short *)ip, sizeof(struct iphdr));
 #endif
 
 	/* Init UDP Header */
 #if defined(__FreeBSD__)
-    udp->uh_sport = htons(sourceport);
-    udp->uh_dport = htons(destport);
-    udp->uh_ulen = htons(sizeof(struct udphdr) + datalen);
-    udp->uh_sum = 0;
+	udp->uh_sport = htons(sourceport);
+	udp->uh_dport = htons(destport);
+	udp->uh_ulen = htons(sizeof(struct udphdr) + datalen);
+	udp->uh_sum = 0;
 #else
 	udp->source = htons(sourceport);
 	udp->dest = htons(destport);
@@ -401,23 +401,23 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 
 	/* Add UDP checksum */
 #if defined(__FreeBSD__)
-    udp->uh_sum = udp_sum_calc((unsigned char *)&(ip->ip_src.s_addr),
-                               (unsigned char *)&(ip->ip_dst.s_addr),
-                               (unsigned char *)udp,
-                               sizeof(struct udphdr) + datalen);
-    udp->uh_sum = htons(udp->uh_sum);
+	udp->uh_sum = udp_sum_calc((unsigned char *)&(ip->ip_src.s_addr),
+	  (unsigned char *)&(ip->ip_dst.s_addr),
+	  (unsigned char *)udp,
+	  sizeof(struct udphdr) + datalen);
+	udp->uh_sum = htons(udp->uh_sum);
 #else
-    udp->check = udp_sum_calc((unsigned char *)&(ip->saddr),
-                              (unsigned char *)&(ip->daddr),
-                              (unsigned char *)udp,
-                              sizeof(struct udphdr) + datalen);
+	udp->check = udp_sum_calc((unsigned char *)&(ip->saddr),
+	  (unsigned char *)&(ip->daddr),
+	  (unsigned char *)udp,
+	  sizeof(struct udphdr) + datalen);
 	udp->check = htons(udp->check);
 #endif
 
 #ifdef __linux__
 	/* Send the packet */
-    send_result = sendto(fd, buffer, datalen + 8 + 14 + 20, 0,
-                    (struct sockaddr*)&socket_address, sizeof(socket_address));
+	send_result = sendto(fd, buffer, datalen + 8 + 14 + 20, 0,
+	  (struct sockaddr*)&socket_address, sizeof(socket_address));
 	if (send_result == -1)
 		perror("sendto");
 #else
@@ -436,8 +436,7 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 	if (send_result == -1)
 		perror("bpf_write");
 #endif
-	free(buffer);
-	
+
 	/* Return amount of _data_ bytes sent */
 	if (send_result - 8 - 14 - 20 < 0) {
 		return 0;

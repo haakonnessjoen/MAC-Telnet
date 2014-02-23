@@ -322,19 +322,19 @@ static void display_nologin() {
 			putchar(c);
 		}
 		fclose(fp);
-	}	
+	}
 }
 
 static void uwtmp_login(struct mt_connection *conn) {
 #if defined(__FreeBSD__)
-        struct utmpx utent;
+	struct utmpx utent;
 #else
 	struct utmp utent;
 #endif
 	pid_t pid;
 
 	pid = getpid();
-	
+
 	char *line = ttyname(conn->slavefd);
 	if (strncmp(line, "/dev/", 5) == 0) {
 		line += 5;
@@ -351,11 +351,11 @@ static void uwtmp_login(struct mt_connection *conn) {
                 ether_ntoa((const struct ether_addr *)conn->srcmac),
                 sizeof(utent.ut_host));
 #if defined(__FreeBSD__)
-        gettimeofday(&utent.ut_tv, NULL);
+	gettimeofday(&utent.ut_tv, NULL);
 #else
 	time((time_t *)&(utent.ut_time));
 #endif
-	
+
 	/* Update utmp and/or wtmp */
 #if defined(__FreeBSD__)
 	setutxent();
@@ -398,8 +398,8 @@ static void uwtmp_logout(struct mt_connection *conn) {
 			utent.ut_tv.tv_sec = time(NULL);
 
 #if defined(__FreeBSD__)
-                        pututxline(&utent);
-                        endutxent();
+			pututxline(&utent);
+			endutxent();
 #else
 			pututline(&utent);
 			endutent();
@@ -411,7 +411,7 @@ static void uwtmp_logout(struct mt_connection *conn) {
 
 static void abort_connection(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr, char *message) {
 	struct mt_packet pdata;
-	
+
 	init_packet(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
 	add_control_packet(&pdata, MT_CPTYPE_PLAINDATA, message, strlen(message));
 	send_udp(curconn, &pdata);
@@ -534,14 +534,14 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 				if (!interfaces[i].in_use) {
 					break;
 				}
-				
+
 			}
 			setsid();
 
 			/* Don't let shell process inherit slavefd */
 			fcntl (curconn->slavefd, F_SETFD, FD_CLOEXEC);
 			close(curconn->ptsfd);
-			
+
 			/* Redirect STDIN/STDIO/STDERR */
 			close(0);
 			dup(curconn->slavefd);
@@ -627,7 +627,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 
 		} else if (cpkt.cptype == MT_CPTYPE_TERM_WIDTH) {
 			unsigned short width;
-			
+
 			memcpy(&width, cpkt.data, 2);
 			curconn->terminal_width = le16toh(width);
 			got_width_packet = 1;
@@ -666,11 +666,11 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 		/* Parse next control packet */
 		success = parse_control_packet(NULL, 0, &cpkt);
 	}
-	
+
 	if (got_user_packet && got_pass_packet) {
 		user_login(curconn, pkthdr);
 	}
-	
+
 	if (curconn->state == STATE_ACTIVE && (got_width_packet || got_height_packet)) {
 		set_terminal_size(curconn->ptsfd, curconn->terminal_width, curconn->terminal_height);
 
@@ -809,7 +809,7 @@ static void daemonize() {
 	close(0);
 	close(1);
 	close(2);
-	
+
 	fd = open("/dev/null",O_RDWR);
 	dup(fd);
 	dup(fd);
@@ -1090,7 +1090,7 @@ int main (int argc, char **argv) {
 			interface_count++;
 		}
 	}
-	
+
 	if (interface_count == 0) {
 		syslog(LOG_ERR, _("Unable to find any valid network interfaces\n"));
 		exit(1);
@@ -1184,7 +1184,7 @@ int main (int argc, char **argv) {
 		/* Handle select() timeout */
 		}
 		time(&now);
-		
+
 		if (now - last_mndp_time > MT_MNDP_BROADCAST_INTERVAL) {
 			pings = 0;
 			mndp_broadcast();

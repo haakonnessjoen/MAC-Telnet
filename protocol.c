@@ -239,7 +239,7 @@ int parse_control_packet(unsigned char *packetdata, int data_len, struct mt_mact
 		/* Control packet data length */
 		memcpy(&(cpkthdr->length), data + 5, sizeof(cpkthdr->length));
 		cpkthdr->length = ntohl(cpkthdr->length);
-		
+
 		/* We want no buffer overflows */
 		if (cpkthdr->length >= MT_PACKET_LEN - 22 - int_pos) {
 			cpkthdr->length = MT_PACKET_LEN - 1 - 22 - int_pos;
@@ -274,9 +274,9 @@ int mndp_init_packet(struct mt_packet *packet, unsigned char version, unsigned c
 	header->version = version;
 	header->ttl = ttl;
 	header->cksum = 0;
-	
+
 	packet->size = sizeof(*header);
-	
+
 	return sizeof(*header);
 }
 
@@ -307,7 +307,8 @@ int mndp_add_attribute(struct mt_packet *packet, enum mt_mndp_attrtype attrtype,
 
 struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len) {
 	const unsigned char *p;
-	static struct mt_mndp_info *packetp;
+	static struct mt_mndp_info packet;
+	struct mt_mndp_info *packetp = &packet;
 	struct mt_mndp_hdr *mndp_hdr;
 
 	/* Check for valid packet length */
@@ -315,11 +316,6 @@ struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len)
 		return NULL;
 	}
 
-	packetp = malloc(sizeof(*packetp));
-	if (packetp == NULL) {
-	    fprintf(stderr, "ERROR %s: malloc() failed\n", __func__);
-	    return NULL;
-	}
 	bzero(packetp, sizeof(*packetp));
 
 	mndp_hdr = (struct mt_mndp_hdr*)data;
@@ -400,7 +396,7 @@ struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len)
 				if (len > MT_MNDP_MAX_STRING_LENGTH) {
 					len = MT_MNDP_MAX_STRING_LENGTH;
 				}
-				
+
 				memcpy(packetp->softid, p, len);
 				packetp->softid[len] = '\0';
 				break;
@@ -409,10 +405,10 @@ struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len)
 				 Unhandled MNDP type
 			*/
 		}
-		
+
 		p += len;
 	}
-	
+
 	return packetp;
 }
 
@@ -476,7 +472,7 @@ int query_mndp(const char *identity, unsigned char *mac) {
 
 		timeout.tv_sec = fastlookup ? MT_MNDP_TIMEOUT : MT_MNDP_LONGTIMEOUT;
 		timeout.tv_usec = 0;
-	
+
 		select(sock + 1, &read_fds, NULL, NULL, &timeout);
 		if (!FD_ISSET(sock, &read_fds)) {
 			goto done;

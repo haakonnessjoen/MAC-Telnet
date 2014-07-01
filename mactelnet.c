@@ -62,7 +62,7 @@ static int sockfd = 0;
 static int insockfd;
 
 static unsigned int outcounter = 0;
-static unsigned int incounter = 0;
+static long incounter = -1;
 static int sessionkey = 0;
 static int running = 1;
 
@@ -286,7 +286,7 @@ static int handle_packet(unsigned char *data, int data_len) {
 
 		/* Accept first packet, and all packets greater than incounter, and if counter has
 		wrapped around. */
-		if (incounter == 0 || pkthdr.counter > incounter || (incounter - pkthdr.counter) > 65535) {
+		if (pkthdr.counter > incounter || (incounter - pkthdr.counter) > 65535) {
 			incounter = pkthdr.counter;
 		} else {
 			/* Ignore double or old packets */

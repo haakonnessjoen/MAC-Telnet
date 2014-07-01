@@ -123,6 +123,7 @@ struct mt_connection {
 	unsigned short seskey;
 	unsigned int incounter;
 	unsigned int outcounter;
+	unsigned int lastack;
 	time_t lastdata;
 
 	int terminal_mode;
@@ -746,9 +747,10 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 
 			if (pkthdr.counter <= curconn->outcounter) {
 				curconn->wait_for_ack = 0;
+				curconn->lastack = pkthdr.counter;
 			}
 
-			if (time(0) - curconn->lastdata > 9) {
+			if (time(0) - curconn->lastdata > 9 || pkthdr.counter == curconn->lastack) {
 				// Answer to anti-timeout packet
 				init_packet(&pdata, MT_PTYPE_ACK, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter);
 				send_udp(curconn, &pdata);

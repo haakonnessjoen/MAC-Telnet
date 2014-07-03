@@ -707,6 +707,11 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 			break;
 
 		case MT_PTYPE_SESSIONSTART:
+			curconn = list_find_connection(pkthdr.seskey, (unsigned char *)&(pkthdr.srcaddr));
+			if (curconn != NULL) {
+				/* Ignore multiple session starts from the same sender, this can be same mac but different interface */
+				break;
+			}
 			syslog(LOG_DEBUG, _("(%d) New connection from %s."), pkthdr.seskey, ether_ntoa((struct ether_addr*)&(pkthdr.srcaddr)));
 			curconn = calloc(1, sizeof(struct mt_connection));
 			curconn->seskey = pkthdr.seskey;

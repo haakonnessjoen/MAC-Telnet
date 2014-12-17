@@ -635,6 +635,7 @@ int main (int argc, char **argv) {
 	if (!have_username) {
 		if (!quiet_mode) {
 			printf(_("Login: "));
+			fflush(stdout);
 		}
 		scanf("%254s", username);
 	}

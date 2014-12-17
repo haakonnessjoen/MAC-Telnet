@@ -779,31 +779,6 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 	}
 }
 
-static void daemonize() {
-	int pid,fd;
-
-	pid = fork();
-
-	/* Error? */
-	if (pid < 0) {
-		exit(1);
-	}
-
-	/* Parent exit */
-	if (pid > 0) {
-		exit(0);
-	}
-
-	setsid();
-	close(0);
-	close(1);
-	close(2);
-
-	fd = open("/dev/null",O_RDWR);
-	dup(fd);
-	dup(fd);
-}
-
 static void print_version() {
 	fprintf(stderr, PROGRAM_NAME " " PROGRAM_VERSION "\n");
 }
@@ -1065,7 +1040,7 @@ int main (int argc, char **argv) {
 	setup_sockets();
 
 	if (!foreground) {
-		daemonize();
+		daemon(0, 0);
 	}
 
 	/* Handle zombies etc */

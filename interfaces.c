@@ -62,7 +62,7 @@
 struct net_interface *net_get_interface_ptr(struct net_interface **interfaces, char *name, int create) {
 	struct net_interface *interface;
 
-	LL_FOREACH(*interfaces, interface) {
+	DL_FOREACH(*interfaces, interface) {
 		if (strncmp(interface->name, name, 254) == 0) {
 			return interface;
 		}
@@ -76,7 +76,7 @@ struct net_interface *net_get_interface_ptr(struct net_interface **interfaces, c
 		}
 		strncpy(interface->name, name, 254);
 		interface->name[254] = '\0';
-		LL_APPEND(*interfaces, interface);
+		DL_APPEND(*interfaces, interface);
 		return interface;
 	}
 
@@ -96,7 +96,7 @@ static void net_update_mac(struct net_interface *interfaces) {
 		perror("net_update_mac");
 		exit(1);
 	}
-	LL_FOREACH(interfaces, interface) {
+	DL_FOREACH(interfaces, interface) {
 		/* Find interface hardware address from device_name */
 		strncpy(ifr.ifr_name, interface->name, 16);
 		if (ioctl(tmpsock, SIOCGIFHWADDR, &ifr) == 0) {
@@ -181,7 +181,7 @@ int net_get_interfaces(struct net_interface **interfaces) {
 #if 0
 	{
 		struct net_interface *interface;
-		LL_FOREACH(*interfaces, interface) {
+		DL_FOREACH(*interfaces, interface) {
 			struct in_addr *addr =
 			  (struct in_addr *)interface->ipv4_addr;
 

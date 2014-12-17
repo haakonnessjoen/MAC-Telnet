@@ -219,7 +219,7 @@ static struct mt_connection *list_find_connection(unsigned short seskey, unsigne
 static struct net_interface *find_socket(unsigned char *mac) {
 	struct net_interface *interface;
 
-	LL_FOREACH(interfaces, interface) {
+	DL_FOREACH(interfaces, interface) {
 		if (memcmp(mac, interface->mac_addr, ETH_ALEN) == 0) {
 			return interface;
 		}
@@ -230,7 +230,7 @@ static struct net_interface *find_socket(unsigned char *mac) {
 static void setup_sockets() {
 	struct net_interface *interface;
 
-	LL_FOREACH(interfaces, interface) {
+	DL_FOREACH(interfaces, interface) {
 		int optval = 1;
 		struct sockaddr_in si_me;
 		struct ether_addr *mac = (struct ether_addr *)&(interface->mac_addr);
@@ -527,7 +527,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 			close(sockfd);
 			close(insockfd);
 
-			LL_FOREACH(interfaces, interface) {
+			DL_FOREACH(interfaces, interface) {
 				if (interface->socketfd > 0) {
 					close(interface->socketfd);
 				}
@@ -847,7 +847,7 @@ void mndp_broadcast() {
 		return;
 	}
 
-	LL_FOREACH(interfaces, interface) {
+	DL_FOREACH(interfaces, interface) {
 		struct mt_mndp_hdr *header = (struct mt_mndp_hdr *)&(pdata.data);
 
 		if (interface->has_mac == 0) {
@@ -893,13 +893,13 @@ void sigterm_handler() {
 	close(sockfd);
 	close(insockfd);
 	if (!use_raw_socket) {
-		LL_FOREACH(interfaces, interface) {
+		DL_FOREACH(interfaces, interface) {
 			if (interface->socketfd > 0)
 				close(interface->socketfd);
 		}
 	}
-	LL_FOREACH_SAFE(interfaces, interface, tmp) {
-		LL_DELETE(interfaces, interface);
+	DL_FOREACH_SAFE(interfaces, interface, tmp) {
+		DL_DELETE(interfaces, interface);
 		free(interface);
 	}
 	closelog();
@@ -913,9 +913,9 @@ void sighup_handler() {
 
 	if (!use_raw_socket) {
 		struct net_interface *interface, *tmp;
-		LL_FOREACH_SAFE(interfaces, interface, tmp) {
+		DL_FOREACH_SAFE(interfaces, interface, tmp) {
 			close(interface->socketfd);
-			LL_DELETE(interfaces, interface);
+			DL_DELETE(interfaces, interface);
 			free(interface);
 		}
 		interfaces = NULL;
@@ -1089,7 +1089,7 @@ int main (int argc, char **argv) {
 	signal(SIGHUP, sighup_handler);
 	signal(SIGTERM, sigterm_handler);
 
-	LL_FOREACH(interfaces, interface) {
+	DL_FOREACH(interfaces, interface) {
 		if (interface->has_mac) {
 			interface_count++;
 		}

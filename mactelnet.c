@@ -380,7 +380,7 @@ static int find_interface() {
 		exit(1);
 	}
 
-	LL_FOREACH(interfaces, interface) {
+	DL_FOREACH(interfaces, interface) {
 		/* Skip loopback interfaces */
 		if (memcmp("lo", interface->name, 2) == 0) {
 			continue;
@@ -762,8 +762,8 @@ int main (int argc, char **argv) {
 	close(sockfd);
 	close(insockfd);
 
-	LL_FOREACH_SAFE(interfaces, interface, tmp) {
-		LL_DELETE(interfaces, interface);
+	DL_FOREACH_SAFE(interfaces, interface, tmp) {
+		DL_DELETE(interfaces, interface);
 		free(interface);
 	}
 

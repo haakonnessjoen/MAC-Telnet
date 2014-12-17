@@ -554,7 +554,7 @@ do {                                                                            
 #define DL_DELETE(head,del)                                                                    \
     DL_DELETE2(head,del,prev,next)
 
-#define DL_DELETE2(headd,del,prev,next)                                                         \
+#define DL_DELETE2(head,del,prev,next)                                                         \
 do {                                                                                           \
   assert((del)->prev != NULL);                                                                 \
   if ((del)->prev == (del)) {                                                                  \

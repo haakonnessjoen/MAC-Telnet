@@ -34,6 +34,7 @@ struct net_interface {
 #endif
 	int has_mac;
 	int in_use;
+	struct net_interface *prev;
 	struct net_interface *next;
 };
 

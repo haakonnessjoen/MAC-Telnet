@@ -84,8 +84,7 @@
 /* Max ~5 pings per second */
 #define MT_MAXPPS MT_MNDP_BROADCAST_INTERVAL * 5
 
-//#define _(String) gettext (String)
-#define _(String) (String)
+#define _(String) gettext (String)
 #define gettext_noop(String) String
 
 static int sockfd;
@@ -147,6 +146,7 @@ struct mt_connection {
 	unsigned short terminal_height;
 	char terminal_type[30];
 
+	struct mt_connection *prev;
 	struct mt_connection *next;
 };
 
@@ -156,21 +156,10 @@ static void uwtmp_logout(struct mt_connection *);
 static struct mt_connection *connections_head = NULL;
 
 static void list_add_connection(struct mt_connection *conn) {
-	struct mt_connection *p;
-	struct mt_connection *last;
-	if (connections_head == NULL) {
-		connections_head = conn;
-		connections_head->next = NULL;
-		return;
-	}
-	for (p = connections_head; p != NULL; p = p->next) {last = p;}
-	last->next = conn;
-	conn->next = NULL;
+	DL_APPEND(connections_head, conn);
 }
 
 static void list_remove_connection(struct mt_connection *conn) {
-	struct mt_connection *p;
-	struct mt_connection *last;
 	if (connections_head == NULL) {
 		return;
 	}
@@ -184,30 +173,14 @@ static void list_remove_connection(struct mt_connection *conn) {
 
 	uwtmp_logout(conn);
 
-	if (connections_head == conn) {
-		connections_head = conn->next;
-		free(conn);
-		return;
-	}
-
-	for (p = connections_head; p != NULL; p = p->next) {
-		if (p == conn) {
-			last->next = p->next;
-			free(p);
-			return;
-		}
-		last = p;
-	}
+	DL_DELETE(connections_head, conn);
+	free(conn);
 }
 
 static struct mt_connection *list_find_connection(unsigned short seskey, unsigned char *srcmac) {
 	struct mt_connection *p;
 
-	if (connections_head == NULL) {
-		return NULL;
-	}
-
-	for (p = connections_head; p != NULL; p = p->next) {
+	DL_FOREACH(connections_head, p) {
 		if (p->seskey == seskey && memcmp(srcmac, p->srcmac, ETH_ALEN) == 0) {
 			return p;
 		}
@@ -878,7 +851,7 @@ void sigterm_handler() {
 
 	syslog(LOG_NOTICE, _("Daemon shutting down"));
 
-	for (p = connections_head; p != NULL; p = p->next) {
+	DL_FOREACH(connections_head, p) {
 		if (p->state == STATE_ACTIVE) {
 			init_packet(&pdata, MT_PTYPE_DATA, p->interface->mac_addr, p->srcmac, p->seskey, p->outcounter);
 			add_control_packet(&pdata, MT_CPTYPE_PLAINDATA, _(message), strlen(_(message)));
@@ -929,7 +902,7 @@ void sighup_handler() {
 	setup_sockets();
 
 	/* Reassign outgoing interfaces to connections again, since they may have changed */
-	for (p = connections_head; p != NULL; p = p->next) {
+	DL_FOREACH(connections_head, p) {
 		if (p->interface_name != NULL) {
 			struct net_interface *interface = net_get_interface_ptr(&interfaces, p->interface_name, 0);
 			if (interface != NULL) {
@@ -1113,7 +1086,7 @@ int main (int argc, char **argv) {
 		maxfd = insockfd > mndpsockfd ? insockfd : mndpsockfd;
 
 		/* Add active connections to select queue */
-		for (p = connections_head; p != NULL; p = p->next) {
+		DL_FOREACH(connections_head, p) {
 			if (p->state == STATE_ACTIVE && p->wait_for_ack == 0 && p->ptsfd > 0) {
 				FD_SET(p->ptsfd, &read_fds);
 				if (p->ptsfd > maxfd) {
@@ -1151,7 +1124,7 @@ int main (int argc, char **argv) {
 				}
 			}
 			/* Handle data from terminal sessions */
-			for (p = connections_head; p != NULL; p = p->next) {
+			DL_FOREACH(connections_head, p) {
 				/* Check if we have data ready in the pty buffer for the active session */
 				if (p->state == STATE_ACTIVE && p->ptsfd > 0 && p->wait_for_ack == 0 && FD_ISSET(p->ptsfd, &read_fds)) {
 					unsigned char keydata[1024];
@@ -1196,7 +1169,7 @@ int main (int argc, char **argv) {
 		}
 		if (connections_head != NULL) {
 			struct mt_connection *p,tmp;
-			for (p = connections_head; p != NULL; p = p->next) {
+			DL_FOREACH(connections_head, p) {
 				if (now - p->lastdata >= MT_CONNECTION_TIMEOUT) {
 					syslog(LOG_INFO, _("(%d) Session timed out"), p->seskey);
 					init_packet(&pdata, MT_PTYPE_DATA, p->dstmac, p->srcmac, p->seskey, p->outcounter);

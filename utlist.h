@@ -657,7 +657,7 @@ do {                                                                            
    (add)->prev->next = (add);                                                                  \
  } else {                                                                                      \
    (add)->prev = (add);                                                                        \
-   (add)->next = (ad);                                                                        \
+   (add)->next = (add);                                                                        \
  }                                                                                             \
 (head)=(add);                                                                                  \
 } while (0)
@@ -753,5 +753,5 @@ do {                                                                            
  }                                                                                             \
 } while (0)                                                                                    \
 
-
 #endif /* UTLIST_H */
+

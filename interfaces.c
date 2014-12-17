@@ -55,54 +55,57 @@
 #endif
 #include "protocol.h"
 #include "interfaces.h"
+#include "utlist.h"
 
 #define _(String) gettext (String)
 
-struct net_interface *net_get_interface_ptr(struct net_interface *interfaces, int max_devices, char *name, int create) {
-	int i;
+struct net_interface *net_get_interface_ptr(struct net_interface **interfaces, char *name, int create) {
+	struct net_interface *interface;
 
-	for (i = 0; i < max_devices; ++i) {
-		if (!interfaces[i].in_use)
-			break;
-
-		if (strncmp(interfaces[i].name, name, 254) == 0) {
-			return interfaces + i;
+	LL_FOREACH(*interfaces, interface) {
+		if (strncmp(interface->name, name, 254) == 0) {
+			return interface;
 		}
 	}
 
-	if (create && i < max_devices) {
-		interfaces[i].in_use = 1;
-		strncpy(interfaces[i].name, name, 254);
-		interfaces[i].name[254] = '\0';
-		return interfaces + i;
+	if (create) {
+		interface = (struct net_interface *)malloc(sizeof(struct net_interface));
+		if (interface == NULL) {
+			fprintf(stderr, "Unable to allocate memory for interface\n");
+			exit(1);
+		}
+		strncpy(interface->name, name, 254);
+		interface->name[254] = '\0';
+		LL_APPEND(*interfaces, interface);
+		return interface;
 	}
 
 	return NULL;
 }
 
 #ifdef __linux__
-static void net_update_mac(struct net_interface *interfaces, int max_devices) {
+static void net_update_mac(struct net_interface *interfaces) {
 	unsigned char emptymac[] = {0, 0, 0, 0, 0, 0};
 	struct ifreq ifr;
-	int i,tmpsock;
+	int tmpsock;
+	struct net_interface *interface;
+	
 
 	tmpsock = socket(PF_INET, SOCK_DGRAM, 0);
 	if (tmpsock < 0) {
 		perror("net_update_mac");
 		exit(1);
 	}
-	for (i = 0; i < max_devices; ++i) {
-        if (!interfaces[i].in_use)
-            continue;
-			/* Find interface hardware address from device_name */
-			strncpy(ifr.ifr_name, interfaces[i].name, 16);
-			if (ioctl(tmpsock, SIOCGIFHWADDR, &ifr) == 0) {
-				/* Fetch mac address */
-				memcpy(interfaces[i].mac_addr, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
-				if (memcmp(interfaces[i].mac_addr, &emptymac, ETH_ALEN) != 0) {
-					interfaces[i].has_mac = 1;
-				}
+	LL_FOREACH(interfaces, interface) {
+		/* Find interface hardware address from device_name */
+		strncpy(ifr.ifr_name, interface->name, 16);
+		if (ioctl(tmpsock, SIOCGIFHWADDR, &ifr) == 0) {
+			/* Fetch mac address */
+			memcpy(interface->mac_addr, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
+			if (memcmp(interface->mac_addr, &emptymac, ETH_ALEN) != 0) {
+				interface->has_mac = 1;
 			}
+		}
 	}
 	close(tmpsock);
 }
@@ -124,7 +127,7 @@ static int get_device_index(char *device_name) {
 }
 #endif
 
-int net_get_interfaces(struct net_interface *interfaces, int max_devices) {
+int net_get_interfaces(struct net_interface **interfaces) {
 	static struct ifaddrs *int_addrs;
 	static const struct ifaddrs *ifaddrsp;
 	const struct sockaddr_in *dl_addr;
@@ -143,8 +146,7 @@ int net_get_interfaces(struct net_interface *interfaces, int max_devices) {
 
 		if (ifaddrsp->ifa_addr->sa_family == AF_INET) {
 			struct net_interface *interface =
-			  net_get_interface_ptr(interfaces, max_devices,
-			  ifaddrsp->ifa_name, 1);
+			  net_get_interface_ptr(interfaces, ifaddrsp->ifa_name, 1);
 			if (interface != NULL) {
 				found++;
 				memcpy(interface->ipv4_addr, &dl_addr->sin_addr, IPV4_ALEN);
@@ -160,8 +162,7 @@ int net_get_interfaces(struct net_interface *interfaces, int max_devices) {
 
 			if (sdl->sdl_alen == ETH_ALEN) {
 				struct net_interface *interface =
-				  net_get_interface_ptr(interfaces, max_devices,
-				  ifaddrsp->ifa_name, 1);
+				  net_get_interface_ptr(interfaces, ifaddrsp->ifa_name, 1);
 				memcpy(interface->mac_addr, LLADDR(sdl), ETH_ALEN);
 				if (interface != NULL &&
 				  memcmp(interface->mac_addr, &emptymac, ETH_ALEN) != 0) {
@@ -174,26 +175,24 @@ int net_get_interfaces(struct net_interface *interfaces, int max_devices) {
 	freeifaddrs(int_addrs);
 
 #ifdef __linux__
-	net_update_mac(interfaces, max_devices);
+	net_update_mac(*interfaces);
 #endif
 
 #if 0
 	{
-		int i;
-		for (i = 0; i < max_devices; ++i) {
-			if (interfaces[i].in_use) {
-				struct in_addr *addr =
-				  (struct in_addr *)interfaces[i].ipv4_addr;
+		struct net_interface *interface;
+		LL_FOREACH(*interfaces, interface) {
+			struct in_addr *addr =
+			  (struct in_addr *)interface->ipv4_addr;
 
-				printf("Interface %s:\n", interfaces[i].name);
-				printf("\tIP: %s\n", inet_ntoa(*addr));
-				printf("\tMAC: %s\n",
-				  ether_ntoa((struct ether_addr *)interfaces[i].mac_addr));
+			printf("Interface %s:\n", interface->name);
+			printf("\tIP: %s\n", inet_ntoa(*addr));
+			printf("\tMAC: %s\n",
+			  ether_ntoa((struct ether_addr *)interface->mac_addr));
 #ifdef __linux__
-				printf("\tIfIndex: %d\n", interfaces[i].ifindex);
+			printf("\tIfIndex: %d\n", interface->ifindex);
 #endif
-				printf("\n");
-			}
+			printf("\n");
 		}
 	}
 #endif

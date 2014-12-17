@@ -53,6 +53,7 @@
 #include "mactelnet.h"
 #include "mndp.h"
 #include "autologin.h"
+#include "utlist.h"
 
 #define PROGRAM_NAME "MAC-Telnet"
 
@@ -94,7 +95,7 @@ static char username[255];
 static char password[255];
 static char nonpriv_username[255];
 
-struct net_interface interfaces[MAX_INTERFACES];
+struct net_interface *interfaces=NULL;
 struct net_interface *active_interface;
 
 /* Protocol data direction */
@@ -364,33 +365,30 @@ static int find_interface() {
 	struct mt_packet data;
 	struct sockaddr_in myip;
 	unsigned char emptymac[ETH_ALEN];
-	int i, testsocket;
+	int testsocket;
 	struct timeval timeout;
 	int optval = 1;
+	struct net_interface *interface;
 
 	/* TODO: reread interfaces on HUP */
-	bzero(&interfaces, sizeof(struct net_interface) * MAX_INTERFACES);
+	//bzero(&interfaces, sizeof(struct net_interface) * MAX_INTERFACES);
 
 	bzero(emptymac, ETH_ALEN);
 
-	if (net_get_interfaces(interfaces, MAX_INTERFACES) <= 0) {
+	if (net_get_interfaces(&interfaces) <= 0) {
 		fprintf(stderr, _("Error: No suitable devices found\n"));
 		exit(1);
 	}
 
-	for (i = 0; i < MAX_INTERFACES; ++i) {
-		if (!interfaces[i].in_use) {
-			break;
-		}
-
+	LL_FOREACH(interfaces, interface) {
 		/* Skip loopback interfaces */
-		if (memcmp("lo", interfaces[i].name, 2) == 0) {
+		if (memcmp("lo", interface->name, 2) == 0) {
 			continue;
 		}
 
 		/* Initialize receiving socket on the device chosen */
 		myip.sin_family = AF_INET;
-		memcpy((void *)&myip.sin_addr, interfaces[i].ipv4_addr, IPV4_ALEN);
+		memcpy((void *)&myip.sin_addr, interface->ipv4_addr, IPV4_ALEN);
 		myip.sin_port = htons(sourceport);
 
 		/* Initialize socket and bind to udp port */
@@ -407,15 +405,15 @@ static int find_interface() {
 		}
 
 		/* Ensure that we have mac-address for this interface  */
-		if (!interfaces[i].has_mac) {
+		if (!interface->has_mac) {
 			close(testsocket);
 			continue;
 		}
 
 		/* Set the global socket handle and source mac address for send_udp() */
 		send_socket = testsocket;
-		memcpy(srcmac, interfaces[i].mac_addr, ETH_ALEN);
-		active_interface = &interfaces[i];
+		memcpy(srcmac, interface->mac_addr, ETH_ALEN);
+		active_interface = interface;
 
 		/* Send a SESSIONSTART message with the current device */
 		init_packet(&data, MT_PTYPE_SESSIONSTART, srcmac, dstmac, sessionkey, 0);

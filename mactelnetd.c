@@ -872,6 +872,7 @@ void mndp_broadcast() {
 void sigterm_handler() {
 	struct mt_connection *p;
 	struct mt_packet pdata;
+	struct net_interface *interface, *tmp;
 	/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
 	char message[] = gettext_noop("\r\n\r\nDaemon shutting down.\r\n");
 
@@ -892,11 +893,14 @@ void sigterm_handler() {
 	close(sockfd);
 	close(insockfd);
 	if (!use_raw_socket) {
-		struct net_interface *interface;
 		LL_FOREACH(interfaces, interface) {
 			if (interface->socketfd > 0)
 				close(interface->socketfd);
 		}
+	}
+	LL_FOREACH_SAFE(interfaces, interface, tmp) {
+		LL_DELETE(interfaces, interface);
+		free(interface);
 	}
 	closelog();
 	exit(0);
@@ -911,8 +915,8 @@ void sighup_handler() {
 		struct net_interface *interface, *tmp;
 		LL_FOREACH_SAFE(interfaces, interface, tmp) {
 			close(interface->socketfd);
-			free(interface);
 			LL_DELETE(interfaces, interface);
+			free(interface);
 		}
 		interfaces = NULL;
 	}

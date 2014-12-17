@@ -69,7 +69,7 @@ struct net_interface *net_get_interface_ptr(struct net_interface **interfaces, c
 	}
 
 	if (create) {
-		interface = (struct net_interface *)malloc(sizeof(struct net_interface));
+		interface = (struct net_interface *)calloc(1, sizeof(struct net_interface));
 		if (interface == NULL) {
 			fprintf(stderr, "Unable to allocate memory for interface\n");
 			exit(1);

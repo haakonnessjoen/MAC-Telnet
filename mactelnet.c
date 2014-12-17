@@ -443,6 +443,7 @@ int main (int argc, char **argv) {
 	struct mt_packet data;
 	struct sockaddr_in si_me;
 	struct autologin_profile *login_profile;
+	struct net_interface *interface, *tmp;
 	unsigned char buff[1500];
 	unsigned char print_help = 0, have_username = 0, have_password = 0;
 	unsigned char drop_priv = 0;
@@ -760,6 +761,11 @@ int main (int argc, char **argv) {
 
 	close(sockfd);
 	close(insockfd);
+
+	LL_FOREACH_SAFE(interfaces, interface, tmp) {
+		LL_DELETE(interfaces, interface);
+		free(interface);
+	}
 
 	return 0;
 }

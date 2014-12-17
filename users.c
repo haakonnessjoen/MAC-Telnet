@@ -16,23 +16,31 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
+#include <libintl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "users.h"
 #include "config.h"
+#include "utlist.h"
 
+#define _(String) gettext (String)
 
-struct mt_credentials mt_users[MT_CRED_MAXNUM];
+struct mt_credentials *mt_users = NULL;
 
 void read_userfile() {
+	struct mt_credentials *cred, *tmp;
 	FILE *file = fopen(USERSFILE, "r");
 	char line [BUFSIZ];
-	int i = 0;
 
 	if (file == NULL) {
 		perror(USERSFILE);
 		exit(1);
+	}
+
+	DL_FOREACH_SAFE(mt_users, cred, tmp) {
+		DL_DELETE(mt_users, cred);
+		free(cred);
 	}
 
 	while ( fgets(line, sizeof line, file) ) {
@@ -42,32 +50,30 @@ void read_userfile() {
 		user = strtok(line, ":");
 		password = strtok(NULL, "\n");
 
-		if (user == NULL || password == NULL) {
+		if (user == NULL || password == NULL || user[0] == '#') {
 			continue;
 		}
 
-		if (user[0] == '#')
-			continue;
+		cred = (struct mt_credentials *)calloc(1, sizeof(struct mt_credentials));
+		if (cred == NULL) {
+			fprintf(stderr, _("Error allocating memory for user information\n"));
+			exit(1);
+		}
 
-		memcpy(mt_users[i].username, user, strlen(user) < MT_CRED_LEN - 1? strlen(user) : MT_CRED_LEN);
-		memcpy(mt_users[i++].password, password, strlen(password)  < MT_CRED_LEN - 1? strlen(password)  : MT_CRED_LEN);
-
-		if (i == MT_CRED_MAXNUM)
-			break;
-
-		mt_users[i].username[0] = '\0';
+		memcpy(cred->username, user, strlen(user) < MT_CRED_LEN - 1? strlen(user) : MT_CRED_LEN);
+		memcpy(cred->password, password, strlen(password)  < MT_CRED_LEN - 1? strlen(password)  : MT_CRED_LEN);
+		DL_APPEND(mt_users, cred);
 	}
 	fclose(file);
 }
 
 struct mt_credentials* find_user(char *username) {
-	int i = 0;
+	struct mt_credentials *cred;
 
-	while (i < MT_CRED_MAXNUM && mt_users[i].username[0] != 0) {
-		if (strcmp(username, mt_users[i].username) == 0) {
-			return &(mt_users[i]);
+	DL_FOREACH(mt_users, cred) {
+		if (strcmp(username, cred->username) == 0) {
+			return cred;
 		}
-		i++;
 	}
 	return NULL;
 }

@@ -464,11 +464,23 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 	if (slavename != NULL) {
 		pid_t pid;
 		struct stat sb;
-		struct passwd *user = (struct passwd *)getpwnam(curconn->username);
-		if (user == NULL) {
+		struct passwd *user = (struct passwd *)malloc(sizeof(struct passwd));
+		struct passwd *tmpuser=user;
+		char *buffer = malloc(1024);
+
+		if (user == NULL || buffer == NULL) {
+			syslog(LOG_CRIT, _("(%d) Error allocating memory."), curconn->seskey);
+			/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
+			abort_connection(curconn, pkthdr, _("System error, out of memory\r\n"));
+			return;
+		}
+
+		if (getpwnam_r(curconn->username, user, buffer, 1024, &tmpuser) != 0) {
 			syslog(LOG_WARNING, _("(%d) Login ok, but local user not accessible (%s)."), curconn->seskey, curconn->username);
 			/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
 			abort_connection(curconn, pkthdr, _("Local user not accessible\r\n"));
+			free(user);
+			free(buffer);
 			return;
 		}
 
@@ -551,6 +563,8 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 			execl(user->pw_shell, user->pw_shell, "-", (char *) 0);
 			exit(0); // just to be sure.
 		}
+		free(user);
+		free(buffer);
 		close(curconn->slavefd);
 		curconn->pid = pid;
 		set_terminal_size(curconn->ptsfd, curconn->terminal_width, curconn->terminal_height);

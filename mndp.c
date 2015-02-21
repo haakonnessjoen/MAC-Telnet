@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <arpa/inet.h>
-#include <netinet/ether.h>
+#include <net/ethernet.h>
 #include <string.h>
 #include "protocol.h"
 #include "config.h"

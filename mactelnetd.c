@@ -26,12 +26,12 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <endian.h>
+#include <machine/endian.h>
 #include <time.h>
 #include <arpa/inet.h>
 #include <net/ethernet.h>
 #include <netinet/in.h>
-#include <netinet/ether.h>
+#include <net/ethernet.h>
 #include <sys/time.h>
 #include <time.h>
 #include <sys/types.h>
@@ -44,7 +44,6 @@
 #endif
 #include <sys/ioctl.h>
 #include <sys/stat.h>
-#include <sys/sysinfo.h>
 #include <pwd.h>
 #include <utmp.h>
 #include <syslog.h>

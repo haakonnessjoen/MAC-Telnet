@@ -26,10 +26,10 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <endian.h>
+#include <machine/endian.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <netinet/ether.h>
+#include <net/ethernet.h>
 #include <sys/time.h>
 #include <time.h>
 #include <sys/types.h>
@@ -47,6 +47,9 @@
 #include "mndp.h"
 
 #define PROGRAM_NAME "MAC-Telnet"
+
+#include <libkern/OSByteOrder.h>
+#define htole16(x) OSSwapHostToLittleInt16(x)
 
 #define _(String) gettext (String)
 

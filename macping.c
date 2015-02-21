@@ -22,7 +22,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <arpa/inet.h>
-#include <netinet/ether.h>
+#include <net/ethernet.h>
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>

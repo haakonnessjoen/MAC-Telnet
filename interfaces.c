@@ -26,8 +26,7 @@
 #include <sys/types.h>
 #include <ifaddrs.h>
 #include <netinet/ip.h>
-#include <netinet/udp.h>
-#include <netinet/ether.h>
+#include <net/ethernet.h>
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <sys/ioctl.h>

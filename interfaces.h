@@ -19,6 +19,42 @@
 #ifndef _INTERFACES_H
 #define _INTERFACES_H 1
 
+#include <stdint.h>
+
+#define ETH_FRAME_LEN   1514
+#define ETH_P_IP	0x0800		/* Internet Protocol packet	*/
+#define ETH_ALEN        6               /* Octets in one ethernet addr   */
+#define IPV4_ALEN 4
+
+struct iphdr {
+  /* xxx: assumes little-endian */
+  uint8_t   ihl:4,
+            version:4;
+  uint8_t   tos;
+  uint16_t  tot_len;
+  uint16_t  id;
+  uint16_t  frag_off;
+  uint8_t   ttl;
+  uint8_t   protocol;
+  uint16_t  check;
+  uint32_t  saddr;
+  uint32_t  daddr;
+};
+
+struct udphdr {
+  uint16_t  source;
+  uint16_t  dest;
+  uint16_t  len;
+  uint16_t check;
+};
+
+
+struct ethhdr {
+	unsigned char	h_dest[ETH_ALEN];
+	unsigned char	h_source[ETH_ALEN];
+	unsigned short	h_proto;
+} __attribute__((packed));
+
 #define MAX_INTERFACES 32
 
 struct net_interface {

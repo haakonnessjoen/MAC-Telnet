@@ -22,7 +22,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <arpa/inet.h>
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__APPLE__)
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <net/ethernet.h>

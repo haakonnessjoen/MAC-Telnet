@@ -26,12 +26,18 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
-#if defined(__FreeBSD__)
+#if defined(__APPLE__)
+# include <libkern/OSByteOrder.h>
+# define htole16 OSSwapHostToLittleInt16
+#elif defined(__FreeBSD__)
 #include <sys/endian.h>
+#else
+#include <endian.h>
+#endif
+#if defined(__FreeBSD__) || defined(__APPLE__)
 #include <sys/types.h>
 #include <net/ethernet.h>
 #else
-#include <endian.h>
 #include <netinet/ether.h>
 #endif
 #include <arpa/inet.h>

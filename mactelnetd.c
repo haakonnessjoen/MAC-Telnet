@@ -19,6 +19,7 @@
 #define _POSIX_C_SOURCE 199309L
 #define _XOPEN_SOURCE 600
 #define _BSD_SOURCE
+#define _DARWIN_C_SOURCE
 #include <libintl.h>
 #include <locale.h>
 #include <stdlib.h>
@@ -27,18 +28,25 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
-#if defined(__FreeBSD__)
-#include <paths.h>
+#if defined(__APPLE__)
+# include <sys/sysctl.h>
+# include <libkern/OSByteOrder.h>
+# define le16toh OSSwapLittleToHostInt16
+# define htole32 OSSwapHostToLittleInt32
+#elif defined(__FreeBSD__)
 #include <sys/endian.h>
 #else
 #include <endian.h>
+#endif
+#if defined(__FreeBSD__) || defined(__APPLE__)
+#include <paths.h>
 #endif
 #include <time.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <net/ethernet.h>
 #include <netinet/in.h>
-#if !defined(__FreeBSD__)
+#if !defined(__FreeBSD__) && !defined(__APPLE__)
 #include <netinet/ether.h>
 #endif
 #include <sys/time.h>
@@ -57,7 +65,7 @@
 #include <sys/sysinfo.h>
 #endif
 #include <pwd.h>
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__APPLE__)
 #include <sys/time.h>
 /* This is the really Posix interface the Linux code should have used !!*/
 #include <utmpx.h>
@@ -297,7 +305,7 @@ static void display_nologin() {
 }
 
 static void uwtmp_login(struct mt_connection *conn) {
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__APPLE__)
 	struct utmpx utent;
 #else
 	struct utmp utent;
@@ -321,14 +329,14 @@ static void uwtmp_login(struct mt_connection *conn) {
 	strncpy(utent.ut_host,
                 ether_ntoa((const struct ether_addr *)conn->srcmac),
                 sizeof(utent.ut_host));
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__APPLE__)
 	gettimeofday(&utent.ut_tv, NULL);
 #else
 	time((time_t *)&(utent.ut_time));
 #endif
 
 	/* Update utmp and/or wtmp */
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__APPLE__)
 	setutxent();
 	pututxline(&utent);
 	endutxent();
@@ -342,7 +350,7 @@ static void uwtmp_login(struct mt_connection *conn) {
 
 static void uwtmp_logout(struct mt_connection *conn) {
 	if (conn->pid > 0) {
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__APPLE__)
 		struct utmpx *utentp;
 		struct utmpx utent;
 		setutxent();
@@ -352,7 +360,7 @@ static void uwtmp_logout(struct mt_connection *conn) {
 		setutent();
 #endif
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__APPLE__)
 		while ((utentp = getutxent()) != NULL) {
 #else
 		while ((utentp = getutent()) != NULL) {
@@ -368,7 +376,7 @@ static void uwtmp_logout(struct mt_connection *conn) {
 			utent.ut_type = DEAD_PROCESS;
 			utent.ut_tv.tv_sec = time(NULL);
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__APPLE__)
 			pututxline(&utent);
 			endutxent();
 #else
@@ -787,7 +795,15 @@ void mndp_broadcast() {
 	struct utsname s_uname;
 	struct net_interface *interface;
 	unsigned int uptime;
-#ifdef __linux__
+#if defined(__APPLE__)
+	int mib[] = {CTL_KERN, KERN_BOOTTIME};
+	struct timeval boottime;
+	size_t tv_size = sizeof(boottime);
+	if (sysctl(mib, sizeof(mib)/sizeof(mib[0]), &boottime, &tv_size, NULL, 0) == -1) {
+	  return;
+	}
+	uptime = htole32(boottime.tv_sec);
+#elif defined(__linux__)
 	struct sysinfo s_sysinfo;
 
 	if (sysinfo(&s_sysinfo) != 0) {

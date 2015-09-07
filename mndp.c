@@ -120,7 +120,7 @@ int mndp(int timeout, int batch_mode)  {
 		struct mt_mndp_info *packet;
 		struct sockaddr_in addr;
 		socklen_t addrlen = sizeof(addr);
-		char ipstr[INET6_ADDRSTRLEN];
+		char ipstr[INET_ADDRSTRLEN];
 
 		memset(&addr, 0, addrlen);
 

@@ -1,0 +1,5 @@
+*.o
+macping
+mactelnet
+mactelnetd
+mndp

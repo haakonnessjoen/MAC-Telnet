@@ -1,8 +1,6 @@
 
 CC?=gcc
 
-# Run this with make LIBS=-lrt if you want to compile on kfreebsd
-
 all: macping mndp mactelnet mactelnetd
 
 clean: distclean
@@ -57,7 +55,7 @@ mactelnet: config.h mactelnet.c mactelnet.h protocol.o console.o interfaces.o md
 	${CC} -Wall ${CFLAGS} ${LDFLAGS} -o mactelnet mactelnet.c protocol.o console.o interfaces.o md5.o autologin.o -DFROM_MACTELNET mndp.c ${LIBS}
 
 mactelnetd: config.h mactelnetd.c protocol.o interfaces.o console.o users.o users.h md5.o
-	${CC} -Wall ${CFLAGS} ${LDFLAGS} -o mactelnetd mactelnetd.c protocol.o console.o interfaces.o users.o md5.o ${LIBS}
+	${CC} -Wall ${CFLAGS} ${LDFLAGS} -o mactelnetd mactelnetd.c protocol.o console.o interfaces.o users.o md5.o -lrt ${LIBS}
 
 mndp: config.h mndp.c protocol.o
 	${CC} -Wall ${CFLAGS} ${LDFLAGS} -o mndp mndp.c protocol.o ${LIBS}

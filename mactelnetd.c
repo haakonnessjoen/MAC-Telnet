@@ -16,9 +16,8 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-#if defined(__linux__)
+#define _POSIX_C_SOURCE 199309L
 #define _XOPEN_SOURCE 600
-#endif
 #define _BSD_SOURCE
 #include <libintl.h>
 #include <locale.h>

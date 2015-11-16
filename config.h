@@ -21,7 +21,7 @@
 
 #define DEBUG 0
 
-#define PROGRAM_VERSION "0.4.1"
+#define PROGRAM_VERSION "0.4.2"
 
 #define AUTOLOGIN_PATH "~/.mactelnet"
 

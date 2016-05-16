@@ -28,7 +28,7 @@
 #endif
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__APPLE__)
 #include <net/ethernet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -36,7 +36,10 @@
 #include <netinet/ether.h>
 #endif
 #include <time.h>
-#if defined(__FreeBSD__)
+#if defined(__APPLE__)
+# include <libkern/OSByteOrder.h>
+# define le32toh OSSwapLittleToHostInt32
+#elif defined(__FreeBSD__)
 #include <sys/endian.h>
 #else
 #include <endian.h>
@@ -562,7 +565,12 @@ int query_mndp_or_mac(char *address, unsigned char *dstmac, int verbose) {
 		}
 	} else {
 		/* Convert mac address string to ether_addr struct */
+#if defined(__APPLE__)
+		struct ether_addr* dstmac_buf = ether_aton(address);
+		memcpy(dstmac, dstmac_buf, sizeof(struct ether_addr));
+#else
 		ether_aton_r(address, (struct ether_addr *)dstmac);
+#endif
 	}
 
 	return 1;

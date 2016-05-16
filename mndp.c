@@ -23,7 +23,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <errno.h>
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__APPLE__)
 #include <net/ethernet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>

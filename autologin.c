@@ -63,9 +63,9 @@ int autologin_readfile(char *configfile) {
 	FILE *fp;
 	char c;
 	int i = -1;
-	char *p;
 	char *file_to_read;
 	char key[AUTOLOGIN_MAXSTR];
+	char *p=key;
 	char value[AUTOLOGIN_MAXSTR];
 	int line_counter=1;
 	enum autologin_state state = ALS_NONE;

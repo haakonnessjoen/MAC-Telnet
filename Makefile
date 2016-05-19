@@ -40,7 +40,7 @@ autologin.o: autologin.c autologin.h
 	${CC} -Wall ${CFLAGS} -c autologin.c
 
 users.o: users.c users.h
-	${CC} -Wall ${CFLAGS} -DUSERSFILE='"/etc/mactelnetd.users"' -c users.c
+	${CC} -Wall ${CFLAGS} -DUSERSFILE='"$(DESTDIR)/etc/mactelnetd.users"' -c users.c
 
 protocol.o: protocol.c protocol.h
 	${CC} -Wall ${CFLAGS} -c protocol.c

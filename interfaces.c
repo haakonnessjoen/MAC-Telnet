@@ -309,7 +309,8 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 	unsigned char *rest =
 	  (unsigned char *)(buffer + 20 + 14 + sizeof(struct udphdr));
 
-	if (((void *)rest - (void*)buffer) + datalen  > ETH_FRAME_LEN) {
+	/* Avoid integer overflow in check */
+	if (datalen > ETH_FRAME_LEN - ((void *)rest - (void*)buffer)) {
 		fprintf(stderr, _("packet size too large\n"));
 		return 0;
 	}

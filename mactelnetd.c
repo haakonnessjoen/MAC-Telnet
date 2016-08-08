@@ -140,15 +140,15 @@ struct mt_connection {
 	int slavefd;
 	int pid;
 	int wait_for_ack;
-	int have_enckey;
+	int have_pass_salt;
 
-	char username[30];
+	char username[MT_MNDP_MAX_STRING_SIZE];
 	unsigned char trypassword[17];
 	unsigned char srcip[IPV4_ALEN];
 	unsigned char srcmac[ETH_ALEN];
 	unsigned short srcport;
 	unsigned char dstmac[ETH_ALEN];
-	unsigned char enckey[16];
+	unsigned char pass_salt[16];
 	unsigned short terminal_width;
 	unsigned short terminal_height;
 	char terminal_type[30];
@@ -421,10 +421,10 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		}
 #endif
 
-		/* Concat string of 0 + password + encryptionkey */
+		/* Concat string of 0 + password + pass_salt */
 		md5data[0] = 0;
 		strncpy(md5data + 1, user->password, 82);
-		memcpy(md5data + 1 + strlen(user->password), curconn->enckey, 16);
+		memcpy(md5data + 1 + strlen(user->password), curconn->pass_salt, 16);
 
 		/* Generate md5 sum of md5data with a leading 0 */
 		md5_init(&state);
@@ -583,6 +583,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 	struct mt_mactelnet_control_hdr cpkt;
 	struct mt_packet pdata;
 	unsigned char *data = pkthdr->data;
+	unsigned int act_size = 0;
 	int got_user_packet = 0;
 	int got_pass_packet = 0;
 	int got_width_packet = 0;
@@ -595,34 +596,34 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 	while (success) {
 		if (cpkt.cptype == MT_CPTYPE_BEGINAUTH) {
 			int plen,i;
-			if (!curconn->have_enckey) {
+			if (!curconn->have_pass_salt) {
 				for (i = 0; i < 16; ++i) {
-					curconn->enckey[i] = rand() % 256;
+					curconn->pass_salt[i] = rand() % 256;
 				}
-				curconn->have_enckey = 1;
+				curconn->have_pass_salt = 1;
 
 				memset(curconn->trypassword, 0, sizeof(curconn->trypassword));
 			}
 			init_packet(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
-			plen = add_control_packet(&pdata, MT_CPTYPE_ENCRYPTIONKEY, (curconn->enckey), 16);
+			plen = add_control_packet(&pdata, MT_CPTYPE_PASSSALT, (curconn->pass_salt), 16);
 			curconn->outcounter += plen;
 
 			send_udp(curconn, &pdata);
-
-		} else if (cpkt.cptype == MT_CPTYPE_USERNAME) {
-
-			memcpy(curconn->username, cpkt.data, cpkt.length > 29 ? 29 : cpkt.length);
-			curconn->username[cpkt.length > 29 ? 29 : cpkt.length] = 0;
+		
+		/* Don't change the username after the state is active */
+		} else if (cpkt.cptype == MT_CPTYPE_USERNAME && curconn->state != STATE_ACTIVE) {
+			memcpy(curconn->username, cpkt.data, act_size = (cpkt.length > MT_MNDP_MAX_STRING_SIZE - 1 ? MT_MNDP_MAX_STRING_SIZE - 1 : cpkt.length));
+			curconn->username[act_size] = 0;
 			got_user_packet = 1;
 
-		} else if (cpkt.cptype == MT_CPTYPE_TERM_WIDTH) {
+		} else if (cpkt.cptype == MT_CPTYPE_TERM_WIDTH && cpkt.length >= 2) {
 			unsigned short width;
 
 			memcpy(&width, cpkt.data, 2);
 			curconn->terminal_width = le16toh(width);
 			got_width_packet = 1;
 
-		} else if (cpkt.cptype == MT_CPTYPE_TERM_HEIGHT) {
+		} else if (cpkt.cptype == MT_CPTYPE_TERM_HEIGHT && cpkt.length >= 2) {
 			unsigned short height;
 
 			memcpy(&height, cpkt.data, 2);
@@ -631,8 +632,8 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 
 		} else if (cpkt.cptype == MT_CPTYPE_TERM_TYPE) {
 
-			memcpy(curconn->terminal_type, cpkt.data, cpkt.length > 29 ? 29 : cpkt.length);
-			curconn->terminal_type[cpkt.length > 29 ? 29 : cpkt.length] = 0;
+			memcpy(curconn->terminal_type, cpkt.data, act_size = (cpkt.length > 30 - 1 ? 30 - 1 : cpkt.length));
+			curconn->terminal_type[act_size] = 0;
 
 		} else if (cpkt.cptype == MT_CPTYPE_PASSWORD) {
 
@@ -673,6 +674,10 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 	struct mt_packet pdata;
 	struct net_interface *interface;
 
+	/* Check for minimal size */
+	if (data_len < MT_HEADER_LEN - 4) {
+		return;
+	}
 	parse_packet(data, &pkthdr);
 
 	/* Drop packets not belonging to us */
@@ -684,6 +689,8 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 
 		case MT_PTYPE_PING:
 			if (pings++ > MT_MAXPPS) {
+				/* Don't want it to wrap around back to the valid range */
+				pings--;
 				break;
 			}
 			init_pongpacket(&pdata, (unsigned char *)&(pkthdr.dstaddr), (unsigned char *)&(pkthdr.srcaddr));
@@ -758,6 +765,12 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 				break;
 			}
 			curconn->lastdata = time(NULL);
+
+			/* now check the right size */
+			if (data_len < MT_HEADER_LEN) {
+				/* Ignore illegal packet */
+				return;
+			}
 
 			/* ack the data packet */
 			init_packet(&pdata, MT_PTYPE_ACK, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter + (data_len - MT_HEADER_LEN));
@@ -1109,17 +1122,19 @@ int main (int argc, char **argv) {
 			 TODO: Enable broadcast support (without raw sockets)
 			 */
 			if (FD_ISSET(insockfd, &read_fds)) {
-				unsigned char buff[1500];
+				unsigned char buff[MT_PACKET_LEN];
 				struct sockaddr_in saddress;
 				unsigned int slen = sizeof(saddress);
-				result = recvfrom(insockfd, buff, 1500, 0, (struct sockaddr *)&saddress, &slen);
+				bzero(buff, MT_HEADER_LEN);
+
+				result = recvfrom(insockfd, buff, sizeof(buff), 0, (struct sockaddr *)&saddress, &slen);
 				handle_packet(buff, result, &saddress);
 			}
 			if (FD_ISSET(mndpsockfd, &read_fds)) {
-				unsigned char buff[1500];
+				unsigned char buff[MT_PACKET_LEN];
 				struct sockaddr_in saddress;
 				unsigned int slen = sizeof(saddress);
-				result = recvfrom(mndpsockfd, buff, 1500, 0, (struct sockaddr *)&saddress, &slen);
+				result = recvfrom(mndpsockfd, buff, sizeof(buff), 0, (struct sockaddr *)&saddress, &slen);
 
 				/* Handle MNDP broadcast request, max 1 rps */
 				if (result == 4 && time(NULL) - last_mndp_time > 0) {
@@ -1135,7 +1150,7 @@ int main (int argc, char **argv) {
 					int datalen,plen;
 
 					/* Read it */
-					datalen = read(p->ptsfd, &keydata, 1024);
+					datalen = read(p->ptsfd, &keydata, sizeof(keydata));
 					if (datalen > 0) {
 						/* Send it */
 						init_packet(&pdata, MT_PTYPE_DATA, p->dstmac, p->srcmac, p->seskey, p->outcounter);

@@ -52,8 +52,9 @@ static char *tilde_to_path(char *path) {
 	if (*path == '~' && (homepath = getenv("HOME"))) {
 		static char newpath[256];
 		memset(newpath, 0, sizeof(newpath));
-		strncpy(newpath, homepath, 255);
-		strncat(newpath, path+1, 255);
+		strncpy(newpath, homepath, sizeof(newpath) - 1);
+		/* strncat is confusing, try not to overflow */
+		strncat(newpath, path+1, sizeof(newpath) - strlen(newpath) - 1);
 		return newpath;
 	}
 	return path;

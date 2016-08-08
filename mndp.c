@@ -125,7 +125,7 @@ int mndp(int timeout, int batch_mode)  {
 		memset(&addr, 0, addrlen);
 
 		/* Wait for a UDP packet */
-		result = recvfrom(sock, buff, MT_PACKET_LEN, 0, (struct sockaddr *)&addr, &addrlen);
+		result = recvfrom(sock, buff, sizeof(buff), 0, (struct sockaddr *)&addr, &addrlen);
 		if (result < 0) {
 			fprintf(stderr, _("An error occured. aborting\n"));
 			exit(1);

@@ -96,10 +96,10 @@ static char autologin_path[255];
 
 static int keepalive_counter = 0;
 
-static unsigned char encryptionkey[128];
-static char username[255];
-static char password[255];
-static char nonpriv_username[255];
+static unsigned char pass_salt[17];
+static char username[MT_MNDP_MAX_STRING_SIZE];
+static char password[MT_MNDP_MAX_STRING_SIZE];
+static char nonpriv_username[MT_MNDP_MAX_STRING_SIZE];
 
 struct net_interface *interfaces=NULL;
 struct net_interface *active_interface;
@@ -179,11 +179,11 @@ static int send_udp(struct mt_packet *packet, int retransmit) {
 			/* Wait for data or timeout */
 			reads = select(insockfd + 1, &read_fds, NULL, NULL, &timeout);
 			if (reads && FD_ISSET(insockfd, &read_fds)) {
-				unsigned char buff[1500];
+				unsigned char buff[MT_PACKET_LEN];
 				int result;
 
-				bzero(buff, 1500);
-				result = recvfrom(insockfd, buff, 1500, 0, 0, 0);
+				bzero(buff, sizeof(buff));
+				result = recvfrom(insockfd, buff, sizeof(buff), 0, 0, 0);
 
 				/* Handle incoming packets, waiting for an ack */
 				if (result > 0 && handle_packet(buff, result) == MT_PTYPE_ACK) {
@@ -220,11 +220,11 @@ static void send_auth(char *username, char *password) {
 	mlock(md5sum, sizeof(md5data));
 #endif
 
-	/* Concat string of 0 + password + encryptionkey */
+	/* Concat string of 0 + password + pass_salt */
 	md5data[0] = 0;
 	strncpy(md5data + 1, password, 82);
 	md5data[83] = '\0';
-	memcpy(md5data + 1 + strlen(password), encryptionkey, 16);
+	memcpy(md5data + 1 + strlen(password), pass_salt, 16);
 
 	/* Generate md5 sum of md5data with a leading 0 */
 	md5_init(&state);
@@ -274,6 +274,11 @@ static void sig_winch(int sig) {
 
 static int handle_packet(unsigned char *data, int data_len) {
 	struct mt_mactelnet_hdr pkthdr;
+
+	/* Minimal size checks (pings are not supported here) */
+	if (data_len < MT_HEADER_LEN){
+		return -1;
+	}
 	parse_packet(data, &pkthdr);
 
 	/* We only care about packets with correct sessionkey */
@@ -305,17 +310,16 @@ static int handle_packet(unsigned char *data, int data_len) {
 
 		while (success) {
 
-			/* If we receive encryptionkey, transmit auth data back */
-			if (cpkt.cptype == MT_CPTYPE_ENCRYPTIONKEY) {
-				memcpy(encryptionkey, cpkt.data, cpkt.length);
+			/* If we receive pass_salt, transmit auth data back */
+			if (cpkt.cptype == MT_CPTYPE_PASSSALT) {
+				memcpy(pass_salt, cpkt.data, cpkt.length);
 				send_auth(username, password);
 			}
 
 			/* If the (remaining) data did not have a control-packet magic byte sequence,
 			   the data is raw terminal data to be outputted to the terminal. */
 			else if (cpkt.cptype == MT_CPTYPE_PLAINDATA) {
-				cpkt.data[cpkt.length] = 0;
-				fputs((const char *)cpkt.data, stdout);
+				fwrite((const void *)cpkt.data, 1, cpkt.length, stdout);
 			}
 
 			/* END_AUTH means that the user/password negotiation is done, and after this point
@@ -450,13 +454,13 @@ int main (int argc, char **argv) {
 	struct sockaddr_in si_me;
 	struct autologin_profile *login_profile;
 	struct net_interface *interface, *tmp;
-	unsigned char buff[1500];
+	unsigned char buff[MT_PACKET_LEN];
 	unsigned char print_help = 0, have_username = 0, have_password = 0;
 	unsigned char drop_priv = 0;
 	int c;
 	int optval = 1;
 
-	strncpy(autologin_path, AUTOLOGIN_PATH, 254);
+	strncpy(autologin_path, AUTOLOGIN_PATH, sizeof(autologin_path));
 
 	setlocale(LC_ALL, "");
 	bindtextdomain("mactelnet","/usr/share/locale");
@@ -526,7 +530,8 @@ int main (int argc, char **argv) {
 				break;
 
 			case 'a':
-				strncpy(autologin_path, optarg, 254);
+				strncpy(autologin_path, optarg, sizeof(autologin_path) - 1);
+				autologin_path[sizeof(autologin_path) - 1] = '\0';
 				break;
 
 			case 'h':
@@ -643,7 +648,7 @@ int main (int argc, char **argv) {
 			printf(_("Login: "));
 			fflush(stdout);
 		}
-		scanf("%254s", username);
+		scanf("%127s", username);
 	}
 
 	if (!have_password) {
@@ -690,7 +695,7 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 
-	if (!find_interface() || (result = recvfrom(insockfd, buff, 1400, 0, 0, 0)) < 1) {
+	if (!find_interface() || (result = recvfrom(insockfd, buff, sizeof(buff), 0, 0, 0)) < 1) {
 		fprintf(stderr, _("Connection failed.\n"));
 		return 1;
 	}
@@ -702,7 +707,7 @@ int main (int argc, char **argv) {
 	handle_packet(buff, result);
 
 	init_packet(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, 0);
-	outcounter +=  add_control_packet(&data, MT_CPTYPE_BEGINAUTH, NULL, 0);
+	outcounter += add_control_packet(&data, MT_CPTYPE_BEGINAUTH, NULL, 0);
 
 	/* TODO: handle result of send_udp */
 	result = send_udp(&data, 1);
@@ -728,8 +733,8 @@ int main (int argc, char **argv) {
 		if (reads > 0) {
 			/* Handle data from server */
 			if (FD_ISSET(insockfd, &read_fds)) {
-				bzero(buff, 1500);
-				result = recvfrom(insockfd, buff, 1500, 0, 0, 0);
+				bzero(buff, sizeof(buff));
+				result = recvfrom(insockfd, buff, sizeof(buff), 0, 0, 0);
 				handle_packet(buff, result);
 			}
 			/* Handle data from keyboard/local terminal */
@@ -737,7 +742,7 @@ int main (int argc, char **argv) {
 				unsigned char keydata[512];
 				int datalen;
 
-				datalen = read(STDIN_FILENO, &keydata, 512);
+				datalen = read(STDIN_FILENO, &keydata, sizeof(keydata));
 
 				if (datalen > 0) {
 					/* Data received, transmit to server */

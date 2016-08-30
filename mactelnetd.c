@@ -365,7 +365,7 @@ static void uwtmp_logout(struct mt_connection *conn) {
 #else
 		while ((utentp = getutent()) != NULL) {
 #endif
-			if (utentp->ut_pid == conn->pid && utentp->ut_id) {
+			if (utentp->ut_pid == conn->pid && utentp->ut_id[0]) {
 				break;
 			}
 		}
@@ -925,7 +925,7 @@ void sighup_handler() {
 
 	/* Reassign outgoing interfaces to connections again, since they may have changed */
 	DL_FOREACH(connections_head, p) {
-		if (p->interface_name != NULL) {
+		if (p->interface_name[0] != 0) {
 			struct net_interface *interface = net_get_interface_ptr(&interfaces, p->interface_name, 0);
 			if (interface != NULL) {
 				p->interface = interface;
@@ -1168,7 +1168,7 @@ int main (int argc, char **argv) {
 						struct mt_connection tmp;
 						init_packet(&pdata, MT_PTYPE_END, p->dstmac, p->srcmac, p->seskey, p->outcounter);
 						send_udp(p, &pdata);
-						if (p->username != NULL) {
+						if (p->username[0] != 0) {
 							syslog(LOG_INFO, _("(%d) Connection to user %s closed."), p->seskey, p->username);
 						} else {
 							syslog(LOG_INFO, _("(%d) Connection closed."), p->seskey);

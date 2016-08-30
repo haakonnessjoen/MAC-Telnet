@@ -84,8 +84,9 @@ int add_control_packet(struct mt_packet *packet, enum mt_cptype cptype, void *cp
 	unsigned char *data = packet->data + packet->size;
 	unsigned int act_size = data_len + (cptype == MT_CPTYPE_PLAINDATA ? 0 : MT_CPHEADER_LEN);
 
-	/* Something is really wrong. Packets should never become over 1500 bytes */
-	if (packet->size + act_size > MT_PACKET_LEN) {
+	/* Something is really wrong. Packets should never become over 1500 bytes,
+       perform an Integer-Overflow safe check */
+	if (act_size > MT_PACKET_LEN - packet->size) {
 		fprintf(stderr, _("add_control_packet: ERROR, too large packet. Exceeds %d bytes\n"), MT_PACKET_LEN);
 		return -1;
 		//exit(1);
@@ -149,7 +150,8 @@ int init_pongpacket(struct mt_packet *packet, unsigned char *srcmac, unsigned ch
 }
 
 int add_packetdata(struct mt_packet *packet, unsigned char *data, unsigned short length) {
-	if (packet->size + length > MT_PACKET_LEN) {
+	/* Integer-Overflow safe check */
+	if (length > MT_PACKET_LEN - packet->size) {
 		fprintf(stderr, _("add_control_packet: ERROR, too large packet. Exceeds %d bytes\n"), MT_PACKET_LEN);
 		return -1;
 	}
@@ -272,7 +274,7 @@ int mndp_add_attribute(struct mt_packet *packet, enum mt_mndp_attrtype attrtype,
 	unsigned short len = data_len;
 
 	/* Something is really wrong. Packets should never become over 1500 bytes */
-	if (packet->size + 4 + data_len > MT_PACKET_LEN) {
+	if (data_len > MT_PACKET_LEN - 4 - packet->size) {
 		fprintf(stderr, _("mndp_add_attribute: ERROR, too large packet. Exceeds %d bytes\n"), MT_PACKET_LEN);
 		return -1;
 	}

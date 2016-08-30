@@ -407,6 +407,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 	char md5data[100];
 	struct mt_credentials *user;
 	char *slavename;
+	int act_pass_len;
 
 	/* Reparse user file before each login */
 	read_userfile();
@@ -421,14 +422,18 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		}
 #endif
 
+		/* calculate the password's actual length */
+		act_pass_len = strlen(user->password);
+		act_pass_len = act_pass_len <= 82 ? act_pass_len : 82;
+
 		/* Concat string of 0 + password + pass_salt */
 		md5data[0] = 0;
-		strncpy(md5data + 1, user->password, 82);
-		memcpy(md5data + 1 + strlen(user->password), curconn->pass_salt, 16);
+		memcpy(md5data + 1, user->password, act_pass_len);
+		memcpy(md5data + 1 + act_pass_len, curconn->pass_salt, 16);
 
 		/* Generate md5 sum of md5data with a leading 0 */
 		md5_init(&state);
-		md5_append(&state, (const md5_byte_t *)md5data, strlen(user->password) + 17);
+		md5_append(&state, (const md5_byte_t *)md5data, 1 + act_pass_len + 16);
 		md5_finish(&state, (md5_byte_t *)md5sum + 1);
 		md5sum[0] = 0;
 
@@ -635,7 +640,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 			memcpy(curconn->terminal_type, cpkt.data, act_size = (cpkt.length > 30 - 1 ? 30 - 1 : cpkt.length));
 			curconn->terminal_type[act_size] = 0;
 
-		} else if (cpkt.cptype == MT_CPTYPE_PASSWORD) {
+		} else if (cpkt.cptype == MT_CPTYPE_PASSWORD && cpkt.length == 17) {
 
 #if defined(__linux__) && defined(_POSIX_MEMLOCK_RANGE)
 			mlock(curconn->trypassword, 17);
@@ -651,7 +656,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 			}
 
 		} else {
-			syslog(LOG_WARNING, _("(%d) Unhandeled control packet type: %d"), curconn->seskey, cpkt.cptype);
+			syslog(LOG_WARNING, _("(%d) Unhandeled control packet type: %d, length: %d"), curconn->seskey, cpkt.cptype, cpkt.length);
 		}
 
 		/* Parse next control packet */

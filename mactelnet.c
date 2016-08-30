@@ -96,7 +96,7 @@ static char autologin_path[255];
 
 static int keepalive_counter = 0;
 
-static unsigned char pass_salt[17];
+static unsigned char pass_salt[16];
 static char username[MT_MNDP_MAX_STRING_SIZE];
 static char password[MT_MNDP_MAX_STRING_SIZE];
 static char nonpriv_username[MT_MNDP_MAX_STRING_SIZE];
@@ -212,7 +212,7 @@ static void send_auth(char *username, char *password) {
 	char *terminal = getenv("TERM");
 	char md5data[100];
 	unsigned char md5sum[17];
-	int plen;
+	int plen, act_pass_len;
 	md5_state_t state;
 
 #if defined(__linux__) && defined(_POSIX_MEMLOCK_RANGE)
@@ -220,15 +220,18 @@ static void send_auth(char *username, char *password) {
 	mlock(md5sum, sizeof(md5data));
 #endif
 
+	/* calculate the actual password's length */
+	act_pass_len = strnlen(password, 82);
+
 	/* Concat string of 0 + password + pass_salt */
 	md5data[0] = 0;
-	strncpy(md5data + 1, password, 82);
-	md5data[83] = '\0';
-	memcpy(md5data + 1 + strlen(password), pass_salt, 16);
+	memcpy(md5data + 1, password, act_pass_len);
+	/* in case that password is long, calculate only using the used-up parts */
+	memcpy(md5data + 1 + act_pass_len, pass_salt, 16);
 
 	/* Generate md5 sum of md5data with a leading 0 */
 	md5_init(&state);
-	md5_append(&state, (const md5_byte_t *)md5data, strlen(password) + 17);
+	md5_append(&state, (const md5_byte_t *)md5data, 1 + act_pass_len + 16);
 	md5_finish(&state, (md5_byte_t *)md5sum + 1);
 	md5sum[0] = 0;
 
@@ -312,7 +315,11 @@ static int handle_packet(unsigned char *data, int data_len) {
 
 			/* If we receive pass_salt, transmit auth data back */
 			if (cpkt.cptype == MT_CPTYPE_PASSSALT) {
-				memcpy(pass_salt, cpkt.data, cpkt.length);
+				/* check validity, server sends exactly 16 bytes */
+				if (cpkt.length != 16) {
+					fprintf(stderr, _("Invalid salt length: %d (instead of 16) received from server %s\n"), cpkt.length, ether_ntoa((struct ether_addr *)dstmac));
+				}
+				memcpy(pass_salt, cpkt.data, 16);
 				send_auth(username, password);
 			}
 

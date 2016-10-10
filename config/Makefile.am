@@ -1,4 +1,4 @@
-sysconf_DATA = mactelnetd.users
+dist_sysconf_DATA = mactelnetd.users
 
 install-exec-hook:
 	       chmod 600 $(DESTDIR)$(prefix)/etc/mactelnetd.users

@@ -16,7 +16,8 @@ AC_PROG_INSTALL
 
 # Checks for libraries.
 AM_GNU_GETTEXT([external])
-AM_GNU_GETTEXT_VERSION([0.18.1])
+AM_GNU_GETTEXT_VERSION([0.18])
+
 AC_CHECK_LIB([rt], [nanosleep])
 
 # Checks for header files.

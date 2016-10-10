@@ -107,7 +107,7 @@ int mndp(int timeout, int batch_mode)  {
 	}
 
 	if (batch_mode) {
-		printf("%s\n", _("MAC-Address,Identity,Platform,Version,Hardware,Uptime,Softid,Ifname,IP"));
+		printf("%s\n", "MAC-Address,Identity,Platform,Version,Hardware,Uptime,Softid,Ifname,IP");
 	} else {
 		printf("\n\E[1m%-15s %-17s %s\E[m\n", _("IP"), _("MAC-Address"), _("Identity (platform version hardware) uptime"));
 	}

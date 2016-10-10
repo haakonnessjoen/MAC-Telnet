@@ -13,6 +13,8 @@ Download source tarball, extract, compile and install:
     wget http://github.com/haakonnessjoen/MAC-Telnet/tarball/master
     tar zxvf haakonness*.tar.gz
     cd haakonness*/
+    ./autogen.sh
+    ./configure
     make all install
 
 Now you're ready.
@@ -29,7 +31,11 @@ Install dependencies, download source tarball, extract, compile and install:
     brew install gettext
     
     # Check what paths it tells you to use, for a standard install, the following should suffice:
-    make LDFLAGS=-L/usr/local/opt/gettext/lib CFLAGS=-I/usr/local/opt/gettext/include all install
+    export PATH=/usr/local/opt/gettext/bin:$PATH
+    
+    ./autogen.sh
+    ./configure
+    make all install
 
 And you are ready..
 

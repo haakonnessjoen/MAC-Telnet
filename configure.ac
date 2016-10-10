@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.68])
 AC_INIT(mactelnet, 0.4.3, haakon.nessjoen@gmail.com)
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_SRCDIR([src/mactelnet.c])
 AC_CONFIG_HEADERS([src/config.h])
 

@@ -566,7 +566,7 @@ int main (int argc, char **argv) {
 			"  -B             Batch mode. Use computer readable output (CSV), for use with -l.\n"
 			"  -n             Do not use broadcast packets. Less insecure but requires\n"
 			"                 root privileges.\n"
-			"  -a <path>      Use specified path instead of the default: " AUTOLOGIN_PATH " for autologin config file.\n"
+			"  -a <path>      Use specified path instead of the default: %s for autologin config file.\n"
 			"  -A             Disable autologin feature.\n"
 			"  -t <timeout>   Amount of seconds to wait for a response on each interface.\n"
 			"  -u <user>      Specify username on command line.\n"
@@ -575,7 +575,7 @@ int main (int argc, char **argv) {
 			"                 for security.\n"
 			"  -q             Quiet mode.\n"
 			"  -h             This help.\n"
-			"\n"));
+			"\n"), AUTOLOGIN_PATH);
 		}
 		return 1;
 	}

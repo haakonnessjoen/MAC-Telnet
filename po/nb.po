@@ -1,14 +1,14 @@
-# SOME DESCRIPTIVE TITLE.
+# Norsk
 # Copyright (C) 2013 Håkon Nessjøen
 # This file is distributed under the same license as the mactelnet package.
-# Håkon Nessjøen <haakon.nessjoen@gmail.com>, 2013
+# Håkon Nessjøen <haakon.nessjoen@gmail.com>, 2016
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: mactelnet\n"
 "Report-Msgid-Bugs-To: haakon.nessjoen@gmail.com\n"
-"POT-Creation-Date: 2016-10-10 11:17+0200\n"
-"PO-Revision-Date: 2013-01-13 18:15+0100\n"
+"POT-Creation-Date: 2016-10-10 22:44+0200\n"
+"PO-Revision-Date: 2016-10-10 22:06+0200\n"
 "Last-Translator: Håkon Nessjøen <haakon.nessjoen@gmail.com>\n"
 "Language-Team: Håkon Nessjøen <haakon.nessjoen@gmail.com>\n"
 "Language: nb\n"
@@ -24,23 +24,23 @@ msgid ""
 "Failed dropping privileges. The user %s is not a valid username on local "
 "system.\n"
 msgstr ""
-"Klarte ikke droppe privilegier. Brukernavnet %s er ikke gyldig på det lokale "
-"systemet.\n"
+"Klarte ikke slippe tilgangsnivå. Brukernavnet %s er ikke gyldig på det "
+"lokale systemet.\n"
 
 #: src/mactelnet.c:128
 #, c-format
 msgid "setgid: Error dropping group privileges\n"
-msgstr "setgid: Klarte ikke droppe gruppeprivilegier\n"
+msgstr "setgid: Klarte ikke slippe tilgangsnivå for gruppe\n"
 
 #: src/mactelnet.c:132
 #, c-format
 msgid "setuid: Error dropping user privileges\n"
-msgstr "setud: Klarte ikke droppe brukerprivilegier\n"
+msgstr "setud: Klarte ikke slippe tilgangsnivå for bruker\n"
 
 #: src/mactelnet.c:137
 #, c-format
 msgid "Failed to drop privileges\n"
-msgstr "Klarte ikke droppe privilegier\n"
+msgstr "Klarte ikke slippe tilgangsnivå\n"
 
 #: src/mactelnet.c:203
 #, c-format
@@ -52,14 +52,14 @@ msgstr ""
 "Tilkoblingen fikk tidsavbrudd\n"
 
 #: src/mactelnet.c:321
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid salt length: %d (instead of 16) received from server %s\n"
-msgstr "Uhåndtert pakketype: %d mottatt fra server %s\n"
+msgstr "Ugyldig lengde på salt: %d (isteden for 16) mottatt fra server %s\n"
 
 #: src/mactelnet.c:368
 #, c-format
 msgid "Connection closed.\n"
-msgstr "Tilkoblingen ble stengt.\n"
+msgstr "Tilkoblingen ble lukket.\n"
 
 #: src/mactelnet.c:374
 #, c-format
@@ -72,16 +72,17 @@ msgid "Error: No suitable devices found\n"
 msgstr "Feil: Ingen brukbare enheter funnet\n"
 
 #: src/mactelnet.c:557
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Usage: %s <MAC|identity> [-h] [-n] [-a <path>] [-A] [-t <timeout>] [-u "
 "<user>] [-p <password>] [-U <user>] | -l [-B] [-t <timeout>]\n"
 msgstr ""
-"Bruksmåte: %s <MAC|identitet> [-h] [-n] [-t <tidsbegrensning>] [-u "
-"<brukernavn>] [-p <passord>] [-U <brukernavn>] | -l\n"
+"Bruksmåte: %s <MAC|identitet> [-h] [-n] [-a <mappe>] [-A] [-t "
+"<tidsbegrensning>] [-u <brukernavn>] [-p <passord>] [-U <brukernavn>] | -l [-"
+"B] [-t <tidsbegrensning>]\n"
 
 #: src/mactelnet.c:560
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "\n"
 "Parameters:\n"
@@ -95,7 +96,18 @@ msgid ""
 "with -l.\n"
 "  -n             Do not use broadcast packets. Less insecure but requires\n"
 "                 root privileges.\n"
-"  -a <path>      Use specified path instead of the default: "
+"  -a <path>      Use specified path instead of the default: %s for autologin "
+"config file.\n"
+"  -A             Disable autologin feature.\n"
+"  -t <timeout>   Amount of seconds to wait for a response on each "
+"interface.\n"
+"  -u <user>      Specify username on command line.\n"
+"  -p <password>  Specify password on command line.\n"
+"  -U <user>      Drop privileges to this user. Used in conjunction with -n\n"
+"                 for security.\n"
+"  -q             Quiet mode.\n"
+"  -h             This help.\n"
+"\n"
 msgstr ""
 "\n"
 "Parametere:\n"
@@ -109,10 +121,14 @@ msgstr ""
 "  -B             Batch modus. Gir datamaskin-lesbar info for data fra -l.\n"
 "  -n             Ikke bruk broadcast pakker. Mindre usikkert, men bruker\n"
 "                 root privilegier.\n"
+"  -a <path>      Bruk denne mappen isteden for: %s for autologin "
+"konfigurasjonsfil.\n"
+"  -A             Skru av atuologin funksjonalitet.\n"
 "  -t <tidsbegr.> Antall sekunder å vente for respons på hvert grensesnitt.\n"
 "  -u <user>      Spesifiser brukernavn på kommando-linjen.\n"
 "  -p <password>  Spesifiser passord på kommando-linjen.\n"
-"  -U <user>      Dropp privilegier til denne brukeren. Brukes i forbindelse\n"
+"  -U <user>      Dropp rettigheter ned til denne brukeren. Brukes i "
+"forbindelse\n"
 "                 med -n for sikkerhet.\n"
 "  -q             Stille-modus.\n"
 "  -h             Denne hjelpen.\n"
@@ -121,7 +137,7 @@ msgstr ""
 #: src/mactelnet.c:593
 #, c-format
 msgid "Using autologin credentials from %s\n"
-msgstr ""
+msgstr "Bruker autologin-påloggingsinformasjon fra %s\n"
 
 #: src/mactelnet.c:617
 #, c-format
@@ -183,11 +199,11 @@ msgstr "Terminalfeil\r\n"
 #: src/mactelnetd.c:485
 #, c-format
 msgid "(%d) Error allocating memory."
-msgstr ""
+msgstr "(%d) Klarer ikke allokere minne."
 
 #: src/mactelnetd.c:487
 msgid "System error, out of memory\r\n"
-msgstr ""
+msgstr "Systemfeil, minne fullt\r\n"
 
 #: src/mactelnetd.c:492
 #, c-format
@@ -227,9 +243,9 @@ msgid "(%d) User %s disconnected with "
 msgstr "(%d) Bruker %s frakoblet med "
 
 #: src/mactelnetd.c:660
-#, fuzzy, c-format
+#, c-format
 msgid "(%d) Unhandeled control packet type: %d, length: %d"
-msgstr "(%d) Uhåndtert kontrollpakke-type: %d"
+msgstr "(%d) Uhåndtert kontrollpakke-type: %d, lengde: %d"
 
 #: src/mactelnetd.c:717
 #, c-format
@@ -344,10 +360,10 @@ msgid "round-trip min/avg/max = %.2f/%.2f/%.2f ms\n"
 msgstr "returtid min/gjennomsnitt/maks = %.2f/%.2f/%.2f ms\n"
 
 #: src/macping.c:160
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Number of packets to send must be more than 0 and up to 100 in fast mode.\n"
-msgstr "Antall pakker må være mer enn 0 og mindre enn 100 i hurtig-modus.\n"
+msgstr "Antall pakker må være mer enn 0 og opp til 100 i hurtig-modus.\n"
 
 #: src/macping.c:166
 #, c-format
@@ -420,15 +436,9 @@ msgstr "Klarer ikke sende broadcast pakker: Jobber i kun-motta-modus.\n"
 msgid "Unable to send broadcast packet: Operating in receive only mode.\n"
 msgstr "Klarer ikke sende broadcast pakke: Jobber i kun-motta-modus.\n"
 
-#: src/mndp.c:110
-#, fuzzy
-msgid "MAC-Address,Identity,Platform,Version,Hardware,Uptime,Softid,Ifname,IP"
-msgstr ""
-"MAC-Adresse,Identitet,Plattform,Versjon,Maskinvare,Oppetid,Softid,Enhetsnavn"
-
 #: src/mndp.c:112
 msgid "IP"
-msgstr ""
+msgstr "IP"
 
 #: src/mndp.c:112
 msgid "MAC-Address"
@@ -449,39 +459,39 @@ msgid "  up %d days %d hours"
 msgstr " oppe %d dager %d timer"
 
 #: src/autologin.c:85
-#, fuzzy, c-format
+#, c-format
 msgid "Error opening autologin file %s: %s\n"
-msgstr "Klarer ikke åpne %s: %s"
+msgstr "Klarer ikke åpne autologinfilen %s: %s\n"
 
 #: src/autologin.c:134
 #, c-format
 msgid "Error on line %d in %s: New line in middle of identifier\n"
-msgstr ""
+msgstr "Feil på linje %d i %s: Ny linje midt inni identifikatoren\n"
 
 #: src/autologin.c:141
 #, c-format
 msgid "Error on line %d in %s: Identifier string too long.\n"
-msgstr ""
+msgstr "Feil på linje %d i %s: Identifikatorstreng for lang.\n"
 
 #: src/autologin.c:162
 #, c-format
 msgid "Error on line %d in %s: Newline before '=' character\n"
-msgstr ""
+msgstr "Feil på linje %d i %s: Ny linje før '=' tegn\n"
 
 #: src/autologin.c:169
 #, c-format
 msgid "Error on line %d in %s: Key string too long.\n"
-msgstr ""
+msgstr "Feil på linje %d i %s: Nøkkelstreng for lang.\n"
 
 #: src/autologin.c:189
 #, c-format
 msgid "Warning on line %d of %s: Unknown parameter %s, ignoring.\n"
-msgstr ""
+msgstr "Advarsel på linje %d i %s: Ugyldig parameter %s, ignorerer.\n"
 
 #: src/autologin.c:200
 #, c-format
 msgid "Error on line %d in %s: Value string too long.\n"
-msgstr ""
+msgstr "Feil på linje %d i %s: Strengverdi for lang.\n"
 
 #: src/interfaces.c:314
 #, c-format
@@ -491,12 +501,12 @@ msgstr "pakkestørrelse for stor\n"
 #: src/protocol.c:91 src/protocol.c:156
 #, c-format
 msgid "add_control_packet: ERROR, too large packet. Exceeds %d bytes\n"
-msgstr "add_control_packet: FEIL, for stor pakke. Overstiger %d byter\n"
+msgstr "add_control_packet: FEIL, for stor pakke. Overstiger %d byte\n"
 
 #: src/protocol.c:279
 #, c-format
 msgid "mndp_add_attribute: ERROR, too large packet. Exceeds %d bytes\n"
-msgstr "mndp_add_attribute: FEIL, for stor pakke. Overstiger %d byter\n"
+msgstr "mndp_add_attribute: FEIL, for stor pakke. Overstiger %d byte\n"
 
 #: src/protocol.c:458
 #, c-format

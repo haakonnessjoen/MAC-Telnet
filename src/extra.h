@@ -16,12 +16,10 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-#ifndef _CONFIG_H
-#define _CONFIG_H 1
+#ifndef _EXTRA_H
+#define _EXTRA_H 1
 
 #define DEBUG 0
-
-#define PROGRAM_VERSION "0.4.3"
 
 #define AUTOLOGIN_PATH "~/.mactelnet"
 

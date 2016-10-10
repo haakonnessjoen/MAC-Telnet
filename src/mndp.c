@@ -16,7 +16,6 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-#include <libintl.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,8 +31,10 @@
 #endif
 #include <arpa/inet.h>
 #include <string.h>
+#include <config.h>
+#include "gettext.h"
 #include "protocol.h"
-#include "config.h"
+#include "extra.h"
 
 #define _(String) gettext (String)
 
@@ -66,8 +67,8 @@ int mndp(int timeout, int batch_mode)  {
 #endif
 
 	setlocale(LC_ALL, "");
-	bindtextdomain("mactelnet","/usr/share/locale");
-	textdomain("mactelnet");
+	bindtextdomain(PACKAGE, LOCALEDIR);
+	textdomain(PACKAGE);
 
 	/* Open a UDP socket handle */
 	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);

@@ -16,7 +16,6 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-#include <libintl.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -38,10 +37,12 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <float.h>
+#include <config.h>
+#include "gettext.h"
 #include "protocol.h"
 #include "interfaces.h"
-#include "config.h"
 #include "utlist.h"
+#include "extra.h"
 
 #define MAX_DEVICES 128
 #define MT_INTERFACE_LEN 128
@@ -70,7 +71,7 @@ static float max_ms = 0;
 unsigned char mt_direction_fromserver = 0;
 
 static void print_version() {
-	fprintf(stderr, PROGRAM_NAME " " PROGRAM_VERSION "\n");
+	fprintf(stderr, PROGRAM_NAME " " PACKAGE_VERSION "\n");
 }
 
 static long long int toddiff(struct timeval *tod1, struct timeval *tod2)
@@ -118,8 +119,8 @@ int main(int argc, char **argv)  {
 	int i;
 
 	setlocale(LC_ALL, "");
-	bindtextdomain("mactelnet","/usr/share/locale");
-	textdomain("mactelnet");
+	bindtextdomain(PACKAGE, LOCALEDIR);
+	textdomain(PACKAGE);
 
 	while (1) {
 		c = getopt(argc, argv, "fs:c:hv?");

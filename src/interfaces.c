@@ -20,7 +20,6 @@
 #define __USE_BSD
 #define __FAVOR_BSD
 #endif
-#include <libintl.h>
 #include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,6 +52,7 @@
 #else
 #include <linux/if_packet.h>
 #endif
+#include "gettext.h"
 #include "protocol.h"
 #include "interfaces.h"
 #include "utlist.h"

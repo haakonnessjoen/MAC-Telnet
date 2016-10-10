@@ -17,7 +17,6 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #define _BSD_SOURCE
-#include <libintl.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,11 +50,13 @@
 #include <linux/if_ether.h>
 #include <sys/mman.h>
 #endif
+#include <config.h>
+#include "gettext.h"
 #include "md5.h"
 #include "protocol.h"
 #include "console.h"
+#include "extra.h"
 #include "interfaces.h"
-#include "config.h"
 #include "mactelnet.h"
 #include "mndp.h"
 #include "autologin.h"
@@ -112,7 +113,7 @@ static unsigned int send_socket;
 static int handle_packet(unsigned char *data, int data_len);
 
 static void print_version() {
-	fprintf(stderr, PROGRAM_NAME " " PROGRAM_VERSION "\n");
+	fprintf(stderr, PROGRAM_NAME " " PACKAGE_VERSION "\n");
 }
 
 void drop_privileges(char *username) {
@@ -470,8 +471,8 @@ int main (int argc, char **argv) {
 	strncpy(autologin_path, AUTOLOGIN_PATH, sizeof(autologin_path));
 
 	setlocale(LC_ALL, "");
-	bindtextdomain("mactelnet","/usr/share/locale");
-	textdomain("mactelnet");
+	bindtextdomain(PACKAGE, LOCALEDIR);
+	textdomain(PACKAGE);
 
 	while (1) {
 		c = getopt(argc, argv, "lnqt:u:p:U:vh?BAa:");

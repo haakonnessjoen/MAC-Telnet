@@ -1,0 +1,8 @@
+# List of source files which contain translatable strings.
+src/mactelnet.c
+src/mactelnetd.c
+src/macping.c
+src/mndp.c
+src/autologin.c
+src/interfaces.c
+src/protocol.c

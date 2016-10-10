@@ -20,7 +20,6 @@
 #define _XOPEN_SOURCE 600
 #define _BSD_SOURCE
 #define _DARWIN_C_SOURCE
-#include <libintl.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -74,12 +73,14 @@
 #endif
 #include <syslog.h>
 #include <sys/utsname.h>
+#include <config.h>
+#include "gettext.h"
 #include "md5.h"
 #include "protocol.h"
 #include "console.h"
 #include "interfaces.h"
 #include "users.h"
-#include "config.h"
+#include "extra.h"
 #include "utlist.h"
 
 #define PROGRAM_NAME "MAC-Telnet Daemon"
@@ -805,7 +806,7 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 }
 
 static void print_version() {
-	fprintf(stderr, PROGRAM_NAME " " PROGRAM_VERSION "\n");
+	fprintf(stderr, PROGRAM_NAME " " PACKAGE_VERSION "\n");
 }
 
 void mndp_broadcast() {
@@ -957,8 +958,8 @@ int main (int argc, char **argv) {
 	int interface_count = 0;
 
 	setlocale(LC_ALL, "");
-	bindtextdomain("mactelnet","/usr/share/locale");
-	textdomain("mactelnet");
+	bindtextdomain(PACKAGE, LOCALEDIR);
+	textdomain(PACKAGE);
 
 	while ((c = getopt(argc, argv, "fnvh?")) != -1) {
 		switch (c) {

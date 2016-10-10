@@ -17,7 +17,6 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #define _BSD_SOURCE
-#include <libintl.h>
 #include <locale.h>
 #include <string.h>
 #include <stdio.h>
@@ -44,8 +43,10 @@
 #else
 #include <endian.h>
 #endif
+#include <config.h>
+#include "gettext.h"
 #include "protocol.h"
-#include "config.h"
+#include "extra.h"
 
 #define _(String) gettext (String)
 

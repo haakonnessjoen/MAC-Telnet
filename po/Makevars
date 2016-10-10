@@ -1,0 +1,13 @@
+# Makefile variables for PO directory in any package using GNU gettext.
+DOMAIN = $(PACKAGE)
+
+subdir = po
+top_builddir = ..
+
+XGETTEXT_OPTIONS = --keyword=_ --keyword=N_
+
+COPYRIGHT_HOLDER = Håkon Nessjøen
+
+MSGID_BUGS_ADDRESS = haakon.nessjoen@gmail.com
+
+EXTRA_LOCALE_CATEGORIES =

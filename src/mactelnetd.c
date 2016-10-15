@@ -479,9 +479,17 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		struct stat sb;
 		struct passwd *user = (struct passwd *)malloc(sizeof(struct passwd));
 		struct passwd *tmpuser=user;
-		char *buffer = malloc(1024);
+		char *buffer;
 
-		if (user == NULL || buffer == NULL) {
+		if (user == NULL) {
+			syslog(LOG_CRIT, _("(%d) Error allocating memory."), curconn->seskey);
+			/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
+			abort_connection(curconn, pkthdr, _("System error, out of memory\r\n"));
+			return;
+		}
+
+		buffer = (char *)malloc(1024);
+		if (buffer == NULL) {
 			syslog(LOG_CRIT, _("(%d) Error allocating memory."), curconn->seskey);
 			/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
 			abort_connection(curconn, pkthdr, _("System error, out of memory\r\n"));

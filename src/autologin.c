@@ -78,7 +78,7 @@ int autologin_readfile(char *configfile) {
 	file_to_read = tilde_to_path(configfile);
 
 	fp = fopen(file_to_read, "r");
-	if (fp <= 0) {
+	if (!fp) {
 		if (strcmp(configfile, AUTOLOGIN_PATH) == 0) {
 			/* Silent ignore? */
 		} else {

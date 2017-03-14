@@ -73,10 +73,10 @@ Usage
 Example using identity:
 
     $ mactelnet main-routeur
-		Searching for 'main-router'...found
-		Login: admin
-		Password:
-		Connecting to d4:ca:6d:12:47:13...done
+    Searching for 'main-router'...found
+    Login: admin
+    Password:
+    Connecting to d4:ca:6d:12:47:13...done
 
 Example using mac address:
 

@@ -8,10 +8,16 @@ Installation
 
 ### Linux / kfreebsd ###
 
+Dependencies: gcc (or similar), automake, autoconf
+
+To install dependencies on Debian/Ubuntu based systems:
+
+    apt-get install build-essential automake autoconf
+
 Download source tarball, extract, compile and install:
 
-    wget http://github.com/haakonnessjoen/MAC-Telnet/tarball/master
-    tar zxvf haakonness*.tar.gz
+    wget http://github.com/haakonnessjoen/MAC-Telnet/tarball/master -O mactelnet.tar.gz
+    tar zxvf mactelnet.tar.gz
     cd haakonness*/
     ./autogen.sh
     ./configure
@@ -23,8 +29,8 @@ Now you're ready.
 
 Install dependencies, download source tarball, extract, compile and install:
 
-    wget http://github.com/haakonnessjoen/MAC-Telnet/tarball/master
-    tar zxvf haakonness*.tar.gz
+    wget http://github.com/haakonnessjoen/MAC-Telnet/tarball/master -O mactelnet.tar.gz
+    tar zxvf mactelnet.tar.gz
     cd haakonness*/
     
     # Install dependencies
@@ -43,16 +49,19 @@ Usage
 -----
 
     # mactelnet -h
-    Usage: mactelnet <MAC|identity> [-h] [-n] [-t <timeout>] [-u <user>] [-p <password>] [-U <user>] | -l
+    Usage: mactelnet <MAC|identity> [-h] [-n] [-a <path>] [-A] [-t <timeout>] [-u <user>] [-p <password>] [-U <user>] | -l [-B] [-t <timeout>]
     
     Parameters:
       MAC            MAC-Address of the RouterOS/mactelnetd device. Use mndp to
                      discover it.
       identity       The identity/name of your destination device. Uses
                      MNDP protocol to find it.
-      -l             List/Search for routers nearby. (using MNDP)
+      -l             List/Search for routers nearby (MNDP). You may use -t to set timeout.
+      -B             Batch mode. Use computer readable output (CSV), for use with -l.
       -n             Do not use broadcast packets. Less insecure but requires
                      root privileges.
+      -a <path>      Use specified path instead of the default: ~/.mactelnet for autologin config file.
+      -A             Disable autologin feature.
       -t <timeout>   Amount of seconds to wait for a response on each interface.
       -u <user>      Specify username on command line.
       -p <password>  Specify password on command line.
@@ -61,7 +70,15 @@ Usage
       -q             Quiet mode.
       -h             This help.
 
-Example:
+Example using identity:
+
+    $ mactelnet main-routeur
+		Searching for 'main-router'...found
+		Login: admin
+		Password:
+		Connecting to d4:ca:6d:12:47:13...done
+
+Example using mac address:
 
     $ mactelnet 0:c:42:43:58:a5 -u admin
     Password: 

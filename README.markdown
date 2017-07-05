@@ -1,5 +1,6 @@
 MAC-Telnet for Posix systems
 ============================
+[![Build Status](https://travis-ci.org/antwal/MAC-Telnet.svg?branch=master)](https://travis-ci.org/antwal/MAC-Telnet)
 
 Console tools for connecting to, and serving, devices using MikroTik RouterOS MAC-Telnet protocol.
 
@@ -32,13 +33,13 @@ Install dependencies, download source tarball, extract, compile and install:
     wget http://github.com/haakonnessjoen/MAC-Telnet/tarball/master -O mactelnet.tar.gz
     tar zxvf mactelnet.tar.gz
     cd haakonness*/
-    
+
     # Install dependencies
     brew install gettext
-    
+
     # Check what paths it tells you to use, for a standard install, the following should suffice:
     export PATH=/usr/local/opt/gettext/bin:$PATH
-    
+
     ./autogen.sh
     ./configure
     make all install
@@ -50,7 +51,7 @@ Usage
 
     # mactelnet -h
     Usage: mactelnet <MAC|identity> [-h] [-n] [-a <path>] [-A] [-t <timeout>] [-u <user>] [-p <password>] [-U <user>] | -l [-B] [-t <timeout>]
-    
+
     Parameters:
       MAC            MAC-Address of the RouterOS/mactelnetd device. Use mndp to
                      discover it.
@@ -81,20 +82,20 @@ Example using identity:
 Example using mac address:
 
     $ mactelnet 0:c:42:43:58:a5 -u admin
-    Password: 
+    Password:
     Connecting to 0:c:42:43:58:a5...done
-    
-    
+
+
       MMM      MMM       KKK                          TTTTTTTTTTT      KKK
       MMMM    MMMM       KKK                          TTTTTTTTTTT      KKK
       MMM MMMM MMM  III  KKK  KKK  RRRRRR     OOOOOO      TTT     III  KKK  KKK
       MMM  MM  MMM  III  KKKKK     RRR  RRR  OOO  OOO     TTT     III  KKKKK
       MMM      MMM  III  KKK KKK   RRRRRR    OOO  OOO     TTT     III  KKK KKK
       MMM      MMM  III  KKK  KKK  RRR  RRR   OOOOOO      TTT     III  KKK  KKK
-    
+
       MikroTik RouterOS 4.0 (c) 1999-2009       http://www.mikrotik.com/
-     
-     
+
+
      [admin@HMG] >
 
 ### Tips
@@ -110,7 +111,7 @@ MAC-Ping usage
 
     # macping -h
     Usage: macping <MAC> [-h] [-c <count>] [-s <packet size>]
-    
+
     Parameters:
       MAC       MAC-Address of the RouterOS/mactelnetd device.
       -s        Specify size of ping packet.
@@ -125,7 +126,7 @@ Example:
     0:c:42:43:58:a5 56 byte, ping time 1.20 ms
     0:c:42:43:58:a5 56 byte, ping time 0.65 ms
     0:c:42:43:58:a5 56 byte, ping time 1.19 ms
-    
+
     5 packets transmitted, 5 packets received, 0% packet loss
     round-trip min/avg/max = 0.65/1.06/1.20 ms
 

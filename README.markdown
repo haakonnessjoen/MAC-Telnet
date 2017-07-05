@@ -41,10 +41,62 @@ Install dependencies, download source tarball, extract, compile and install:
     export PATH=/usr/local/opt/gettext/bin:$PATH
 
     ./autogen.sh
-    ./configure
+    ./configure --disable-nls
     make all install
 
 And you are ready..
+
+### Mac OS X (without Homebrew)###
+
+Install dependencies, download source tarball, extract, compile and install:
+
+    export build=~/devtools # or wherever you'd like to build
+    mkdir -p $build
+
+    cd $build
+    wget https://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.gz
+    tar xzf autoconf-2.69.tar.gz
+    cd autoconf-2.69
+    ./configure --prefix=/usr/local
+    make
+    sudo make install
+    export PATH=$PATH:/usr/local/bin
+
+    cd $build
+    wget https://ftp.gnu.org/gnu/automake/automake-1.15.tar.gz
+    tar xzf automake-1.15.tar.gz
+    cd automake-1.15
+    ./configure --prefix=/usr/local
+    make
+    sudo make install
+
+    cd $build
+    wget https://ftp.gnu.org/gnu/libtool/libtool-2.4.6.tar.gz
+    tar xzf libtool-2.4.6.tar.gz
+    cd libtool-2.4.6
+    ./configure --prefix=/usr/local
+    make
+    sudo make install
+
+    cd $build
+    wget https://ftp.gnu.org/gnu/gettext/gettext-0.19.8.1.tar.gz
+    tar zxf gettext-0.19.8.1.tar.gz
+    cd gettext-0.19.8.1
+    ./configure --prefix=/usr/local
+    make
+    sudo make install
+
+    cd $build
+    wget http://github.com/haakonnessjoen/MAC-Telnet/tarball/master -O mactelnet.tar.gz
+    tar zxf mactelnet.tar.gz
+    cd haakonness*/
+    ./autogen.sh
+    ./configure --disable-nls
+    make all
+    sudo make install
+
+And you are ready.
+
 
 Usage
 -----

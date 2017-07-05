@@ -41,12 +41,11 @@ addons:
       - gettext
 
 before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then chmod a+x ./travis-osx.sh;   ./travis-osx.sh;   fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then chmod a+x ./travis-linux.sh; ./travis-linux.sh; fi
+  - chmod a+x ./travis-before_install.sh
+  - ./travis-before_install.sh
 
 script:
   - ./autogen.sh
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then ./configure --disable-nls; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./configure;               fi
   - make all
-  

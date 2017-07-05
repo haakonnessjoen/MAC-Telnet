@@ -74,7 +74,6 @@ if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
             curl -OL https://ftp.gnu.org/gnu/gettext/gettext-0.19.8.1.tar.gz
             tar zxf gettext-0.19.8.1.tar.gz
             cd gettext-0.19.8.1
-            ./autogen.sh
             ./configure --prefix=/usr/local
             make
             sudo make install

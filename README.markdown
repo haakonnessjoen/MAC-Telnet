@@ -46,7 +46,7 @@ Install dependencies, download source tarball, extract, compile and install:
 
 And you are ready..
 
-### Mac OS X (without Homebrew)###
+### Mac OS X (without Homebrew) ###
 
 Install dependencies, download source tarball, extract, compile and install:
 

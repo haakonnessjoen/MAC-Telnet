@@ -49,3 +49,4 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then ./configure --disable-nls; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./configure;               fi
   - make all
+  

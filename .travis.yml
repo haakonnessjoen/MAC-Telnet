@@ -41,8 +41,8 @@ addons:
       - gettext
 
 before_install:
-  - chmod a+x ./travis-before_install.sh
-  - ./travis-before_install.sh
+  - chmod a+x ./.travis/before_install.sh
+  - ./.travis/before_install.sh
 
 script:
   - ./autogen.sh
@@ -50,5 +50,5 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./configure;               fi
   - make all
 
-after_script: 
+after_script:
   - set +e

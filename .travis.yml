@@ -7,18 +7,24 @@ matrix:
     - os: linux
       dist: trusty
       env: OSNAME="linux"
+      # Linux Ubuntu Trusty
     - os: osx
       osx_image: xcode9
       env: OSNAME="osx" OSVERSION="10.13" OSBUILD="brew"
+      # Apple OSX 10.13 High Sierra
     - os: osx
       osx_image: xcode8.3
       env: OSNAME="osx" OSVERSION="10.12" OSBUILD="brew"
+      # Apple OSX 10.12 Sierra
     - os: osx
       osx_image: xcode8
       env: OSNAME="osx" OSVERSION="10.11" OSBUILD="brew"
+      # Apple OSX 10.11 El Capitan
     - os: osx
       osx_image: xcode6.4
       env: OSNAME="osx" OSVERSION="10.10 10.9" OSBUILD="sources"
+      # Apple OSX 10.10 Yosemite
+      # Apple OSX 10.9 Mavericks
 
 compiler: gcc
 

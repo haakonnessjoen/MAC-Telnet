@@ -1,6 +1,6 @@
 MAC-Telnet for Posix systems
 ============================
-[![Build Status](https://api.travis-ci.org/haakonnessjoen/MAC-Telnet.svg?branch=master)](https://travis-ci.org/haakonnessjoen/MAC-Telnet)
+[![Build Status](https://travis-ci.org/haakonnessjoen/MAC-Telnet.svg?branch=master)](https://travis-ci.org/haakonnessjoen/MAC-Telnet)
 
 Console tools for connecting to, and serving, devices using MikroTik RouterOS MAC-Telnet protocol.
 
@@ -125,7 +125,7 @@ Usage
 
 Example using identity:
 
-    $ mactelnet main-routeur
+    $ mactelnet main-router
     Searching for 'main-router'...found
     Login: admin
     Password:

@@ -125,7 +125,7 @@ Usage
 
 Example using identity:
 
-    $ mactelnet main-routeur
+    $ mactelnet main-router
     Searching for 'main-router'...found
     Login: admin
     Password:

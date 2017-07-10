@@ -1,5 +1,6 @@
 MAC-Telnet for Posix systems
 ============================
+[![Build Status](https://travis-ci.org/antwal/MAC-Telnet.svg?branch=master)](https://travis-ci.org/antwal/MAC-Telnet)
 
 Console tools for connecting to, and serving, devices using MikroTik RouterOS MAC-Telnet protocol.
 
@@ -32,25 +33,77 @@ Install dependencies, download source tarball, extract, compile and install:
     wget http://github.com/haakonnessjoen/MAC-Telnet/tarball/master -O mactelnet.tar.gz
     tar zxvf mactelnet.tar.gz
     cd haakonness*/
-    
+
     # Install dependencies
     brew install gettext
-    
+
     # Check what paths it tells you to use, for a standard install, the following should suffice:
     export PATH=/usr/local/opt/gettext/bin:$PATH
-    
+
     ./autogen.sh
-    ./configure
+    ./configure --disable-nls
     make all install
 
 And you are ready..
+
+### Mac OS X (without Homebrew) ###
+
+Install dependencies, download source tarball, extract, compile and install:
+
+    export build=~/devtools # or wherever you'd like to build
+    mkdir -p $build
+
+    cd $build
+    wget https://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.gz
+    tar xzf autoconf-2.69.tar.gz
+    cd autoconf-2.69
+    ./configure --prefix=/usr/local
+    make
+    sudo make install
+    export PATH=$PATH:/usr/local/bin
+
+    cd $build
+    wget https://ftp.gnu.org/gnu/automake/automake-1.15.tar.gz
+    tar xzf automake-1.15.tar.gz
+    cd automake-1.15
+    ./configure --prefix=/usr/local
+    make
+    sudo make install
+
+    cd $build
+    wget https://ftp.gnu.org/gnu/libtool/libtool-2.4.6.tar.gz
+    tar xzf libtool-2.4.6.tar.gz
+    cd libtool-2.4.6
+    ./configure --prefix=/usr/local
+    make
+    sudo make install
+
+    cd $build
+    wget https://ftp.gnu.org/gnu/gettext/gettext-0.19.8.1.tar.gz
+    tar zxf gettext-0.19.8.1.tar.gz
+    cd gettext-0.19.8.1
+    ./configure --prefix=/usr/local
+    make
+    sudo make install
+
+    cd $build
+    wget http://github.com/haakonnessjoen/MAC-Telnet/tarball/master -O mactelnet.tar.gz
+    tar zxf mactelnet.tar.gz
+    cd haakonness*/
+    ./autogen.sh
+    ./configure --disable-nls
+    make all
+    sudo make install
+
+And you are ready.
+
 
 Usage
 -----
 
     # mactelnet -h
     Usage: mactelnet <MAC|identity> [-h] [-n] [-a <path>] [-A] [-t <timeout>] [-u <user>] [-p <password>] [-U <user>] | -l [-B] [-t <timeout>]
-    
+
     Parameters:
       MAC            MAC-Address of the RouterOS/mactelnetd device. Use mndp to
                      discover it.
@@ -81,20 +134,20 @@ Example using identity:
 Example using mac address:
 
     $ mactelnet 0:c:42:43:58:a5 -u admin
-    Password: 
+    Password:
     Connecting to 0:c:42:43:58:a5...done
-    
-    
+
+
       MMM      MMM       KKK                          TTTTTTTTTTT      KKK
       MMMM    MMMM       KKK                          TTTTTTTTTTT      KKK
       MMM MMMM MMM  III  KKK  KKK  RRRRRR     OOOOOO      TTT     III  KKK  KKK
       MMM  MM  MMM  III  KKKKK     RRR  RRR  OOO  OOO     TTT     III  KKKKK
       MMM      MMM  III  KKK KKK   RRRRRR    OOO  OOO     TTT     III  KKK KKK
       MMM      MMM  III  KKK  KKK  RRR  RRR   OOOOOO      TTT     III  KKK  KKK
-    
+
       MikroTik RouterOS 4.0 (c) 1999-2009       http://www.mikrotik.com/
-     
-     
+
+
      [admin@HMG] >
 
 ### Tips
@@ -110,7 +163,7 @@ MAC-Ping usage
 
     # macping -h
     Usage: macping <MAC> [-h] [-c <count>] [-s <packet size>]
-    
+
     Parameters:
       MAC       MAC-Address of the RouterOS/mactelnetd device.
       -s        Specify size of ping packet.
@@ -125,7 +178,7 @@ Example:
     0:c:42:43:58:a5 56 byte, ping time 1.20 ms
     0:c:42:43:58:a5 56 byte, ping time 0.65 ms
     0:c:42:43:58:a5 56 byte, ping time 1.19 ms
-    
+
     5 packets transmitted, 5 packets received, 0% packet loss
     round-trip min/avg/max = 0.65/1.06/1.20 ms
 

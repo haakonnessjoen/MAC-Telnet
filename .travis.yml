@@ -56,5 +56,21 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./configure;               fi
   - make all
 
+#
+#after_success:
+#  - chmod a+x ./.travis/after_success.sh
+#  - ./.travis/after_success.sh
+
+# Deploy Release Package
+#deploy:
+#  provider: releases
+#  api_key:
+#    secure:
+#  file:
+#  skip_clean: true
+#  on:
+#    repo: haakonnessjoen/MAC-Telnet
+#    tags: true
+
 after_script:
   - set +e

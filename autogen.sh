@@ -16,7 +16,20 @@ autoreconf -i
 automake --gnu --add-missing
 autoconf
 
-LDFLAGS=${LDFLAGS=-lintl}
-export LDFLAGS
+case "$OSTYPE" in
+  darwin*)
+    LDFLAGS=${LDFLAGS=-lintl}
+    export LDFLAGS
+    ;;
+  linux*)
+    echo "LINUX"
+    ;;
+  bsd*)
+    echo "BSD"
+    ;;
+  *)
+    echo "unknown: $OSTYPE"
+    ;;
+esac
 
 ./configure "$@"

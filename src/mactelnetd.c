@@ -1083,6 +1083,11 @@ int main (int argc, char **argv) {
 	setup_sockets();
 
 	if (!foreground) {
+		/* TODO: deprecated in OS X 10.5
+		 	 mactelnetd.c:1087:3: warning: 'daemon' is deprecated: first deprecated in OS X 10.5 [-Wdeprecated-declarations]
+		   /usr/include/stdlib.h:267:6: note: 'daemon' has been explicitly marked deprecated here
+		   int daemon(int, int) __DARWIN_1050(daemon) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_0, __MAC_10_5, __IPHONE_2_0, __IPHONE_2_0);
+		*/
 		daemon(0, 0);
 	}
 

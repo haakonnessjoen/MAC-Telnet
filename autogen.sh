@@ -1,14 +1,11 @@
 #! /bin/sh
 
-set -e
-
 # Clean All
 if [ "$1" = "clean" ]; then
+  make clean
   rm -f aclocal.m4 compile configure install-sh \
         depcomp ltmain.sh config.guess config.sub \
-        `find . -name Makefile.in` compile `find . -name Makefile` \
-        `find . -name *.m4` po/Makevars.template po/POTFILES src/config.h \
-        config.log config.rpath config.status
+        `find . -name Makefile.in` compile `find . -name Makefile`
   rm -rf autom4te.cache
   rm -rf src/.deps
   exit
@@ -24,5 +21,3 @@ LDFLAGS=${LDFLAGS=-lintl}
 export LDFLAGS
 
 ./configure "$@"
-
-set +e

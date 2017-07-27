@@ -21,7 +21,6 @@ Download source tarball, extract, compile and install:
     tar zxvf mactelnet.tar.gz
     cd haakonness*/
     ./autogen.sh
-    ./configure
     make all install
 
 Now you're ready.
@@ -41,7 +40,6 @@ Install dependencies, download source tarball, extract, compile and install:
     export PATH=/usr/local/opt/gettext/bin:$PATH
 
     ./autogen.sh
-    ./configure --disable-nls
     make all install
 
 And you are ready..
@@ -91,7 +89,6 @@ Install dependencies, download source tarball, extract, compile and install:
     tar zxf mactelnet.tar.gz
     cd haakonness*/
     ./autogen.sh
-    ./configure --disable-nls
     make all
     sudo make install
 

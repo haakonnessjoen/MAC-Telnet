@@ -11,7 +11,6 @@ if [ "$1" = "clean" ]; then
   exit
 fi
 
-libtoolize --automake
 aclocal -I m4
 autoreconf -i
 automake --gnu --add-missing

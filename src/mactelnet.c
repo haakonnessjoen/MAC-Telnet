@@ -17,6 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #define _BSD_SOURCE
+#include <libintl.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,7 +52,7 @@
 #include <sys/mman.h>
 #endif
 #include <config.h>
-#include "gettext.h"
+
 #include "md5.h"
 #include "protocol.h"
 #include "console.h"
@@ -64,7 +65,7 @@
 
 #define PROGRAM_NAME "MAC-Telnet"
 
-#define _(String) gettext (String)
+#define _(STRING) gettext(STRING)
 
 static int sockfd = 0;
 static int insockfd;
@@ -80,7 +81,7 @@ static unsigned char terminal_mode = 0;
 static unsigned char srcmac[ETH_ALEN];
 static unsigned char dstmac[ETH_ALEN];
 
-static struct in_addr sourceip; 
+static struct in_addr sourceip;
 static struct in_addr destip;
 static int sourceport;
 
@@ -158,7 +159,7 @@ static int send_udp(struct mt_packet *packet, int retransmit) {
 		sent_bytes = net_send_udp(sockfd, active_interface, srcmac, dstmac, &sourceip,  sourceport, &destip, MT_MACTELNET_PORT, packet->data, packet->size);
 	}
 
-	/* 
+	/*
 	 * Retransmit packet if no data is received within
 	 * retransmit_intervals milliseconds.
 	 */
@@ -241,7 +242,7 @@ static void send_auth(char *username, char *password) {
 	plen = add_control_packet(&data, MT_CPTYPE_PASSWORD, md5sum, 17);
 	plen += add_control_packet(&data, MT_CPTYPE_USERNAME, username, strlen(username));
 	plen += add_control_packet(&data, MT_CPTYPE_TERM_TYPE, terminal, strlen(terminal));
-	
+
 	if (is_a_tty && get_terminal_size(&width, &height) != -1) {
 		width = htole16(width);
 		height = htole16(height);

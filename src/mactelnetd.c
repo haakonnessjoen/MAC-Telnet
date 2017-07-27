@@ -20,6 +20,7 @@
 #define _XOPEN_SOURCE 600
 #define _BSD_SOURCE
 #define _DARWIN_C_SOURCE
+#include <libintl.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -74,7 +75,7 @@
 #include <syslog.h>
 #include <sys/utsname.h>
 #include <config.h>
-#include "gettext.h"
+
 #include "md5.h"
 #include "protocol.h"
 #include "console.h"
@@ -92,7 +93,7 @@
 /* Max ~5 pings per second */
 #define MT_MAXPPS MT_MNDP_BROADCAST_INTERVAL * 5
 
-#define _(String) gettext (String)
+#define _(STRING) gettext(STRING)
 #define gettext_noop(String) String
 
 static int sockfd;
@@ -105,7 +106,7 @@ struct net_interface *interfaces = NULL;
 
 static int use_raw_socket = 0;
 
-static struct in_addr sourceip; 
+static struct in_addr sourceip;
 static struct in_addr destip;
 static int sourceport;
 
@@ -623,7 +624,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 			curconn->outcounter += plen;
 
 			send_udp(curconn, &pdata);
-		
+
 		/* Don't change the username after the state is active */
 		} else if (cpkt.cptype == MT_CPTYPE_USERNAME && curconn->state != STATE_ACTIVE) {
 			memcpy(curconn->username, cpkt.data, act_size = (cpkt.length > MT_MNDP_MAX_STRING_SIZE - 1 ? MT_MNDP_MAX_STRING_SIZE - 1 : cpkt.length));

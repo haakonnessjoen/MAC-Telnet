@@ -16,6 +16,7 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
+#include <libintl.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,11 +33,11 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <config.h>
-#include "gettext.h"
+
 #include "protocol.h"
 #include "extra.h"
 
-#define _(String) gettext (String)
+#define _(STRING) gettext(STRING)
 
 /* This file is also used for the -l option in mactelnet */
 #ifndef FROM_MACTELNET

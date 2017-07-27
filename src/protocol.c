@@ -17,6 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #define _BSD_SOURCE
+#include <libintl.h>
 #include <locale.h>
 #include <string.h>
 #include <stdio.h>
@@ -44,11 +45,11 @@
 #include <endian.h>
 #endif
 #include <config.h>
-#include "gettext.h"
+
 #include "protocol.h"
 #include "extra.h"
 
-#define _(String) gettext (String)
+#define _(STRING) gettext(STRING)
 
 int init_packet(struct mt_packet *packet, enum mt_ptype ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned int counter) {
 	unsigned char *data = packet->data;
@@ -518,7 +519,7 @@ int query_mndp_or_mac(char *address, unsigned char *dstmac, int verbose) {
 		}
 	}
 
-	/* 
+	/*
 	* Windows users often enter macs with dash instead
 	* of colon.
 	*/
@@ -533,7 +534,7 @@ int query_mndp_or_mac(char *address, unsigned char *dstmac, int verbose) {
 	}
 
 	if (colons != 5) {
-		/* 
+		/*
 		 * Not a valid mac-address.
 		 * Search for Router by identity name, using MNDP
 		 */

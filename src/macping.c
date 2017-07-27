@@ -16,6 +16,7 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
+#include <libintl.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -38,7 +39,7 @@
 #include <stdio.h>
 #include <float.h>
 #include <config.h>
-#include "gettext.h"
+
 #include "protocol.h"
 #include "interfaces.h"
 #include "utlist.h"
@@ -49,7 +50,7 @@
 
 #define PROGRAM_NAME "MAC-Ping"
 
-#define _(String) gettext (String)
+#define _(STRING) gettext(STRING)
 
 static int sockfd, insockfd;
 
@@ -308,7 +309,7 @@ int main(int argc, char **argv)  {
 				/* Wait for the correct packet */
 				continue;
 			}
-			
+
 			struct timeval pongtimestamp;
 			struct timeval nowtimestamp;
 

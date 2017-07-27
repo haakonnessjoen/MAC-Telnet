@@ -20,6 +20,7 @@
 #define __USE_BSD
 #define __FAVOR_BSD
 #endif
+#include <libintl.h>
 #include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,12 +53,12 @@
 #else
 #include <linux/if_packet.h>
 #endif
-#include "gettext.h"
+
 #include "protocol.h"
 #include "interfaces.h"
 #include "utlist.h"
 
-#define _(String) gettext (String)
+#define _(STRING) gettext(STRING)
 
 struct net_interface *net_get_interface_ptr(struct net_interface **interfaces, char *name, int create) {
 	struct net_interface *interface;
@@ -89,7 +90,7 @@ static void net_update_mac(struct net_interface *interfaces) {
 	struct ifreq ifr;
 	int tmpsock;
 	struct net_interface *interface;
-	
+
 
 	tmpsock = socket(PF_INET, SOCK_DGRAM, 0);
 	if (tmpsock < 0) {
@@ -342,7 +343,7 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 	socket_address.sll_ifindex  = interface->ifindex;
 	socket_address.sll_hatype   = ARPHRD_ETHER;
 	socket_address.sll_pkttype  = PACKET_OTHERHOST;
-	socket_address.sll_halen    = ETH_ALEN;         
+	socket_address.sll_halen    = ETH_ALEN;
 
 	memcpy(socket_address.sll_addr, eh->h_source, ETH_ALEN);
 	socket_address.sll_addr[6]  = 0x00;/*not used*/

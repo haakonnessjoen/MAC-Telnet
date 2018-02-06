@@ -695,7 +695,7 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 	parse_packet(data, &pkthdr);
 
 	/* Drop packets not belonging to us */
-	if ((interface = find_socket(pkthdr.dstaddr)) < 0) {
+	if ((interface = find_socket(pkthdr.dstaddr)) == NULL) {
 		return;
 	}
 

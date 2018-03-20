@@ -16,6 +16,7 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
+#include <config.h>
 #define _POSIX_C_SOURCE 199309L
 #define _XOPEN_SOURCE 600
 #define _BSD_SOURCE
@@ -37,7 +38,7 @@
 #else
 #include <endian.h>
 #endif
-#if defined(__FreeBSD__) || defined(__APPLE__)
+#if HAVE_PATHS_H
 #include <paths.h>
 #endif
 #include <time.h>
@@ -73,7 +74,6 @@
 #endif
 #include <syslog.h>
 #include <sys/utsname.h>
-#include <config.h>
 #include "gettext.h"
 #include "md5.h"
 #include "protocol.h"

@@ -7,6 +7,19 @@ Console tools for connecting to, and serving, devices using MikroTik RouterOS MA
 Installation
 ------------
 
+### Docker ###
+
+[`hakonn/mactelnet`](https://hub.docker.com/r/haakonn/mactelnet/) contains all four programs:
+
+    docker run -it --rm --net=host haakonn/mactelnet mactelnet …
+    docker run -it --rm --net=host haakonn/mactelnet macping …
+    docker run -it --rm --net=host haakonn/mactelnet mndp …
+    docker run -it --rm --net=host haakonn/mactelnet mactelnetd …
+
+Note that Docker runs containers on isolated internal networks by default. [`--net=host`](https://docs.docker.com/network/host/) instructs Docker to provide `mactelnet` direct access to the host machine's network interfaces.
+
+See [Usage](#usage) for more.
+
 ### Linux / kfreebsd ###
 
 Dependencies: gcc (or similar), automake, autoconf

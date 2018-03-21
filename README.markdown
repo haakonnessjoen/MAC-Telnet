@@ -9,7 +9,7 @@ Installation
 
 ### Docker ###
 
-[`hakonn/mactelnet`](https://hub.docker.com/r/haakonn/mactelnet/) contains all four programs:
+[`haakonn/mactelnet`](https://hub.docker.com/r/haakonn/mactelnet/) contains all four programs:
 
     docker run -it --rm --net=host haakonn/mactelnet mactelnet …
     docker run -it --rm --net=host haakonn/mactelnet macping …

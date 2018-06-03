@@ -75,7 +75,7 @@
 #endif
 #include <syslog.h>
 #include <sys/utsname.h>
-#include "gettext.h"
+
 #include "md5.h"
 #include "protocol.h"
 #include "console.h"

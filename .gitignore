@@ -13,3 +13,10 @@
 /missing
 /src/stamp-h1
 .DS_Store
+m4/*.m4
+Makefile.in
+config.guess
+config.rpath
+config.sub
+po/Makevars.template
+

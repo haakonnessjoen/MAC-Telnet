@@ -17,11 +17,14 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #include <config.h>
+#if !defined(__FreeBSD__)
 #define _POSIX_C_SOURCE 199309L
 #define _XOPEN_SOURCE 600
+#endif
 #define _BSD_SOURCE
 #define _DARWIN_C_SOURCE
 #include <locale.h>
+#include "gettext.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -74,7 +77,6 @@
 #endif
 #include <syslog.h>
 #include <sys/utsname.h>
-#include "gettext.h"
 #include "md5.h"
 #include "protocol.h"
 #include "console.h"

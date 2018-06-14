@@ -18,6 +18,7 @@
 */
 #define _BSD_SOURCE
 #include <locale.h>
+#include "gettext.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -51,7 +52,6 @@
 #include <sys/mman.h>
 #endif
 #include <config.h>
-#include "gettext.h"
 #include "md5.h"
 #include "protocol.h"
 #include "console.h"

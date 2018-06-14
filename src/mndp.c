@@ -17,6 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #include <locale.h>
+#include "gettext.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
@@ -32,7 +33,6 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <config.h>
-#include "gettext.h"
 #include "protocol.h"
 #include "extra.h"
 

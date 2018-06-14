@@ -37,7 +37,22 @@ Download source tarball, extract, compile and install:
     ./configure
     make all install
 
-Now you're ready.
+### FreeBSD ###
+
+Dependencies: clang (gcc or similar), automake, autoconf
+
+To install dependencies on Debian/Ubuntu based systems:
+
+    pkg install automake autoconf gettext-tools
+
+Download source tarball, extract, compile and install:
+
+    wget http://github.com/haakonnessjoen/MAC-Telnet/tarball/master -O mactelnet.tar.gz
+    tar zxvf mactelnet.tar.gz
+    cd haakonness*/
+    ./autogen.sh
+    ./configure LDFLAGS=" -L/usr/local/lib"
+    gmake all install
 
 ### Mac OS X ###
 

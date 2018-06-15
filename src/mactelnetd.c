@@ -508,7 +508,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		}
 
 		/* Change the owner of the slave pts */
-		 (void) chown(slavename, user->pw_uid, user->pw_gid);
+		 (void)chown(slavename, user->pw_uid, user->pw_gid);
 
 		curconn->slavefd = open(slavename, O_RDWR);
 		if (curconn->slavefd == -1) {
@@ -548,11 +548,11 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 
 			/* Redirect STDIN/STDIO/STDERR */
 			close(0);
-			(void) dup(curconn->slavefd);
+			(void)dup(curconn->slavefd);
 			close(1);
 			dup(curconn->slavefd);
 			close(2);
-			(void) dup(curconn->slavefd);
+			(void)dup(curconn->slavefd);
 
 			/* Set controlling terminal */
 			ioctl(0, TIOCSCTTY, 1);
@@ -593,6 +593,12 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		set_terminal_size(curconn->ptsfd, curconn->terminal_width, curconn->terminal_height);
 	}
 
+}
+
+/* sigh */
+void write_wrapped(int file, const char* str, int len) {
+   ssize_t x = write(file, str, len);
+   (void) x;
 }
 
 static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr, int data_len) {
@@ -663,7 +669,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 
 			/* relay data from client to shell */
 			if (curconn->state == STATE_ACTIVE && curconn->ptsfd != -1) {
-				 (void) write(curconn->ptsfd, cpkt.data, cpkt.length);
+				 write_wrapped(curconn->ptsfd, cpkt.data, cpkt.length);
 			}
 
 		} else {
@@ -1084,7 +1090,7 @@ int main (int argc, char **argv) {
 	setup_sockets();
 
 	if (!foreground) {
-		(void) daemon(0, 0);
+		(void)daemon(0, 0);
 	}
 
 	/* Handle zombies etc */

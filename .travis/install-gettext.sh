@@ -5,7 +5,21 @@ set -e
 if [[ $TRAVIS_OS_NAME == 'linux' ]]; then
 
     sudo apt-get update
-    sudo apt-get install -y gettext autopoint
+    sudo apt-get install -y autopoint
+
+    curl -OL https://ftp.gnu.org/gnu/gettext/gettext-0.19.8.1.tar.gz
+
+    tar xzf gettext-0.19.8.1.tar.gz
+    cd gettext-0.19.8.1
+
+    # Don't flood Travis CI build log with dependency packages unless error occurs.
+    # libacl is not used in this Travis build system.
+    ./configure --quiet --prefix="$HOME" --disable-acl ||
+        { s=$? && cat config.log && (exit $s); }
+    make -s V=0 >/dev/null 2>&1 || make -s V=1
+    make -s install >make_install.log 2>&1 ||
+        { s=$? && cat make_install.log && (exit $s); }
+    rm make_install.log || :
 
 fi
 

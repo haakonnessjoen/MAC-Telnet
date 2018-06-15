@@ -508,7 +508,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		}
 
 		/* Change the owner of the slave pts */
-		chown(slavename, user->pw_uid, user->pw_gid);
+		 (void) chown(slavename, user->pw_uid, user->pw_gid);
 
 		curconn->slavefd = open(slavename, O_RDWR);
 		if (curconn->slavefd == -1) {
@@ -548,11 +548,11 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 
 			/* Redirect STDIN/STDIO/STDERR */
 			close(0);
-			dup(curconn->slavefd);
+			(void) dup(curconn->slavefd);
 			close(1);
 			dup(curconn->slavefd);
 			close(2);
-			dup(curconn->slavefd);
+			(void) dup(curconn->slavefd);
 
 			/* Set controlling terminal */
 			ioctl(0, TIOCSCTTY, 1);
@@ -579,7 +579,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 			/* Display MOTD */
 			display_motd();
 
-			chdir(user->pw_dir);
+			(void) chdir(user->pw_dir);
 
 			/* Spawn shell */
 			/* TODO: Maybe use "login -f USER" instead? renders motd and executes shell correctly for system */
@@ -663,7 +663,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 
 			/* relay data from client to shell */
 			if (curconn->state == STATE_ACTIVE && curconn->ptsfd != -1) {
-				write(curconn->ptsfd, cpkt.data, cpkt.length);
+				 (void) write(curconn->ptsfd, cpkt.data, cpkt.length);
 			}
 
 		} else {
@@ -1084,7 +1084,7 @@ int main (int argc, char **argv) {
 	setup_sockets();
 
 	if (!foreground) {
-		daemon(0, 0);
+		(void) daemon(0, 0);
 	}
 
 	/* Handle zombies etc */

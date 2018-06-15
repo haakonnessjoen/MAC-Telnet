@@ -656,7 +656,7 @@ int main (int argc, char **argv) {
 			printf(_("Login: "));
 			fflush(stdout);
 		}
-		scanf("%127s", username);
+		(void) scanf("%127s", username);
 	}
 
 	if (!have_password) {

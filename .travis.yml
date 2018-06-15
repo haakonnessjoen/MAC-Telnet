@@ -30,7 +30,6 @@ notifications:
 branches:
   only:
     - master
-    - Fix-warning-compiletion
 
 addons:
   apt:

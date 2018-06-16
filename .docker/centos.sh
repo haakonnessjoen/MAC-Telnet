@@ -1,5 +1,7 @@
 #!/bin/sh -xe 
 
+ls -al /
+
 # Clean the yum cache
 yum -y clean all
 yum -y clean expire-cache

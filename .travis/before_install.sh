@@ -4,15 +4,26 @@ set -e
 
 if [[ $TRAVIS_OS_NAME == 'linux' ]]; then
 
-    sudo apt-get update
-    sudo apt-get install -y gettext autopoint
+    if [[ $OS_NAME == 'linux' ]]; then
 
+        sudo apt-get update
+        sudo apt-get install -y gettext autopoint
+
+    elif [[ $OS_NAME == 'centos' ]]; then
+
+        sudo apt-get update
+        echo 'DOCKER_OPTS="-H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock -s devicemapper"' | sudo tee /etc/default/docker > /dev/null
+        sudo service docker restart
+        sleep 5
+        sudo docker pull centos:centos${OS_VERSION}
+
+    fi
 fi
 
 
 if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
 
-    case "${OSBUILD}" in
+    case "${OS_BUILD}" in
         brew)
             # Install some custom requirements on OS X from brew
             # Force update homebrew
@@ -86,3 +97,4 @@ if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
     esac
 
 fi
+

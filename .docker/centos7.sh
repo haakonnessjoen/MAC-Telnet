@@ -4,15 +4,17 @@
 yum -y clean all
 yum -y clean expire-cache
 
-# Epel Repo
+# TODO: No need - Epel Repo
 rpm -Uvh https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 
+# TODO: Can remove it
 yum -y install yum-plugin-priorities
 
 yum -y groupinstall 'Development Tools'
 
 gcc --version
 
+# TODO: Check for git tags, deploy RPM only on release
 
 # Prepare the RPM environment
 mkdir -p /tmp/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
@@ -25,8 +27,11 @@ mkdir -p /tmp/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 #%dist .el7
 #%el7 1
 
+
+# Build test
+
 # Source repo version
-cd /MAC-Telnet
+pushd MAC-Telnet
 
 # Test build
 ./autogen.sh

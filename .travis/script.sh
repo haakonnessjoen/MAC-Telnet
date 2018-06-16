@@ -4,10 +4,12 @@ set -e
 
 if [[ $OS_NAME == 'centos' ]]; then
 
+    # TODO: Add to docker folder for RPMs
+
     docker run --privileged -d -ti -e "container=docker"  -v /sys/fs/cgroup:/sys/fs/cgroup -v `pwd`:/MAC-Telnet:rw  centos:centos${OS_VERSION}   /usr/sbin/init
     DOCKER_CONTAINER_ID=$(docker ps | grep centos | awk '{print $1}')
     docker logs $DOCKER_CONTAINER_ID
-    docker exec -ti $DOCKER_CONTAINER_ID /bin/bash -c "bash -xe /MAC-Telnet/.docker/centos.sh;
+    docker exec -ti $DOCKER_CONTAINER_ID /bin/bash -c "bash -xe /MAC-Telnet/.docker/centos7.sh;
       echo -ne \"------\nEND MAC-Telnet TESTS\n------\nSystemD Units:\n------\n\"; 
       systemctl --no-pager --all --full status;
       echo -ne \"------\nJournalD Logs:\n------\n\";
@@ -18,7 +20,7 @@ if [[ $OS_NAME == 'centos' ]]; then
 
 else
 
-    # OSX, Linux
+    # OSX, Linux, FreeBSD
     ./autogen.sh
     make all
 

@@ -1,6 +1,7 @@
 #!/bin/sh -xe 
 
-ls -al /
+# TODO: Check folder
+ls -al /MAC-Telnet/
 
 # Clean the yum cache
 yum -y clean all
@@ -15,6 +16,13 @@ yum -y install yum-plugin-priorities
 yum -y groupinstall 'Development Tools'
 
 gcc --version
+
+
+# Prepare the RPM environment
+mkdir -p /tmp/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+
+# TODO: Testing
+cat /etc/rpm/macros.dist
 
 
 # Source repo version

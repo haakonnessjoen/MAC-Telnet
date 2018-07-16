@@ -17,11 +17,14 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #include <config.h>
+#if !defined(__FreeBSD__)
 #define _POSIX_C_SOURCE 199309L
 #define _XOPEN_SOURCE 600
+#endif
 #define _BSD_SOURCE
 #define _DARWIN_C_SOURCE
 #include <locale.h>
+#include "gettext.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -74,7 +77,6 @@
 #endif
 #include <syslog.h>
 #include <sys/utsname.h>
-#include "gettext.h"
 #include "md5.h"
 #include "protocol.h"
 #include "console.h"
@@ -506,7 +508,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		}
 
 		/* Change the owner of the slave pts */
-		chown(slavename, user->pw_uid, user->pw_gid);
+		 chown(slavename, user->pw_uid, user->pw_gid);
 
 		curconn->slavefd = open(slavename, O_RDWR);
 		if (curconn->slavefd == -1) {
@@ -593,6 +595,12 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 
 }
 
+/* sigh */
+void write_wrapped(int file, const char* str, int len) {
+   ssize_t x = write(file, str, len);
+   (void) x;
+}
+
 static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr, int data_len) {
 	struct mt_mactelnet_control_hdr cpkt;
 	struct mt_packet pdata;
@@ -661,7 +669,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 
 			/* relay data from client to shell */
 			if (curconn->state == STATE_ACTIVE && curconn->ptsfd != -1) {
-				write(curconn->ptsfd, cpkt.data, cpkt.length);
+				 write_wrapped(curconn->ptsfd, cpkt.data, cpkt.length);
 			}
 
 		} else {

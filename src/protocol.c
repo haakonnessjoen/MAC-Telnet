@@ -18,6 +18,7 @@
 */
 #define _BSD_SOURCE
 #include <locale.h>
+#include "gettext.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +45,6 @@
 #include <endian.h>
 #endif
 #include <config.h>
-#include "gettext.h"
 #include "protocol.h"
 #include "extra.h"
 

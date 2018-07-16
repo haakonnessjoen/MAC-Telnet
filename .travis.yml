@@ -41,8 +41,7 @@ addons:
       - gettext
 
 before_install:
-  - chmod a+x ./travis-before_install.sh
-  - ./travis-before_install.sh
+  - ./.travis/install-gettext.sh
 
 script:
   - ./autogen.sh

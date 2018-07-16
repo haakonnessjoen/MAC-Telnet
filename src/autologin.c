@@ -17,13 +17,13 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #include <locale.h>
+#include "gettext.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
 #include <config.h>
-#include "gettext.h"
 #include "autologin.h"
 #include "extra.h"
 

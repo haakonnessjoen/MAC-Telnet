@@ -22,7 +22,7 @@ See [Usage](#usage) for more.
 
 ### CentOS 7 ###
 
-Testing...
+Testing build release...
 
 ### Linux / kfreebsd ###
 

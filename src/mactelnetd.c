@@ -25,7 +25,6 @@
 #define _DARWIN_C_SOURCE
 #include <libintl.h>
 #include <locale.h>
-#include "gettext.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>

@@ -18,7 +18,6 @@
 */
 #include <libintl.h>
 #include <locale.h>
-#include "gettext.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>

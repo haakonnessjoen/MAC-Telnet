@@ -19,7 +19,6 @@
 #define _BSD_SOURCE
 #include <libintl.h>
 #include <locale.h>
-#include "gettext.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -34,10 +34,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <config.h>
-<<<<<<< HEAD
 
-=======
->>>>>>> upstream/master
 #include "protocol.h"
 #include "extra.h"
 

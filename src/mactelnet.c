@@ -53,10 +53,7 @@
 #include <sys/mman.h>
 #endif
 #include <config.h>
-<<<<<<< HEAD
 
-=======
->>>>>>> upstream/master
 #include "md5.h"
 #include "protocol.h"
 #include "console.h"

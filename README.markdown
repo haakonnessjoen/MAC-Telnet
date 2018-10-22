@@ -20,6 +20,10 @@ Note that Docker runs containers on isolated internal networks by default. [`--n
 
 See [Usage](#usage) for more.
 
+### CentOS 7 ###
+
+Testing...
+
 ### Linux / kfreebsd ###
 
 Dependencies: gcc (or similar), automake, autoconf

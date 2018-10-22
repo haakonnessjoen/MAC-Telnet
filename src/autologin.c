@@ -25,10 +25,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <config.h>
-<<<<<<< HEAD
 
-=======
->>>>>>> upstream/master
 #include "autologin.h"
 #include "extra.h"
 

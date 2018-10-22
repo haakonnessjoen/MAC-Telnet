@@ -46,10 +46,7 @@
 #include <endian.h>
 #endif
 #include <config.h>
-<<<<<<< HEAD
 
-=======
->>>>>>> upstream/master
 #include "protocol.h"
 #include "extra.h"
 

@@ -18,6 +18,7 @@
 */
 #include <libintl.h>
 #include <locale.h>
+#include "gettext.h"
 #include <stdlib.h>
 #include <signal.h>
 #include <stdio.h>
@@ -39,7 +40,10 @@
 #include <stdio.h>
 #include <float.h>
 #include <config.h>
+<<<<<<< HEAD
 
+=======
+>>>>>>> upstream/master
 #include "protocol.h"
 #include "interfaces.h"
 #include "utlist.h"

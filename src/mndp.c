@@ -18,6 +18,7 @@
 */
 #include <libintl.h>
 #include <locale.h>
+#include "gettext.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
@@ -33,7 +34,10 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <config.h>
+<<<<<<< HEAD
 
+=======
+>>>>>>> upstream/master
 #include "protocol.h"
 #include "extra.h"
 

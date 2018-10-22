@@ -19,6 +19,7 @@
 #define _BSD_SOURCE
 #include <libintl.h>
 #include <locale.h>
+#include "gettext.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -52,7 +53,10 @@
 #include <sys/mman.h>
 #endif
 #include <config.h>
+<<<<<<< HEAD
 
+=======
+>>>>>>> upstream/master
 #include "md5.h"
 #include "protocol.h"
 #include "console.h"
@@ -246,9 +250,13 @@ static void send_auth(char *username, char *password) {
 	if (is_a_tty && get_terminal_size(&width, &height) != -1) {
 		width = htole16(width);
 		height = htole16(height);
-		plen += add_control_packet(&data, MT_CPTYPE_TERM_WIDTH, &width, 2);
-		plen += add_control_packet(&data, MT_CPTYPE_TERM_HEIGHT, &height, 2);
+	} else {
+		width = 0;
+		height = 0;
 	}
+
+	plen += add_control_packet(&data, MT_CPTYPE_TERM_WIDTH, &width, 2);
+	plen += add_control_packet(&data, MT_CPTYPE_TERM_HEIGHT, &height, 2);
 
 	outcounter += plen;
 
@@ -657,7 +665,7 @@ int main (int argc, char **argv) {
 			printf(_("Login: "));
 			fflush(stdout);
 		}
-		scanf("%127s", username);
+		(void) scanf("%127s", username);
 	}
 
 	if (!have_password) {

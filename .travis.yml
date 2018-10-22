@@ -53,8 +53,12 @@ addons:
       - gettext
 
 before_install:
+<<<<<<< HEAD
   - chmod a+x ./.travis/before_install.sh
   - ./.travis/before_install.sh
+=======
+  - ./.travis/install-gettext.sh
+>>>>>>> upstream/master
 
 script:
   - chmod a+x ./.travis/script.sh

@@ -18,13 +18,17 @@
 */
 #include <libintl.h>
 #include <locale.h>
+#include "gettext.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
 #include <config.h>
+<<<<<<< HEAD
 
+=======
+>>>>>>> upstream/master
 #include "autologin.h"
 #include "extra.h"
 

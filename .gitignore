@@ -1,21 +1,5 @@
 .DS_Store
-<<<<<<< HEAD
-/m4/*.m4
-Makefile.in
-/config.guess
-/config.rpath
-/config.sub
-/po/Makevars.template
-Makefile
-/config.log
-/config.status
-/po/POTFILES
-/po/*.gmo
-/po/*.po~
-/po/*.pot
-/src/.deps/
-/src/config.h
-=======
+.idea
 ABOUT-NLS
 ChangeLog
 autom4te.cache
@@ -41,9 +25,13 @@ config.status
 configure
 configure.scan
 po/Makevars.template
+/po/POTFILES
+/po/*.gmo
+/po/*.po~
+/po/*.pot
 src/macping
 src/mactelnet
 src/mactelnetd
 src/mndp
->>>>>>> upstream/master
-
+src/.deps/
+src/config.h

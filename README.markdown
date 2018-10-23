@@ -22,7 +22,18 @@ See [Usage](#usage) for more.
 
 ### CentOS 7 ###
 
-Testing build release...
+To install dependencies:
+
+    yum -y install wget automake gettext gettext-devel gcc make
+       
+    
+Download source tarball, extract, compile and install:
+    
+    wget http://github.com/haakonnessjoen/MAC-Telnet/tarball/master -O mactelnet.tar.gz
+    tar zxvf mactelnet.tar.gz
+    cd haakonness*/
+    ./autogen.sh
+    make all install
 
 ### Linux / kfreebsd ###
 

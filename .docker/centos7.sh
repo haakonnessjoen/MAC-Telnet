@@ -50,3 +50,11 @@ yum localinstall -y /tmp/rpmbuild/RPMS/x86_64/mactelnet-*
 #./autogen.sh
 #make all
 
+#
+# TODO: Fix packages
+#       Extract rpm -> rpm2cpio ./mactelnet-client-0.4.4-1.centos.el7.x86_64.rpm | cpio -idmv
+#                      rpm2cpio ./mactelnet-daemon-0.4.4-1.centos.el7.x86_64.rpm | cpio -idmv
+#
+# TODO: mactelnet-client, remove man1/mactelnetd.1
+# TODO: mactelnet-daemon, remove man1/macping.1, man1/mactelnet.1, man1/mndp.1
+#

@@ -1,4 +1,5 @@
 .DS_Store
+.idea
 ABOUT-NLS
 ChangeLog
 autom4te.cache
@@ -24,8 +25,13 @@ config.status
 configure
 configure.scan
 po/Makevars.template
+/po/POTFILES
+/po/*.gmo
+/po/*.po~
+/po/*.pot
 src/macping
 src/mactelnet
 src/mactelnetd
 src/mndp
-
+src/.deps/
+src/config.h

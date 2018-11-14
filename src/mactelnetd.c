@@ -23,8 +23,8 @@
 #endif
 #define _BSD_SOURCE
 #define _DARWIN_C_SOURCE
+#include <libintl.h>
 #include <locale.h>
-#include "gettext.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -77,6 +77,7 @@
 #endif
 #include <syslog.h>
 #include <sys/utsname.h>
+
 #include "md5.h"
 #include "protocol.h"
 #include "console.h"
@@ -94,7 +95,7 @@
 /* Max ~5 pings per second */
 #define MT_MAXPPS MT_MNDP_BROADCAST_INTERVAL * 5
 
-#define _(String) gettext (String)
+#define _(STRING) gettext(STRING)
 #define gettext_noop(String) String
 
 static int sockfd;
@@ -107,7 +108,7 @@ struct net_interface *interfaces = NULL;
 
 static int use_raw_socket = 0;
 
-static struct in_addr sourceip; 
+static struct in_addr sourceip;
 static struct in_addr destip;
 static int sourceport;
 
@@ -631,7 +632,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 			curconn->outcounter += plen;
 
 			send_udp(curconn, &pdata);
-		
+
 		/* Don't change the username after the state is active */
 		} else if (cpkt.cptype == MT_CPTYPE_USERNAME && curconn->state != STATE_ACTIVE) {
 			memcpy(curconn->username, cpkt.data, act_size = (cpkt.length > MT_MNDP_MAX_STRING_SIZE - 1 ? MT_MNDP_MAX_STRING_SIZE - 1 : cpkt.length));
@@ -1090,6 +1091,11 @@ int main (int argc, char **argv) {
 	setup_sockets();
 
 	if (!foreground) {
+		/* TODO: deprecated in OS X 10.5
+		 	 mactelnetd.c:1087:3: warning: 'daemon' is deprecated: first deprecated in OS X 10.5 [-Wdeprecated-declarations]
+		   /usr/include/stdlib.h:267:6: note: 'daemon' has been explicitly marked deprecated here
+		   int daemon(int, int) __DARWIN_1050(daemon) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_0, __MAC_10_5, __IPHONE_2_0, __IPHONE_2_0);
+		*/
 		daemon(0, 0);
 	}
 

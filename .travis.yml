@@ -6,19 +6,31 @@ matrix:
   include:
     - os: linux
       dist: trusty
-      env: OSNAME="linux"
+      env: OS_NAME="linux"
+      # Linux Ubuntu Trusty
     - os: osx
       osx_image: xcode9
-      env: OSNAME="osx" OSVERSION="10.13" OSBUILD="brew"
+      env: OS_NAME="osx" OS_VERSION="10.13" OS_BUILD="brew"
+      # Apple OSX 10.13 High Sierra
     - os: osx
       osx_image: xcode8.3
-      env: OSNAME="osx" OSVERSION="10.12" OSBUILD="brew"
+      env: OS_NAME="osx" OS_VERSION="10.12" OS_BUILD="brew"
+      # Apple OSX 10.12 Sierra
     - os: osx
       osx_image: xcode8
-      env: OSNAME="osx" OSVERSION="10.11" OSBUILD="brew"
+      env: OS_NAME="osx" OS_VERSION="10.11" OS_BUILD="brew"
+      # Apple OSX 10.11 El Capitan
     - os: osx
       osx_image: xcode6.4
-      env: OSNAME="osx" OSVERSION="10.10 10.9" OSBUILD="sources"
+      env: OS_NAME="osx" OS_VERSION="10.10 10.9" OS_BUILD="sources"
+      # Apple OSX 10.10 Yosemite
+      # Apple OSX 10.9 Mavericks
+    - os: linux
+      dist: trusty
+      sudo: required
+      env: OS_NAME="centos" OS_VERSION="7" OS_BUILD="rpmbuilder"
+      services: docker
+      # DOCKER CentOS 7
 
 compiler: gcc
 
@@ -41,13 +53,28 @@ addons:
       - gettext
 
 before_install:
-  - ./.travis/install-gettext.sh
+  - chmod a+x ./.travis/before_install.sh
+  - ./.travis/before_install.sh
 
 script:
-  - ./autogen.sh
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then ./configure --disable-nls; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./configure;               fi
-  - make all
+  - chmod a+x ./.travis/script.sh
+  - ./.travis/script.sh
 
-after_script: 
+#after_success:
+#  - .travis/after_success.sh
+
+after_script:
   - set +e
+
+# Deploy Release Package
+#deploy:
+#  provider: releases
+#  api_key:
+#    secure:
+#  file:
+#  skip_clean: true
+#  on:
+#    repo: haakonnessjoen/MAC-Telnet
+#    tags: true
+
+

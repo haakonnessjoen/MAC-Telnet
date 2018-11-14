@@ -20,6 +20,21 @@ Note that Docker runs containers on isolated internal networks by default. [`--n
 
 See [Usage](#usage) for more.
 
+### CentOS 7 ###
+
+To install dependencies:
+
+    yum -y install wget automake gettext gettext-devel gcc make
+       
+    
+Download source tarball, extract, compile and install:
+    
+    wget http://github.com/haakonnessjoen/MAC-Telnet/tarball/master -O mactelnet.tar.gz
+    tar zxvf mactelnet.tar.gz
+    cd haakonness*/
+    ./autogen.sh
+    make all install
+
 ### Linux / kfreebsd ###
 
 Dependencies: gcc (or similar), automake, autoconf
@@ -34,7 +49,6 @@ Download source tarball, extract, compile and install:
     tar zxvf mactelnet.tar.gz
     cd haakonness*/
     ./autogen.sh
-    ./configure
     make all install
 
 ### FreeBSD ###
@@ -69,7 +83,6 @@ Install dependencies, download source tarball, extract, compile and install:
     export PATH=/usr/local/opt/gettext/bin:$PATH
 
     ./autogen.sh
-    ./configure --disable-nls
     make all install
 
 And you are ready..
@@ -119,7 +132,6 @@ Install dependencies, download source tarball, extract, compile and install:
     tar zxf mactelnet.tar.gz
     cd haakonness*/
     ./autogen.sh
-    ./configure --disable-nls
     make all
     sudo make install
 

@@ -1,0 +1,4 @@
+- **MAC Telnet version:** 
+- **Operating system and architecture:** 
+- **Issue** 
+- **Log**

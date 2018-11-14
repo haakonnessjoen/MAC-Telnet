@@ -20,12 +20,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <config.h>
-#include "gettext.h"
+#include <libintl.h>
+#include <locale.h>
+
 #include "extra.h"
 #include "users.h"
 #include "utlist.h"
 
-#define _(String) gettext (String)
+#define _(STRING) gettext(STRING)
 
 struct mt_credentials *mt_users = NULL;
 

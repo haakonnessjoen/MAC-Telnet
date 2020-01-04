@@ -25,10 +25,11 @@ config.status
 configure
 configure.scan
 po/Makevars.template
-/po/POTFILES
-/po/*.gmo
-/po/*.po~
-/po/*.pot
+po/POTFILES
+po/*.gmo
+po/*.po~
+po/*.pot
+po/remove-potcdate.sed
 src/macping
 src/mactelnet
 src/mactelnetd

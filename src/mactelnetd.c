@@ -920,7 +920,7 @@ void sigterm_handler() {
 }
 
 void sighup_handler() {
-	struct mt_connection *p;
+	struct mt_connection *p, *conntmp;
 
 	syslog(LOG_NOTICE, _("SIGHUP: Reloading interfaces"));
 
@@ -942,17 +942,14 @@ void sighup_handler() {
 	setup_sockets();
 
 	/* Reassign outgoing interfaces to connections again, since they may have changed */
-	DL_FOREACH(connections_head, p) {
+	DL_FOREACH_SAFE(connections_head, p, conntmp) {
 		if (p->interface_name[0] != 0) {
 			struct net_interface *interface = net_get_interface_ptr(&interfaces, p->interface_name, 0);
 			if (interface != NULL) {
 				p->interface = interface;
 			} else {
-				struct mt_connection tmp;
 				syslog(LOG_NOTICE, _("(%d) Connection closed because interface %s is gone."), p->seskey, p->interface_name);
-				tmp.next = p->next;
 				list_remove_connection(p);
-				p = &tmp;
 			}
 		}
 	}
@@ -1120,7 +1117,7 @@ int main (int argc, char **argv) {
 
 	while (1) {
 		int reads;
-		struct mt_connection *p;
+		struct mt_connection *p, *tmpconn;
 		int maxfd=0;
 		time_t now;
 
@@ -1171,7 +1168,7 @@ int main (int argc, char **argv) {
 				}
 			}
 			/* Handle data from terminal sessions */
-			DL_FOREACH(connections_head, p) {
+			DL_FOREACH_SAFE(connections_head, p, tmpconn) {
 				/* Check if we have data ready in the pty buffer for the active session */
 				if (p->state == STATE_ACTIVE && p->ptsfd > 0 && p->wait_for_ack == 0 && FD_ISSET(p->ptsfd, &read_fds)) {
 					unsigned char keydata[1024];
@@ -1188,7 +1185,6 @@ int main (int argc, char **argv) {
 						result = send_udp(p, &pdata);
 					} else {
 						/* Shell exited */
-						struct mt_connection tmp;
 						init_packet(&pdata, MT_PTYPE_END, p->dstmac, p->srcmac, p->seskey, p->outcounter);
 						send_udp(p, &pdata);
 						if (p->username[0] != 0) {
@@ -1196,9 +1192,7 @@ int main (int argc, char **argv) {
 						} else {
 							syslog(LOG_INFO, _("(%d) Connection closed."), p->seskey);
 						}
-						tmp.next = p->next;
 						list_remove_connection(p);
-						p = &tmp;
 					}
 				}
 				else if (p->state == STATE_ACTIVE && p->ptsfd > 0 && p->wait_for_ack == 1 && FD_ISSET(p->ptsfd, &read_fds)) {
@@ -1215,8 +1209,8 @@ int main (int argc, char **argv) {
 			last_mndp_time = now;
 		}
 		if (connections_head != NULL) {
-			struct mt_connection *p,tmp;
-			DL_FOREACH(connections_head, p) {
+			struct mt_connection *p, *tmp;
+			DL_FOREACH_SAFE(connections_head, p, tmp) {
 				if (now - p->lastdata >= MT_CONNECTION_TIMEOUT) {
 					syslog(LOG_INFO, _("(%d) Session timed out"), p->seskey);
 					init_packet(&pdata, MT_PTYPE_DATA, p->dstmac, p->srcmac, p->seskey, p->outcounter);
@@ -1226,9 +1220,7 @@ int main (int argc, char **argv) {
 					init_packet(&pdata, MT_PTYPE_END, p->dstmac, p->srcmac, p->seskey, p->outcounter);
 					send_udp(p, &pdata);
 
-					tmp.next = p->next;
 					list_remove_connection(p);
-					p = &tmp;
 				}
 			}
 		}

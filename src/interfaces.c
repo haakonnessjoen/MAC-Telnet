@@ -152,7 +152,11 @@ int net_get_interfaces(struct net_interface **interfaces) {
 		if (ifaddrsp->ifa_addr == NULL)
 			continue;
 
+#ifdef __linux__
 		if (ifaddrsp->ifa_addr->sa_family == AF_INET || ifaddrsp->ifa_addr->sa_family == AF_PACKET) {
+#else
+		if (ifaddrsp->ifa_addr->sa_family == AF_INET) {
+#endif
 			struct net_interface *interface =
 			  net_get_interface_ptr(interfaces, ifaddrsp->ifa_name, 1);
 			if (interface != NULL) {

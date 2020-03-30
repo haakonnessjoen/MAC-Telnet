@@ -77,12 +77,15 @@ Install dependencies, download source tarball, extract, compile and install:
     cd haakonness*/
 
     # Install dependencies
-    brew install gettext
+    brew install gettext autoconf automake libtool
 
     # Check what paths it tells you to use, for a standard install, the following should suffice:
     export PATH=/usr/local/opt/gettext/bin:$PATH
 
     ./autogen.sh
+    export LDFLAGS=-L/usr/local/opt/gettext/lib
+    export CPPFLAGS=-I/usr/local/opt/gettext/include
+    ./configure --with-libintl-prefix=/usr/local/opt/gettext/include
     make all install
 
 And you are ready..

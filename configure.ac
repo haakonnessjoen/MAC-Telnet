@@ -15,8 +15,8 @@ AM_PROG_CC_C_O
 AC_PROG_INSTALL
 
 # Checks for libraries.
-AM_GNU_GETTEXT([external])
-AM_GNU_GETTEXT_VERSION([0.18])
+# AM_GNU_GETTEXT([external])
+# AM_GNU_GETTEXT_VERSION([0.18])
 
 AC_CHECK_LIB([rt], [nanosleep])
 
@@ -34,4 +34,4 @@ AC_FUNC_MALLOC
 AC_FUNC_STRNLEN
 AC_CHECK_FUNCS([alarm bzero clock_gettime getpass gettimeofday inet_ntoa memset select setenv setlocale socket strcasecmp strerror strncasecmp sysinfo uname])
 
-AC_OUTPUT(Makefile src/Makefile doc/Makefile config/Makefile po/Makefile.in)
+AC_OUTPUT(Makefile src/Makefile doc/Makefile config/Makefile)

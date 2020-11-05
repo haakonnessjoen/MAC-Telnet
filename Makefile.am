@@ -1,5 +1,5 @@
 AUTOMAKE_OPTIONS = foreign
-SUBDIRS = src doc config po
+SUBDIRS = src doc config
 
 CFLAGS = --pedantic -Wall -std=c99 -O3 
 LDFLAGS =

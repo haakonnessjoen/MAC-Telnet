@@ -79,13 +79,16 @@ Install dependencies, download source tarball, extract, compile and install:
     # Install dependencies
     brew install gettext autoconf automake libtool
 
+    # Get proper gettext path from brew
+    export GETTEXT_PATH=$(brew --prefix gettext)
+
     # Check what paths it tells you to use, for a standard install, the following should suffice:
-    export PATH=/usr/local/opt/gettext/bin:$PATH
+    export PATH="$GETTEXT_PATH"/bin:$PATH
 
     ./autogen.sh
-    export LDFLAGS=-L/usr/local/opt/gettext/lib
-    export CPPFLAGS=-I/usr/local/opt/gettext/include
-    ./configure --with-libintl-prefix=/usr/local/opt/gettext/include
+    export LDFLAGS=-L"$GETTEXT_PATH"/lib
+    export CPPFLAGS=-I"$GETTEXT_PATH"/include
+    ./configure --with-libintl-prefix="$GETTEXT_PATH"/include
     make all install
 
 And you are ready..

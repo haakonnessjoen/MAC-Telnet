@@ -68,7 +68,29 @@ Download source tarball, extract, compile and install:
     ./configure LDFLAGS=" -L/usr/local/lib"
     gmake all install
 
-### Mac OS X ###
+### MacOS (newer Homebrew versions) ###
+
+Install dependencies, download source tarball, extract, compile and install:
+
+    wget http://github.com/haakonnessjoen/MAC-Telnet/tarball/master -O mactelnet.tar.gz
+    tar zxvf mactelnet.tar.gz
+    cd haakonness*/
+
+    # Install dependencies
+    brew install gettext autoconf automake libtool
+
+    # Check what paths it tells you to use, for a standard install, the following should suffice:
+    PATH=/opt/homebrew/bin:$PATH ./autogen.sh
+
+    #check your installed gettext version and replace 0.21 if required.
+    LDFLAGS=-L/opt/homebrew/Cellar/gettext/0.21/lib CPPFLAGS=-I/opt/homebrew/Cellar/gettext/0.21/include ./configure --with-libintl-prefix=/opt/homebrew/Cellar/gettext/0.21/include
+    make all
+    sudo make install
+
+And you are ready..
+
+
+### Mac OS X (legacy) ###
 
 Install dependencies, download source tarball, extract, compile and install:
 

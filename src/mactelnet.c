@@ -96,6 +96,7 @@ static int mndp_timeout = 0;
 
 static int is_a_tty = 1;
 static int quiet_mode = 0;
+static int force_md5 = 0;
 static int batch_mode = 0;
 static int no_autologin = 0;
 
@@ -231,7 +232,7 @@ static void send_auth(char *username, char *password) {
 	/* calculate the actual password's length */
 	act_pass_len = strnlen(password, 82);
 
-	if (server_key[0] == 1) { /* Server hasn't sent the key, use the old MD5 algorithm */
+	if (force_md5 == 1 || server_key[0] == 1) { /* Server hasn't sent the key, use the old MD5 algorithm */
 		/* Concat string of 0 + password + pass_salt */
 		hashdata[0] = 0;
 		memcpy(hashdata + 1, password, act_pass_len);
@@ -337,7 +338,7 @@ static int handle_packet(unsigned char *data, int data_len) {
 					memcpy(pass_salt, cpkt.data, sizeof(pass_salt));
 					send_auth(username, password);
 				} else if (cpkt.length == sizeof(pass_salt) + sizeof(server_key)) {
-				        memcpy(server_key, cpkt.data, sizeof(server_key));
+					memcpy(server_key, cpkt.data, sizeof(server_key));
 					memcpy(pass_salt, cpkt.data + sizeof(server_key), sizeof(pass_salt));
 					send_auth(username, password);
 				} else {
@@ -497,7 +498,7 @@ int main (int argc, char **argv) {
 	textdomain(PACKAGE);
 
 	while (1) {
-		c = getopt(argc, argv, "lnqt:u:p:U:vh?BAa:");
+		c = getopt(argc, argv, "lnqot:u:p:U:vh?BAa:");
 
 		if (c == -1) {
 			break;
@@ -545,6 +546,10 @@ int main (int argc, char **argv) {
 
 			case 'q':
 				quiet_mode = 1;
+				break;
+
+			case 'o':
+				force_md5 = 1;
 				break;
 
 			case 'l':
@@ -596,6 +601,7 @@ int main (int argc, char **argv) {
 			"  -U <user>      Drop privileges to this user. Used in conjunction with -n\n"
 			"                 for security.\n"
 			"  -q             Quiet mode.\n"
+			"  -o             Force old authentication algorithm.\n"
 			"  -h             This help.\n"
 			"\n"), AUTOLOGIN_PATH);
 		}
@@ -746,9 +752,11 @@ int main (int argc, char **argv) {
 
 	init_packet(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, 0);
 	outcounter += add_control_packet(&data, MT_CPTYPE_BEGINAUTH, NULL, 0);
-	strcpy(loginkey, username);
-	memcpy(loginkey + strlen(username) + 1, public_key, sizeof(public_key));
-	outcounter += add_control_packet(&data, MT_CPTYPE_PASSSALT, loginkey, sizeof(public_key) + strlen(username) + 1);
+	if (force_md5 == 0) {
+		strcpy(loginkey, username);
+		memcpy(loginkey + strlen(username) + 1, public_key, sizeof(public_key));
+		outcounter += add_control_packet(&data, MT_CPTYPE_PASSSALT, loginkey, sizeof(public_key) + strlen(username) + 1);
+	}
 
 	/* TODO: handle result of send_udp */
 	result = send_udp(&data, 1);

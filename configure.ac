@@ -1,8 +1,8 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.68])
-AC_INIT(mactelnet, 0.4.4, haakon.nessjoen@gmail.com)
+AC_PREREQ([2.71])
+AC_INIT([mactelnet],[1.0.0],[haakon.nessjoen@gmail.com])
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_SRCDIR([src/mactelnet.c])
 AC_CONFIG_HEADERS([src/config.h])
@@ -34,6 +34,7 @@ AC_FUNC_CHOWN
 AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_FUNC_STRNLEN
-AC_CHECK_FUNCS([alarm bzero clock_gettime getpass gettimeofday inet_ntoa memset select setenv setlocale socket strcasecmp strerror strncasecmp sysinfo uname])
+AC_CHECK_FUNCS([getrandom arc4random alarm bzero clock_gettime getpass gettimeofday inet_ntoa memset select setenv setlocale socket strcasecmp strerror strncasecmp sysinfo uname])
 
-AC_OUTPUT(Makefile src/Makefile doc/Makefile config/Makefile po/Makefile.in)
+AC_CONFIG_FILES([Makefile src/Makefile doc/Makefile config/Makefile po/Makefile.in])
+AC_OUTPUT

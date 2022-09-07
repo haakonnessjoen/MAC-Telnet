@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mactelnet\n"
 "Report-Msgid-Bugs-To: haakon.nessjoen@gmail.com\n"
-"POT-Creation-Date: 2020-01-04 15:05+0100\n"
+"POT-Creation-Date: 2022-09-07 09:32+0200\n"
 "PO-Revision-Date: 2016-10-10 22:06+0200\n"
 "Last-Translator: Håkon Nessjøen <haakon.nessjoen@gmail.com>\n"
 "Language-Team: Håkon Nessjøen <haakon.nessjoen@gmail.com>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "X-Generator: vim\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 
-#: src/mactelnet.c:123
+#: src/mactelnet.c:129
 #, c-format
 msgid ""
 "Failed dropping privileges. The user %s is not a valid username on local "
@@ -27,22 +27,22 @@ msgstr ""
 "Klarte ikke slippe tilgangsnivå. Brukernavnet %s er ikke gyldig på det "
 "lokale systemet.\n"
 
-#: src/mactelnet.c:129
+#: src/mactelnet.c:135
 #, c-format
 msgid "setgid: Error dropping group privileges\n"
 msgstr "setgid: Klarte ikke slippe tilgangsnivå for gruppe\n"
 
-#: src/mactelnet.c:133
+#: src/mactelnet.c:139
 #, c-format
 msgid "setuid: Error dropping user privileges\n"
 msgstr "setud: Klarte ikke slippe tilgangsnivå for bruker\n"
 
-#: src/mactelnet.c:138
+#: src/mactelnet.c:144
 #, c-format
 msgid "Failed to drop privileges\n"
 msgstr "Klarte ikke slippe tilgangsnivå\n"
 
-#: src/mactelnet.c:204
+#: src/mactelnet.c:210
 #, c-format
 msgid ""
 "\n"
@@ -51,27 +51,27 @@ msgstr ""
 "\n"
 "Tilkoblingen fikk tidsavbrudd\n"
 
-#: src/mactelnet.c:326
-#, c-format
-msgid "Invalid salt length: %d (instead of 16) received from server %s\n"
+#: src/mactelnet.c:345
+#, fuzzy, c-format
+msgid "Invalid salt length: %d (instead of 16 or 49) received from server %s\n"
 msgstr "Ugyldig lengde på salt: %d (isteden for 16) mottatt fra server %s\n"
 
-#: src/mactelnet.c:373
+#: src/mactelnet.c:390
 #, c-format
 msgid "Connection closed.\n"
 msgstr "Tilkoblingen ble lukket.\n"
 
-#: src/mactelnet.c:379
+#: src/mactelnet.c:396
 #, c-format
 msgid "Unhandeled packet type: %d received from server %s\n"
 msgstr "Uhåndtert pakketype: %d mottatt fra server %s\n"
 
-#: src/mactelnet.c:402
+#: src/mactelnet.c:419
 #, c-format
 msgid "Error: No suitable devices found\n"
 msgstr "Feil: Ingen brukbare enheter funnet\n"
 
-#: src/mactelnet.c:562
+#: src/mactelnet.c:584
 #, c-format
 msgid ""
 "Usage: %s <MAC|identity> [-h] [-n] [-a <path>] [-A] [-t <timeout>] [-u "
@@ -81,8 +81,8 @@ msgstr ""
 "<tidsbegrensning>] [-u <brukernavn>] [-p <passord>] [-U <brukernavn>] | -l [-"
 "B] [-t <tidsbegrensning>]\n"
 
-#: src/mactelnet.c:565
-#, c-format
+#: src/mactelnet.c:587
+#, fuzzy, c-format
 msgid ""
 "\n"
 "Parameters:\n"
@@ -106,6 +106,7 @@ msgid ""
 "  -U <user>      Drop privileges to this user. Used in conjunction with -n\n"
 "                 for security.\n"
 "  -q             Quiet mode.\n"
+"  -o             Force old authentication algorithm.\n"
 "  -h             This help.\n"
 "\n"
 msgstr ""
@@ -134,46 +135,46 @@ msgstr ""
 "  -h             Denne hjelpen.\n"
 "\n"
 
-#: src/mactelnet.c:598
+#: src/mactelnet.c:621
 #, c-format
 msgid "Using autologin credentials from %s\n"
 msgstr "Bruker autologin-påloggingsinformasjon fra %s\n"
 
-#: src/mactelnet.c:622
+#: src/mactelnet.c:645
 #, c-format
 msgid "You need to have root privileges to use the -n parameter.\n"
 msgstr "Du trenger root privilegier for å bruke -n parameteren.\n"
 
-#: src/mactelnet.c:632
+#: src/mactelnet.c:655
 #, c-format
 msgid "The -U option must be used in conjunction with the -n parameter.\n"
 msgstr "-U parameteren må brukes i forbindelse med -n parameteren.\n"
 
-#: src/mactelnet.c:661
+#: src/mactelnet.c:684
 #, c-format
 msgid "Login: "
 msgstr "Bruker: "
 
-#: src/mactelnet.c:669
+#: src/mactelnet.c:692
 msgid "Password: "
 msgstr "Passord: "
 
-#: src/mactelnet.c:697
+#: src/mactelnet.c:728
 #, c-format
 msgid "Connecting to %s..."
 msgstr "Kobler til %s…"
 
-#: src/mactelnet.c:707 src/mactelnetd.c:245 src/mactelnetd.c:1057
+#: src/mactelnet.c:738 src/mactelnetd.c:245 src/mactelnetd.c:1057
 #, c-format
 msgid "Error binding to %s:%d, %s\n"
 msgstr "Problemer med å binde til %s:%d, %s\n"
 
-#: src/mactelnet.c:712
+#: src/mactelnet.c:743
 #, c-format
 msgid "Connection failed.\n"
 msgstr "Tilkobling feilet.\n"
 
-#: src/mactelnet.c:716
+#: src/mactelnet.c:747
 #, c-format
 msgid "done\n"
 msgstr "ferdig\n"

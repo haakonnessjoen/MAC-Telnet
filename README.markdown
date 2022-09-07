@@ -1,8 +1,14 @@
 MAC-Telnet for Posix systems
 ============================
-[![Build Status](https://travis-ci.org/haakonnessjoen/MAC-Telnet.svg?branch=master)](https://travis-ci.org/haakonnessjoen/MAC-Telnet)
+[![Build Status](https://travis-ci.org/haakonnessjoen/MAC-Telnet.svg?branch=new-crypto)](https://travis-ci.org/haakonnessjoen/MAC-Telnet)
 
 Console tools for connecting to, and serving, devices using MikroTik RouterOS MAC-Telnet protocol.
+
+## CURRENTLY UNDER DEVELOPMENT
+
+> **Warning**
+> This repository is in mid-way of adding support for RouterOS v6.43 and up, which does not support the old MD5 authentication method.
+> Expect this to be "alpha quality" for now. The new EC-SRP key sharing and authentication protocol is **not** implemented in `mactelnetd` yet.
 
 Installation
 ------------
@@ -21,6 +27,9 @@ Note that Docker runs containers on isolated internal networks by default. [`--n
 See [Usage](#usage) for more.
 
 ### CentOS 7 ###
+
+> **Warning**
+> Currently untested in new version.
 
 To install dependencies:
 
@@ -41,7 +50,7 @@ Dependencies: gcc (or similar), automake, autoconf
 
 To install dependencies on Debian/Ubuntu based systems:
 
-    apt-get install build-essential automake autoconf
+    apt-get install build-essential automake autoconf openssl-dev
 
 Download source tarball, extract, compile and install:
 
@@ -52,6 +61,9 @@ Download source tarball, extract, compile and install:
     make all install
 
 ### FreeBSD ###
+
+> **Warning**
+> Currently untested in new version.
 
 Dependencies: clang (gcc or similar), automake, autoconf
 
@@ -77,68 +89,18 @@ Install dependencies, download source tarball, extract, compile and install:
     cd haakonness*/
 
     # Install dependencies
-    brew install gettext autoconf automake libtool
+    brew install gettext autoconf automake libtool openssl
 
-    # Check what paths it tells you to use, for a standard install, the following should suffice:
-    export PATH=/usr/local/opt/gettext/bin:$PATH
+    export GETTEXT_PATH=$(brew --prefix gettext)
+    export OPENSSL_PATH=$(brew --prefix openssl)
 
+    export PATH="${GETTEXT_PATH}/bin:${OPENSSL_PATH}/bin:$PATH"
+    export LDFLAGS="-L${GETTEXT_PATH}/lib"
+    export CPPFLAGS="-I${GETTEXT_PATH}/include -I${OPENSSL_PATH}/include"
+    export CRYPTO_CFLAGS="-I${OPENSSL_PATH}/include"
+    export CRYPTO_LIBS="-L${OPENSSL_PATH}/lib ${OPENSSL_PATH}/lib/libcrypto.3.dylib"
     ./autogen.sh
-    export LDFLAGS=-L/usr/local/opt/gettext/lib
-    export CPPFLAGS=-I/usr/local/opt/gettext/include
-    ./configure --with-libintl-prefix=/usr/local/opt/gettext/include
     make all install
-
-And you are ready..
-
-### Mac OS X (without Homebrew) ###
-
-Install dependencies, download source tarball, extract, compile and install:
-
-    export build=~/devtools # or wherever you'd like to build
-    mkdir -p $build
-
-    cd $build
-    wget https://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.gz
-    tar xzf autoconf-2.69.tar.gz
-    cd autoconf-2.69
-    ./configure --prefix=/usr/local
-    make
-    sudo make install
-    export PATH=$PATH:/usr/local/bin
-
-    cd $build
-    wget https://ftp.gnu.org/gnu/automake/automake-1.15.tar.gz
-    tar xzf automake-1.15.tar.gz
-    cd automake-1.15
-    ./configure --prefix=/usr/local
-    make
-    sudo make install
-
-    cd $build
-    wget https://ftp.gnu.org/gnu/libtool/libtool-2.4.6.tar.gz
-    tar xzf libtool-2.4.6.tar.gz
-    cd libtool-2.4.6
-    ./configure --prefix=/usr/local
-    make
-    sudo make install
-
-    cd $build
-    wget https://ftp.gnu.org/gnu/gettext/gettext-0.19.8.1.tar.gz
-    tar zxf gettext-0.19.8.1.tar.gz
-    cd gettext-0.19.8.1
-    ./configure --prefix=/usr/local
-    make
-    sudo make install
-
-    cd $build
-    wget http://github.com/haakonnessjoen/MAC-Telnet/tarball/master -O mactelnet.tar.gz
-    tar zxf mactelnet.tar.gz
-    cd haakonness*/
-    ./autogen.sh
-    make all
-    sudo make install
-
-And you are ready.
 
 
 Usage
@@ -164,6 +126,7 @@ Usage
       -U <user>      Drop privileges to this user. Used in conjunction with -n
                      for security.
       -q             Quiet mode.
+      -o             Force old authentication algorithm.
       -h             This help.
 
 Example using identity:
@@ -176,7 +139,7 @@ Example using identity:
 
 Example using mac address:
 
-    $ mactelnet 0:c:42:43:58:a5 -u admin
+    $ mactelnet -u admin 0:c:42:43:58:a5
     Password:
     Connecting to 0:c:42:43:58:a5...done
 
@@ -188,10 +151,10 @@ Example using mac address:
       MMM      MMM  III  KKK KKK   RRRRRR    OOO  OOO     TTT     III  KKK KKK
       MMM      MMM  III  KKK  KKK  RRR  RRR   OOOOOO      TTT     III  KKK  KKK
 
-      MikroTik RouterOS 4.0 (c) 1999-2009       http://www.mikrotik.com/
+      MikroTik RouterOS 6.49 (c) 1999-2021       http://www.mikrotik.com/
 
 
-     [admin@HMG] >
+     [admin@Mikrotik] >
 
 ### Tips
 
@@ -228,3 +191,7 @@ Example:
 Or for use in bash-scripting:
 
     # macping 0:c:42:43:58:a5 -c 2 >/dev/null 2>&1 || ( echo "No answer for 2 pings" | mail -s "router down" my.email@address.com )
+
+## Huge thanks
+
+Thanks to [@comed-ian](https://github.com/comed-ian) for creating a working proof of concept python script that successfully authenticated using the new authentication method in RouterOS 4.43+, and [@kmeaw](https://github.com/kmeaw) for porting the code to C, and implementing it in mactelnet.

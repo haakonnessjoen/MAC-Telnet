@@ -29,12 +29,21 @@
 */
 
 #include "mtwei.h"
-
+#include "config.h"
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#if !defined(__FreeBSD__) && !defined(__APPLE__)
 #include <sys/random.h>
+#endif
+
+#if !defined(HAVE_GETRANDOM) && defined(HAVE_ARC4RANDOM)
+int getrandom(char *buf, size_t size, int flags) {
+	arc4random_buf(buf, size);
+	return size;
+}
+#endif
 
 void
 mtwei_init (mtwei_state_t *state)

@@ -78,6 +78,7 @@ static mtwei_state_t mtwei;
 BIGNUM *private_key;
 static uint8_t public_key[MTWEI_PUBKEY_LEN];
 static uint8_t server_key[MTWEI_PUBKEY_LEN];
+static enum auth_mode_t auth_mode = AUTH_MODE_MD5;
 static int running = 1;
 
 static unsigned char use_raw_socket = 0;
@@ -232,7 +233,7 @@ static void send_auth(char *username, char *password) {
 	/* calculate the actual password's length */
 	act_pass_len = strnlen(password, 82);
 
-	if (force_md5 == 1 || server_key[0] == 1) { /* Server hasn't sent the key, use the old MD5 algorithm */
+	if (force_md5 == 1 || auth_mode == AUTH_MODE_MD5) {
 		/* Concat string of 0 + password + pass_salt */
 		hashdata[0] = 0;
 		memcpy(hashdata + 1, password, act_pass_len);
@@ -251,7 +252,7 @@ static void send_auth(char *username, char *password) {
 
 	/* Send combined packet to server */
 	init_packet(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
-	plen = add_control_packet(&data, MT_CPTYPE_PASSWORD, hashsum, server_key[0] == 255 ? 17 : 32);
+	plen = add_control_packet(&data, MT_CPTYPE_PASSWORD, hashsum, auth_mode == AUTH_MODE_MD5 ? 17 : 32);
 	plen += add_control_packet(&data, MT_CPTYPE_USERNAME, username, strlen(username));
 	plen += add_control_packet(&data, MT_CPTYPE_TERM_TYPE, terminal, strlen(terminal));
 
@@ -335,9 +336,11 @@ static int handle_packet(unsigned char *data, int data_len) {
 			if (cpkt.cptype == MT_CPTYPE_PASSSALT) {
 				/* check validity, server sends exactly 49 (or 16 for legacy auth) bytes */
 				if (cpkt.length == sizeof(pass_salt)) {
+					auth_mode = AUTH_MODE_MD5;
 					memcpy(pass_salt, cpkt.data, sizeof(pass_salt));
 					send_auth(username, password);
 				} else if (cpkt.length == sizeof(pass_salt) + sizeof(server_key)) {
+					auth_mode = AUTH_MODE_EC_SRP;
 					memcpy(server_key, cpkt.data, sizeof(server_key));
 					memcpy(pass_salt, cpkt.data + sizeof(server_key), sizeof(pass_salt));
 					send_auth(username, password);
@@ -719,7 +722,6 @@ int main (int argc, char **argv) {
 #endif
 	mtwei_init(&mtwei);
 	private_key = mtwei_keygen(&mtwei, public_key);
-	memset(server_key, 255, sizeof(server_key));
 
 	/* stop output buffering */
 	setvbuf(stdout, (char*)NULL, _IONBF, 0);

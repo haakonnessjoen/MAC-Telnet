@@ -1,6 +1,5 @@
 MAC-Telnet for Posix systems
 ============================
-[![Build Status](https://travis-ci.org/haakonnessjoen/MAC-Telnet.svg?branch=new-crypto)](https://travis-ci.org/haakonnessjoen/MAC-Telnet)
 
 Console tools for connecting to, and serving, devices using MikroTik RouterOS MAC-Telnet protocol.
 

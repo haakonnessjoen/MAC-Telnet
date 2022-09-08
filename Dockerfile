@@ -10,8 +10,7 @@ ADD . /src/
 
 # Build
 ENV CFLAGS="-D_GNU_SOURCE"
-RUN ./autogen.sh
-RUN ./configure --prefix=/build
+RUN ./autogen.sh --prefix=/build
 RUN make all install
 
 ## 

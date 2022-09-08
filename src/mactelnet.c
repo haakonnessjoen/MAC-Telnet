@@ -16,7 +16,7 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-#define _BSD_SOURCE
+#define _DEFAULT_SOURCE
 #include <libintl.h>
 #include <locale.h>
 #include <stdlib.h>
@@ -53,7 +53,7 @@
 #endif
 #include <config.h>
 
-#include "md5.h"
+#include <openssl/evp.h>
 #include "mtwei.h"
 #include "protocol.h"
 #include "console.h"
@@ -222,12 +222,13 @@ static void send_auth(char *username, char *password) {
 	char hashdata[100];
 	unsigned char hashsum[32], pubkey[33];
 	int plen, act_pass_len;
-	md5_state_t state;
+	EVP_MD_CTX *context;
+    const EVP_MD *md;
+	unsigned int md_len;
 
 #if defined(__linux__) && defined(_POSIX_MEMLOCK_RANGE)
 	mlock(hashdata, sizeof(hashdata));
 	mlock(hashsum, sizeof(hashdata));
-	mlock(&state, sizeof(state));
 #endif
 
 	/* calculate the actual password's length */
@@ -241,13 +242,16 @@ static void send_auth(char *username, char *password) {
 		memcpy(hashdata + 1 + act_pass_len, pass_salt, 16);
 
 		/* Generate md5 sum of md5data with a leading 0 */
-		md5_init(&state);
-		md5_append(&state, (const md5_byte_t *)hashdata, 1 + act_pass_len + 16);
-		md5_finish(&state, (md5_byte_t *)hashsum + 1);
+		md = EVP_get_digestbyname("md5");
+		context = EVP_MD_CTX_new();
+		EVP_DigestInit_ex(context, md, NULL);
+		EVP_DigestUpdate(context, hashdata, 1 + act_pass_len + 16);
+		EVP_DigestFinal_ex(context, hashsum + 1, &md_len);
+		EVP_MD_CTX_free(context);
 		hashsum[0] = 0;
 	} else {
-		mtwei_id(username, password, pass_salt, hashdata);
-		mtwei_docrypto(&mtwei, private_key, server_key, public_key, hashdata, hashsum);
+		mtwei_id(username, password, pass_salt, (uint8_t *)hashdata);
+		mtwei_docrypto(&mtwei, private_key, server_key, public_key, (uint8_t *)hashdata, hashsum);
 	}
 
 	/* Send combined packet to server */
@@ -724,7 +728,7 @@ int main (int argc, char **argv) {
 	private_key = mtwei_keygen(&mtwei, public_key);
 
 	/* stop output buffering */
-	setvbuf(stdout, (char*)NULL, _IONBF, 0);
+	setvbuf(stdout, (char *)NULL, _IONBF, 0);
 
 	if (!quiet_mode) {
 		printf(_("Connecting to %s..."), ether_ntoa((struct ether_addr *)dstmac));
@@ -754,8 +758,13 @@ int main (int argc, char **argv) {
 
 	init_packet(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, 0);
 	outcounter += add_control_packet(&data, MT_CPTYPE_BEGINAUTH, NULL, 0);
+
 	if (force_md5 == 0) {
-		strcpy(loginkey, username);
+		if (strlen(username) + 1 + sizeof(public_key) >= sizeof(loginkey)) {
+			fprintf(stderr, "Username too long\n");
+			exit(1);
+		}
+		strcpy((char *)loginkey, username);
 		memcpy(loginkey + strlen(username) + 1, public_key, sizeof(public_key));
 		outcounter += add_control_packet(&data, MT_CPTYPE_PASSSALT, loginkey, sizeof(public_key) + strlen(username) + 1);
 	}

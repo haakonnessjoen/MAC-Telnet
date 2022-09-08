@@ -49,7 +49,7 @@ Dependencies: gcc (or similar), automake, autoconf
 
 To install dependencies on Debian/Ubuntu based systems:
 
-    apt-get install build-essential automake autoconf openssl-dev
+    apt-get install build-essential autopoint automake autoconf libssl-dev
 
 Download source tarball, extract, compile and install:
 

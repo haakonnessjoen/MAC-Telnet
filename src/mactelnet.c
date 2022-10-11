@@ -214,7 +214,7 @@ static int send_udp(struct mt_packet *packet, int retransmit) {
 	return sent_bytes;
 }
 
-static void send_auth(char *username, char *password) {
+static void send_auth(char *login, char *password) {
 	struct mt_packet data;
 	unsigned short width = 0;
 	unsigned short height = 0;
@@ -250,14 +250,23 @@ static void send_auth(char *username, char *password) {
 		EVP_MD_CTX_free(context);
 		hashsum[0] = 0;
 	} else {
+		/* Discard console parameters that may be present on login to generate crypto stuff */
+		char *username, *str;
+
+		str = username = (char *)malloc(MT_MNDP_MAX_STRING_SIZE);
+		strncpy(username, login, MT_MNDP_MAX_STRING_SIZE);
+		username = strsep(&username, "+");
+
 		mtwei_id(username, password, pass_salt, (uint8_t *)hashdata);
 		mtwei_docrypto(&mtwei, private_key, server_key, public_key, (uint8_t *)hashdata, hashsum);
+
+		free(str);
 	}
 
 	/* Send combined packet to server */
 	init_packet(&data, MT_PTYPE_DATA, srcmac, dstmac, sessionkey, outcounter);
 	plen = add_control_packet(&data, MT_CPTYPE_PASSWORD, hashsum, auth_mode == AUTH_MODE_MD5 ? 17 : 32);
-	plen += add_control_packet(&data, MT_CPTYPE_USERNAME, username, strlen(username));
+	plen += add_control_packet(&data, MT_CPTYPE_USERNAME, login, strlen(login));
 	plen += add_control_packet(&data, MT_CPTYPE_TERM_TYPE, terminal, strlen(terminal));
 
 	if (is_a_tty && get_terminal_size(&width, &height) != -1) {

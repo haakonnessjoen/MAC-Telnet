@@ -813,7 +813,7 @@ int main (int argc, char **argv) {
 				int datalen;
 
 				datalen = read(STDIN_FILENO, &keydata, sizeof(keydata));
-				if (keydata[0] == '') {
+				if (keydata[0] == '\035') {
 					terminal_gone = 1;
 					running = 0;
 					continue;

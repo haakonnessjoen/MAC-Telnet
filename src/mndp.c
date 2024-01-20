@@ -45,6 +45,8 @@
 /* Protocol data direction, not used here, but obligatory for protocol.c */
 unsigned char mt_direction_fromserver = 0;
 
+char *ether_ntoa_z(const struct ether_addr *addr);
+
 int main(int argc, char **argv)  {
 	int batch_mode = 0;
 #else
@@ -140,7 +142,7 @@ int mndp(int timeout, int batch_mode)  {
 
 			/* Print it */
 			printf("%-15s ", inet_ntop(addr.sin_family, &addr.sin_addr, ipstr, sizeof ipstr));
-			printf("%-17s %s", ether_ntoa((struct ether_addr *)packet->address), packet->identity);
+			printf("%-17s %s", ether_ntoa_z((struct ether_addr *)packet->address), packet->identity);
 			if (packet->platform[0] != 0) {
 				printf(" (%s %s %s)", packet->platform, packet->version, packet->hardware);
 			}
@@ -167,4 +169,14 @@ int mndp(int timeout, int batch_mode)  {
 
 	/* We'll never get here.. */
 	return 0;
+}
+
+char *ether_ntoa_z(const struct ether_addr *addr)
+{
+	static char buf[18];    /* 12 digits + 5 colons + null terminator */
+    sprintf(buf, "%02x:%02x:%02x:%02x:%02x:%02x",
+            addr->ether_addr_octet[0], addr->ether_addr_octet[1],
+            addr->ether_addr_octet[2], addr->ether_addr_octet[3],
+            addr->ether_addr_octet[4], addr->ether_addr_octet[5]);
+    return buf;
 }

@@ -85,6 +85,7 @@
 #include "users.h"
 #include "extra.h"
 #include "utlist.h"
+#include "mtwei.h"
 
 #define PROGRAM_NAME "MAC-Telnet Daemon"
 
@@ -120,6 +121,9 @@ unsigned char mt_direction_fromserver = 1;
 /* Anti-timeout is every 10 seconds. Give up after 15. */
 #define MT_CONNECTION_TIMEOUT 15
 
+static int use_md5 = 0;
+static mtwei_state_t mtwei;
+
 /* Connection states */
 enum mt_connection_state {
 	STATE_AUTH,
@@ -131,6 +135,9 @@ enum mt_connection_state {
 struct mt_connection {
 	struct net_interface *interface;
 	char interface_name[256];
+
+	BIGNUM *private_key;
+	uint8_t client_key[MTWEI_PUBKEY_LEN];
 
 	unsigned short seskey;
 	unsigned int incounter;
@@ -147,12 +154,12 @@ struct mt_connection {
 	int have_pass_salt;
 
 	char username[MT_MNDP_MAX_STRING_SIZE];
-	unsigned char trypassword[17];
+	unsigned char trypassword[32];
 	unsigned char srcip[IPV4_ALEN];
 	unsigned char srcmac[ETH_ALEN];
 	unsigned short srcport;
 	unsigned char dstmac[ETH_ALEN];
-	unsigned char pass_salt[16];
+	unsigned char pass_salt[49];
 	unsigned short terminal_width;
 	unsigned short terminal_height;
 	char terminal_type[30];
@@ -407,8 +414,8 @@ static void abort_connection(struct mt_connection *curconn, struct mt_mactelnet_
 
 static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr) {
 	struct mt_packet pdata;
-	unsigned char md5sum[17];
-	char md5data[100];
+	unsigned char hashsum[32];
+	char hashdata[100];
 	struct mt_credentials *user;
 	char *slavename;
 	int act_pass_len;
@@ -422,8 +429,8 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		unsigned int md_len;
 
 #if defined(__linux__) && defined(_POSIX_MEMLOCK_RANGE)
-		mlock(md5data, sizeof(md5data));
-		mlock(md5sum, sizeof(md5sum));
+		mlock(hashdata, sizeof(hashdata));
+		mlock(hashsum, sizeof(hashsum));
 		if (user->password != NULL) {
 			mlock(user->password, strlen(user->password));
 		}
@@ -433,19 +440,24 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		act_pass_len = strlen(user->password);
 		act_pass_len = act_pass_len <= 82 ? act_pass_len : 82;
 
-		/* Concat string of 0 + password + pass_salt */
-		md5data[0] = 0;
-		memcpy(md5data + 1, user->password, act_pass_len);
-		memcpy(md5data + 1 + act_pass_len, curconn->pass_salt, 16);
+		if (use_md5) {
+			/* Concat string of 0 + password + pass_salt */
+			hashdata[0] = 0;
+			memcpy(hashdata + 1, user->password, act_pass_len);
+			memcpy(hashdata + 1 + act_pass_len, curconn->pass_salt, 16);
 
-		/* Generate md5 sum of md5data with a leading 0 */
-		md = EVP_get_digestbyname("md5");
-		context = EVP_MD_CTX_new();
-		EVP_DigestInit_ex(context, md, NULL);
-		EVP_DigestUpdate(context, md5data, 1 + act_pass_len + 16);
-		EVP_DigestFinal_ex(context, md5sum + 1, &md_len);
-		EVP_MD_CTX_free(context);
-		md5sum[0] = 0;
+			/* Generate md5 sum of md5data with a leading 0 */
+			md = EVP_get_digestbyname("md5");
+			context = EVP_MD_CTX_new();
+			EVP_DigestInit_ex(context, md, NULL);
+			EVP_DigestUpdate(context, hashdata, 1 + act_pass_len + 16);
+			EVP_DigestFinal_ex(context, hashsum + 1, &md_len);
+			EVP_MD_CTX_free(context);
+			hashsum[0] = 0;
+		} else {
+			mtwei_id(curconn->username, user->password, curconn->pass_salt + MTWEI_PUBKEY_LEN, (uint8_t *)hashdata);
+			mtwei_docryptos(&mtwei, curconn->private_key, curconn->client_key, curconn->pass_salt, (uint8_t *)hashdata, hashsum);
+		}
 
 		init_packet(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
 		curconn->outcounter += add_control_packet(&pdata, MT_CPTYPE_END_AUTH, NULL, 0);
@@ -456,7 +468,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		}
 	}
 
-	if (user == NULL || memcmp(md5sum, curconn->trypassword, 17) != 0) {
+	if (user == NULL || memcmp(hashsum, curconn->trypassword, use_md5 ? 17 : 32) != 0) {
 		syslog(LOG_NOTICE, _("(%d) Invalid login by %s."), curconn->seskey, curconn->username);
 
 		/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
@@ -623,7 +635,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 	success = parse_control_packet(data, data_len - MT_HEADER_LEN, &cpkt);
 
 	while (success) {
-		if (cpkt.cptype == MT_CPTYPE_BEGINAUTH) {
+		if (use_md5 == 1 && cpkt.cptype == MT_CPTYPE_BEGINAUTH) {
 			int plen,i;
 			if (!curconn->have_pass_salt) {
 				for (i = 0; i < 16; ++i) {
@@ -640,6 +652,39 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 			send_udp(curconn, &pdata);
 
 		/* Don't change the username after the state is active */
+		} else if (use_md5 == 0 && cpkt.cptype == MT_CPTYPE_PASSSALT && curconn->state != STATE_ACTIVE && cpkt.length > MTWEI_PUBKEY_LEN + 1) {
+			strncpy(curconn->username, (const char *)cpkt.data, cpkt.length - MTWEI_PUBKEY_LEN);
+			if (cpkt.length - strlen(curconn->username) - 1 == MTWEI_PUBKEY_LEN) {
+				memcpy(curconn->client_key, cpkt.data + strlen(curconn->username) + 1, MTWEI_PUBKEY_LEN);
+
+				int plen;
+				size_t i;
+				for (i = 0; i < sizeof(curconn->pass_salt); ++i) {
+					curconn->pass_salt[i] = rand() % 256;
+				}
+
+				/* Reparse user file before each login */
+				read_userfile();
+
+				struct mt_credentials *user;
+				if ((user = find_user(curconn->username)) != NULL) {
+					curconn->have_pass_salt = 1;
+					uint8_t validator[32];
+					mtwei_id(curconn->username, user->password, curconn->pass_salt + MTWEI_PUBKEY_LEN, validator);
+					curconn->private_key = mtwei_keygen(&mtwei, curconn->pass_salt, validator);
+				} else {
+					syslog(LOG_NOTICE, _("(%d) Invalid login by %s."), curconn->seskey, curconn->username);
+				}
+
+				init_packet(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+				plen = add_control_packet(&pdata, MT_CPTYPE_PASSSALT, (curconn->pass_salt), user ? 49 : 33);
+				curconn->outcounter += plen;
+
+				send_udp(curconn, &pdata);
+			} else {
+				syslog(LOG_NOTICE, _("(%d) Invalid mtwei key by %s."), curconn->seskey, curconn->username);
+			}
+
 		} else if (cpkt.cptype == MT_CPTYPE_USERNAME && curconn->state != STATE_ACTIVE) {
 			memcpy(curconn->username, cpkt.data, act_size = (cpkt.length > MT_MNDP_MAX_STRING_SIZE - 1 ? MT_MNDP_MAX_STRING_SIZE - 1 : cpkt.length));
 			curconn->username[act_size] = 0;
@@ -670,6 +715,14 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 			mlock(curconn->trypassword, 17);
 #endif
 			memcpy(curconn->trypassword, cpkt.data, 17);
+			got_pass_packet = 1;
+
+		} else if (cpkt.cptype == MT_CPTYPE_PASSWORD && cpkt.length == 32) {
+
+#if defined(__linux__) && defined(_POSIX_MEMLOCK_RANGE)
+			mlock(curconn->trypassword, 32);
+#endif
+			memcpy(curconn->trypassword, cpkt.data, 32);
 			got_pass_packet = 1;
 
 		} else if (cpkt.cptype == MT_CPTYPE_PLAINDATA) {
@@ -981,7 +1034,7 @@ int main (int argc, char **argv) {
 	bindtextdomain(PACKAGE, LOCALEDIR);
 	textdomain(PACKAGE);
 
-	while ((c = getopt(argc, argv, "fnvh?")) != -1) {
+	while ((c = getopt(argc, argv, "fnovh?")) != -1) {
 		switch (c) {
 			case 'f':
 				foreground = 1;
@@ -989,6 +1042,10 @@ int main (int argc, char **argv) {
 
 			case 'n':
 				use_raw_socket = 1;
+				break;
+
+			case 'o':
+				use_md5 = 1;
 				break;
 
 			case 'v':
@@ -1028,6 +1085,13 @@ int main (int argc, char **argv) {
 
 	/* Seed randomizer */
 	srand(time(NULL));
+
+	if (use_md5 == 0) {
+#if defined(__linux__) && defined(_POSIX_MEMLOCK_RANGE)
+		mlock(&mtwei, sizeof(mtwei));
+#endif
+		mtwei_init(&mtwei);
+	}
 
 	if (use_raw_socket) {
 		/* Transmit raw packets with this socket */

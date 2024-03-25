@@ -734,7 +734,7 @@ int main (int argc, char **argv) {
 	mlock(&mtwei, sizeof(mtwei));
 #endif
 	mtwei_init(&mtwei);
-	private_key = mtwei_keygen(&mtwei, public_key);
+	private_key = mtwei_keygen(&mtwei, public_key, NULL);
 
 	/* stop output buffering */
 	setvbuf(stdout, (char *)NULL, _IONBF, 0);

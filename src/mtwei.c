@@ -1,6 +1,7 @@
 /*
     Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
     Copyright (C) 2022, Yandex <kmeaw@yandex-team.ru>
+    Copyright (C) 2024, Google <kmeaw@google.com>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -79,8 +80,47 @@ mtwei_init (mtwei_state_t *state)
     EC_GROUP_set_generator(state->curve25519, state->g, state->order, cofactor);
 }
 
+static BIGNUM*
+tangle (mtwei_state_t *state, EC_POINT *target, uint8_t *validator, int negate)
+{
+    EC_POINT *validator_pt = EC_POINT_new(state->curve25519);
+    BIGNUM *v = BN_bin2bn(validator, 32, NULL);
+    EC_POINT_mul(state->curve25519, validator_pt, NULL, state->g, v, state->ctx);
+    BIGNUM *vpub_x = BN_new();
+
+    unsigned char buf_out[32];
+    EC_POINT_get_affine_coordinates_GFp(state->curve25519, validator_pt, vpub_x, NULL, NULL);
+    BN_mod_add(vpub_x, vpub_x, state->w2m, state->mod, state->ctx);
+    BN_bn2binpad(vpub_x, buf_out, 32);
+    SHA256_CTX keys;
+    SHA256_Init(&keys);
+    SHA256_Update(&keys, buf_out, 32);
+    SHA256_Final(buf_out, &keys);
+
+    BIGNUM *edpx = BN_bin2bn(buf_out, 32, NULL);
+    BIGNUM *edpxm = BN_new();
+
+    while (1) {
+        SHA256_Init(&keys);
+        BN_bn2binpad(edpx, buf_out, 32);
+        SHA256_Update(&keys, buf_out, 32);
+        SHA256_Final(buf_out, &keys);
+        BN_bin2bn(buf_out, 32, edpxm);
+        BN_mod_add(edpxm, edpxm, state->m2w, state->mod, state->ctx);
+        if (EC_POINT_set_compressed_coordinates(state->curve25519, validator_pt, edpxm, negate, state->ctx) == 1) break;
+        BN_add_word(edpx, 1);
+    }
+
+    if (!EC_POINT_add(state->curve25519, target, target, validator_pt, state->ctx)) {
+        fprintf(stderr, "Cannot mix gamma into pubkey: %s\n", ERR_error_string(ERR_get_error(), NULL));
+        abort();
+    }
+
+    return v;
+}
+
 BIGNUM*
-mtwei_keygen (mtwei_state_t *state, uint8_t *pubkey_out)
+mtwei_keygen (mtwei_state_t *state, uint8_t *pubkey_out, uint8_t *validator)
 {
     uint8_t client_priv[32];
     EC_POINT *pubkey = EC_POINT_new(state->curve25519);
@@ -97,9 +137,13 @@ mtwei_keygen (mtwei_state_t *state, uint8_t *pubkey_out)
     client_priv[31] |= 64;
 
     BIGNUM *privkey = BN_bin2bn(client_priv, sizeof(client_priv), NULL);
-    if(!EC_POINT_mul(state->curve25519, pubkey, NULL, state->g, privkey, state->ctx)) {
+    if (!EC_POINT_mul(state->curve25519, pubkey, NULL, state->g, privkey, state->ctx)) {
         fprintf(stderr, "Cannot make a public key: %s\n", ERR_error_string(ERR_get_error(), NULL));
         abort();
+    }
+
+    if (validator != NULL) {
+        tangle(state, pubkey, validator, 0);
     }
 
     EC_POINT_get_affine_coordinates_GFp(state->curve25519, pubkey, x, y, NULL);
@@ -129,7 +173,9 @@ mtwei_id(const char *username, const char *password, const unsigned char *salt, 
 void
 mtwei_docrypto(mtwei_state_t *state, BIGNUM *privkey, const uint8_t *server_key, const uint8_t *client_key, uint8_t *validator, uint8_t *buf_out)
 {
-    BIGNUM *v = BN_bin2bn(validator, 32, NULL);
+    EC_POINT *pub = EC_POINT_new(state->curve25519);
+    EC_POINT_mul(state->curve25519, pub, NULL, state->g, privkey, state->ctx);
+
     EC_POINT *server_pubkey = EC_POINT_new(state->curve25519);
     BIGNUM *server_pubkey_x = BN_bin2bn(server_key, 32, NULL);
     BN_mod_add(server_pubkey_x, server_pubkey_x, state->m2w, state->mod, state->ctx);
@@ -138,32 +184,9 @@ mtwei_docrypto(mtwei_state_t *state, BIGNUM *privkey, const uint8_t *server_key,
         fprintf(stderr, "%s\n", ERR_error_string(ERR_get_error(), NULL));
         abort();
     }
-    BN_mod_sub(server_pubkey_x, server_pubkey_x, state->m2w, state->mod, state->ctx);
 
     SHA256_CTX keys;
-    BIGNUM *vpub_x = BN_new();
-    EC_POINT *validator_pt = EC_POINT_new(state->curve25519);
-    EC_POINT_mul(state->curve25519, validator_pt, NULL, state->g, v, state->ctx);
-    EC_POINT_get_affine_coordinates_GFp(state->curve25519, validator_pt, vpub_x, NULL, NULL);
-    BN_mod_add(vpub_x, vpub_x, state->w2m, state->mod, state->ctx);
-    BN_bn2binpad(vpub_x, buf_out, 32);
-    SHA256_Init(&keys);
-    SHA256_Update(&keys, buf_out, 32);
-    SHA256_Final(buf_out, &keys);
-
-    BIGNUM *edpx = BN_bin2bn(buf_out, 32, NULL);
-    BIGNUM *edpxm = BN_new();
-    while (1) {
-        SHA256_Init(&keys);
-        BN_bn2binpad(edpx, buf_out, 32);
-        SHA256_Update(&keys, buf_out, 32);
-        SHA256_Final(buf_out, &keys);
-        BN_bin2bn(buf_out, 32, edpxm);
-        BN_mod_add(edpxm, edpxm, state->m2w, state->mod, state->ctx);
-        if (EC_POINT_set_compressed_coordinates(state->curve25519, validator_pt, edpxm, 1, state->ctx) == 1) break;
-        BN_add_word(edpx, 1);
-    }
-    EC_POINT_add(state->curve25519, server_pubkey, server_pubkey, validator_pt, state->ctx);
+    BIGNUM *v = tangle (state, server_pubkey, validator, 1);
 
     SHA256_Init(&keys);
     SHA256_Update(&keys, client_key, 32);
@@ -171,14 +194,67 @@ mtwei_docrypto(mtwei_state_t *state, BIGNUM *privkey, const uint8_t *server_key,
     SHA256_Final(buf_out, &keys);
 
     BIGNUM *vh = BN_bin2bn(buf_out, 32, NULL);
+
     BN_mod_mul(vh, v, vh, state->order, state->ctx);
     BN_mod_add(vh, vh, privkey, state->order, state->ctx);
+
     EC_POINT *pt = EC_POINT_new(state->curve25519);
     EC_POINT_mul(state->curve25519, pt, NULL, server_pubkey, vh, state->ctx);
+
     BIGNUM *pt_x = BN_new();
     EC_POINT_get_affine_coordinates_GFp(state->curve25519, pt, pt_x, NULL, NULL);
+
     BIGNUM *z_input = BN_new();
     BN_mod_add(z_input, pt_x, state->w2m, state->mod, state->ctx);
+
+    SHA256_Init(&keys);
+    SHA256_Update(&keys, buf_out, 32);
+    BN_bn2binpad(z_input, buf_out, 32);
+    SHA256_Update(&keys, buf_out, 32);
+    SHA256_Final(buf_out, &keys);
+}
+
+void
+mtwei_docryptos(mtwei_state_t *state, BIGNUM *privkey, const uint8_t *client_key, const uint8_t *server_key, uint8_t *validator, uint8_t *buf_out)
+{
+    EC_POINT *pub = EC_POINT_new(state->curve25519);
+    EC_POINT_mul(state->curve25519, pub, NULL, state->g, privkey, state->ctx);
+
+    EC_POINT *client_pubkey = EC_POINT_new(state->curve25519);
+    BIGNUM *client_pubkey_x = BN_bin2bn(client_key, 32, NULL);
+    BN_mod_add(client_pubkey_x, client_pubkey_x, state->m2w, state->mod, state->ctx);
+    if (EC_POINT_set_compressed_coordinates(state->curve25519, client_pubkey, client_pubkey_x, client_key[32], state->ctx) != 1)
+    {
+        fprintf(stderr, "%s\n", ERR_error_string(ERR_get_error(), NULL));
+        abort();
+    }
+
+    SHA256_CTX keys;
+    BIGNUM *v = BN_bin2bn(validator, 32, NULL);
+
+    SHA256_Init(&keys);
+    SHA256_Update(&keys, client_key, 32);
+    SHA256_Update(&keys, server_key, 32);
+    SHA256_Final(buf_out, &keys);
+
+    EC_POINT *validator_pt = EC_POINT_new(state->curve25519);
+    EC_POINT_mul(state->curve25519, validator_pt, NULL, state->g, v, state->ctx);
+
+    BIGNUM *h = BN_bin2bn(buf_out, 32, NULL);
+    EC_POINT *hv = EC_POINT_new(state->curve25519);
+
+    EC_POINT_mul(state->curve25519, hv, NULL, validator_pt, h, state->ctx);
+    EC_POINT_add(state->curve25519, client_pubkey, client_pubkey, hv, state->ctx);
+
+    EC_POINT *pt = EC_POINT_new(state->curve25519);
+    EC_POINT_mul(state->curve25519, pt, NULL, client_pubkey, privkey, state->ctx);
+
+    BIGNUM *pt_x = BN_new();
+    EC_POINT_get_affine_coordinates_GFp(state->curve25519, pt, pt_x, NULL, NULL);
+
+    BIGNUM *z_input = BN_new();
+    BN_mod_add(z_input, pt_x, state->w2m, state->mod, state->ctx);
+
     SHA256_Init(&keys);
     SHA256_Update(&keys, buf_out, 32);
     BN_bn2binpad(z_input, buf_out, 32);

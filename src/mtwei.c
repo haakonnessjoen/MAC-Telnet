@@ -35,8 +35,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#if !defined(__FreeBSD__) && !defined(__APPLE__)
-#include <sys/random.h>
+#if defined(__linux__)
+#include <linux/random.h>
 #endif
 
 #if !defined(HAVE_GETRANDOM) && defined(HAVE_ARC4RANDOM)

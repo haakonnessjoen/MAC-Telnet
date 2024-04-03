@@ -5,7 +5,7 @@ mactelnet_SOURCES = config.h mactelnet.c mactelnet.h protocol.c protocol.h conso
 mactelnet_CFLAGS = -DFROM_MACTELNET
 mactelnet_LDADD = $(CRYPTO_LIBS)
 
-mactelnetd_SOURCES = config.h mactelnetd.c protocol.c protocol.h interfaces.c interfaces.h console.c console.h users.c users.h extra.h utlist.h
+mactelnetd_SOURCES = config.h mactelnetd.c protocol.c protocol.h interfaces.c interfaces.h console.c console.h users.c users.h extra.h utlist.h mtwei.c mtwei.h
 mactelnetd_CFLAGS = -DUSERSFILE='"$(sysconfdir)/mactelnetd.users"'
 mactelnetd_LDADD = $(CRYPTO_LIBS)
 

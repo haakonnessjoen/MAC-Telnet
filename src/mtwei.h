@@ -17,6 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#include <stdint.h>
 #include <openssl/ec.h>
 #include <openssl/err.h>
 #include <openssl/sha.h>

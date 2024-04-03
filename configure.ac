@@ -20,7 +20,18 @@ AM_GNU_GETTEXT_VERSION([0.19])
 
 AC_CHECK_LIB([rt], [nanosleep])
 AC_CHECK_LIB([intl], [nanosleep])
-PKG_CHECK_MODULES([CRYPTO], [libcrypto >= 1.0.2])
+
+# Use pkg-config to check for libcrypto, if available
+# Otherwise, fall back to AC_SEARCH_LIBS
+m4_ifdef([PKG_PROG_PKG_CONFIG], [
+  # pkg-config is installed, use it to check for libcrypto
+  PKG_PROG_PKG_CONFIG
+  PKG_CHECK_MODULES([crypto], [libcrypto >= 1.1.0], [], [
+    AC_SEARCH_LIBS([EVP_MD_CTX_new], [crypto], [], [AC_MSG_FAILURE([can't find openssl >= 1.1.0 crypto lib])])
+  ])
+], [
+    AC_SEARCH_LIBS([EVP_MD_CTX_new], [crypto], [], [AC_MSG_FAILURE([can't find openssl >= 1.1.0 crypto lib])])
+])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h float.h libintl.h locale.h netinet/in.h paths.h stdlib.h string.h sys/ioctl.h sys/socket.h sys/time.h syslog.h termios.h unistd.h utmp.h utmpx.h])

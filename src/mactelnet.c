@@ -243,7 +243,15 @@ static void send_auth(char *login, char *password) {
 
 		/* Generate md5 sum of md5data with a leading 0 */
 		md = EVP_get_digestbyname("md5");
+		if (md == NULL) {
+			fprintf(stderr, _("Error: md5 digest not found\n"));
+			abort();
+		}
 		context = EVP_MD_CTX_new();
+		if (context == NULL) {
+			fprintf(stderr, _("Error initializing md5 context\n"));
+			abort();
+		}
 		EVP_DigestInit_ex(context, md, NULL);
 		EVP_DigestUpdate(context, hashdata, 1 + act_pass_len + 16);
 		EVP_DigestFinal_ex(context, hashsum + 1, &md_len);
@@ -600,7 +608,7 @@ int main (int argc, char **argv) {
 	}
 	if (argc - optind < 1 || print_help) {
 		print_version();
-		fprintf(stderr, _("Usage: %s <MAC|identity> [-h] [-n] [-a <path>] [-A] [-t <timeout>] [-u <user>] [-p <password>] [-U <user>] | -l [-B] [-t <timeout>]\n"), argv[0]);
+		fprintf(stderr, _("Usage: %s <MAC|identity> [-nqoA] [-a <path>] [-t <timeout>] [-u <user>] [-p <password>] [-U <user>] | -l [-B] [-t <timeout>]\n"), argv[0]);
 
 		if (print_help) {
 			fprintf(stderr, _("\nParameters:\n"
@@ -620,7 +628,7 @@ int main (int argc, char **argv) {
 			"  -U <user>      Drop privileges to this user. Used in conjunction with -n\n"
 			"                 for security.\n"
 			"  -q             Quiet mode.\n"
-			"  -o             Force old authentication algorithm.\n"
+			"  -o             Force old MD5 authentication algorithm.\n"
 			"  -h             This help.\n"
 			"\n"), AUTOLOGIN_PATH);
 		}

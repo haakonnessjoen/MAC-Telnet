@@ -22,7 +22,9 @@
 #define _XOPEN_SOURCE 600
 #endif
 #define _BSD_SOURCE
+#if defined(__APPLE__) && !defined(_DARWIN_C_SOURCE)
 #define _DARWIN_C_SOURCE
+#endif
 #include <libintl.h>
 #include <locale.h>
 #include <stdlib.h>
@@ -59,8 +61,8 @@
 #ifdef __linux__
 #include <linux/if_ether.h>
 #include <sys/mman.h>
-#else
-#include <sys/time.h>
+#elif defined(__APPLE__) || defined(__FreeBSD__)
+#include <sys/mman.h>
 #endif
 #include <sys/ioctl.h>
 #include <sys/stat.h>
@@ -68,13 +70,7 @@
 #include <sys/sysinfo.h>
 #endif
 #include <pwd.h>
-#if defined(__FreeBSD__) || defined(__APPLE__)
-#include <sys/time.h>
-/* This is the really Posix interface the Linux code should have used !!*/
 #include <utmpx.h>
-#else
-#include <utmp.h>
-#endif
 #include <syslog.h>
 #include <sys/utsname.h>
 #include <openssl/evp.h>
@@ -316,11 +312,7 @@ static void display_nologin() {
 }
 
 static void uwtmp_login(struct mt_connection *conn) {
-#if defined(__FreeBSD__) || defined(__APPLE__)
 	struct utmpx utent;
-#else
-	struct utmp utent;
-#endif
 	pid_t pid;
 
 	pid = getpid();
@@ -340,42 +332,24 @@ static void uwtmp_login(struct mt_connection *conn) {
 	strncpy(utent.ut_host,
                 ether_ntoa((const struct ether_addr *)conn->srcmac),
                 sizeof(utent.ut_host));
-#if defined(__FreeBSD__) || defined(__APPLE__)
 	gettimeofday(&utent.ut_tv, NULL);
-#else
-	time((time_t *)&(utent.ut_time));
-#endif
 
 	/* Update utmp and/or wtmp */
-#if defined(__FreeBSD__) || defined(__APPLE__)
 	setutxent();
 	pututxline(&utent);
 	endutxent();
-#else
-	setutent();
-	pututline(&utent);
-	endutent();
+#ifdef __linux__
 	updwtmp(_PATH_WTMP, &utent);
 #endif
 }
 
 static void uwtmp_logout(struct mt_connection *conn) {
 	if (conn->pid > 0) {
-#if defined(__FreeBSD__) || defined(__APPLE__)
 		struct utmpx *utentp;
 		struct utmpx utent;
 		setutxent();
-#else
-		struct utmp *utentp;
-		struct utmp utent;
-		setutent();
-#endif
 
-#if defined(__FreeBSD__) || defined(__APPLE__)
 		while ((utentp = getutxent()) != NULL) {
-#else
-		while ((utentp = getutent()) != NULL) {
-#endif
 			if (utentp->ut_pid == conn->pid && utentp->ut_id[0]) {
 				break;
 			}
@@ -387,12 +361,9 @@ static void uwtmp_logout(struct mt_connection *conn) {
 			utent.ut_type = DEAD_PROCESS;
 			utent.ut_tv.tv_sec = time(NULL);
 
-#if defined(__FreeBSD__) || defined(__APPLE__)
 			pututxline(&utent);
 			endutxent();
-#else
-			pututline(&utent);
-			endutent();
+#ifdef __linux__
 			updwtmp(_PATH_WTMP, &utent);
 #endif
 		}
@@ -428,12 +399,10 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		const EVP_MD *md;
 		unsigned int md_len;
 
-#if defined(__linux__) && defined(_POSIX_MEMLOCK_RANGE)
+#if defined(_POSIX_MEMLOCK_RANGE)
 		mlock(hashdata, sizeof(hashdata));
 		mlock(hashsum, sizeof(hashsum));
-		if (user->password != NULL) {
-			mlock(user->password, strlen(user->password));
-		}
+		mlock(user->password, sizeof(user->password));
 #endif
 
 		/* calculate the password's actual length */
@@ -448,7 +417,9 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 
 			/* Generate md5 sum of md5data with a leading 0 */
 			md = EVP_get_digestbyname("md5");
+			// TODO: check if md is NULL
 			context = EVP_MD_CTX_new();
+			// TODO: check if context is NULL
 			EVP_DigestInit_ex(context, md, NULL);
 			EVP_DigestUpdate(context, hashdata, 1 + act_pass_len + 16);
 			EVP_DigestFinal_ex(context, hashsum + 1, &md_len);
@@ -615,7 +586,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 }
 
 /* sigh */
-void write_wrapped(int file, const char* str, int len) {
+void write_wrapped(int file, const unsigned char* str, int len) {
    ssize_t x = write(file, str, len);
    (void) x;
 }
@@ -711,7 +682,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 
 		} else if (cpkt.cptype == MT_CPTYPE_PASSWORD && cpkt.length == 17) {
 
-#if defined(__linux__) && defined(_POSIX_MEMLOCK_RANGE)
+#if defined(_POSIX_MEMLOCK_RANGE)
 			mlock(curconn->trypassword, 17);
 #endif
 			memcpy(curconn->trypassword, cpkt.data, 17);
@@ -719,7 +690,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 
 		} else if (cpkt.cptype == MT_CPTYPE_PASSWORD && cpkt.length == 32) {
 
-#if defined(__linux__) && defined(_POSIX_MEMLOCK_RANGE)
+#if defined(_POSIX_MEMLOCK_RANGE)
 			mlock(curconn->trypassword, 32);
 #endif
 			memcpy(curconn->trypassword, cpkt.data, 32);
@@ -1034,7 +1005,11 @@ int main (int argc, char **argv) {
 	bindtextdomain(PACKAGE, LOCALEDIR);
 	textdomain(PACKAGE);
 
+#if !defined(__APPLE__)
 	while ((c = getopt(argc, argv, "fnovh?")) != -1) {
+#else
+	while ((c = getopt(argc, argv, "novh")) != -1) {
+#endif
 		switch (c) {
 			case 'f':
 				foreground = 1;
@@ -1063,14 +1038,26 @@ int main (int argc, char **argv) {
 
 	if (print_help) {
 		print_version();
-		fprintf(stderr, _("Usage: %s [-f|-n|-h]\n"), argv[0]);
+		fprintf(stderr, _("Usage: %s [-fnoh]\n"), argv[0]);
 
 		if (print_help) {
+#if !defined(__APPLE__)
+			/*_ This is the usage output for operating systems other than MacOS */
 			fprintf(stderr, _("\nParameters:\n"
 			"  -f        Run process in foreground.\n"
 			"  -n        Do not use broadcast packets. Just a tad less insecure.\n"
+			"  -o        Use MD5 for password hashing.\n"
 			"  -h        This help.\n"
 			"\n"));
+#else
+			/*_ This is the usage output for MacOS which always runs in the forground
+				as it should be daemonized by launchd */
+			fprintf(stderr, _("\nParameters:\n"
+			"  -n        Do not use broadcast packets. Just a tad less insecure.\n"
+			"  -o        Use MD5 for password hashing.\n"
+			"  -h        This help.\n"
+			"\n"));
+#endif
 		}
 		return 1;
 	}
@@ -1087,7 +1074,7 @@ int main (int argc, char **argv) {
 	srand(time(NULL));
 
 	if (use_md5 == 0) {
-#if defined(__linux__) && defined(_POSIX_MEMLOCK_RANGE)
+#if defined(_POSIX_MEMLOCK_RANGE)
 		mlock(&mtwei, sizeof(mtwei));
 #endif
 		mtwei_init(&mtwei);
@@ -1157,14 +1144,11 @@ int main (int argc, char **argv) {
 
 	setup_sockets();
 
+#if !defined(__APPLE__)
 	if (!foreground) {
-		/* TODO: deprecated in OS X 10.5
-		 	 mactelnetd.c:1087:3: warning: 'daemon' is deprecated: first deprecated in OS X 10.5 [-Wdeprecated-declarations]
-		   /usr/include/stdlib.h:267:6: note: 'daemon' has been explicitly marked deprecated here
-		   int daemon(int, int) __DARWIN_1050(daemon) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_0, __MAC_10_5, __IPHONE_2_0, __IPHONE_2_0);
-		*/
 		daemon(0, 0);
 	}
+#endif
 
 	/* Handle zombies etc */
 	signal(SIGCHLD,SIG_IGN);

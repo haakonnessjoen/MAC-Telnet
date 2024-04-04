@@ -59,7 +59,6 @@ void sig_alarm(int signo)
 int mndp(int timeout, int batch_mode)  {
 #endif
 	int sock,result;
-	int optval = 1;
 	struct sockaddr_in si_me, si_remote;
 	unsigned char buff[MT_PACKET_LEN];
 
@@ -82,6 +81,7 @@ int mndp(int timeout, int batch_mode)  {
 	si_me.sin_port = htons(MT_MNDP_PORT);
 	si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 
+	int optval = 1;
 	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval));
 
 	/* Bind to specified address/port */

@@ -1,20 +1,20 @@
 /*
-    Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
-    Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
+	Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
+	Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #include <libintl.h>
 #include <locale.h>
@@ -75,12 +75,11 @@ static void print_version() {
 	fprintf(stderr, PROGRAM_NAME " " PACKAGE_VERSION "\n");
 }
 
-static long long int toddiff(struct timeval *tod1, struct timeval *tod2)
-{
-    long long t1, t2;
-    t1 = tod1->tv_sec * 1000000 + tod1->tv_usec;
-    t2 = tod2->tv_sec * 1000000 + tod2->tv_usec;
-    return t1 - t2;
+static long long int toddiff(struct timeval *tod1, struct timeval *tod2) {
+	long long t1, t2;
+	t1 = tod1->tv_sec * 1000000 + tod1->tv_usec;
+	t2 = tod2->tv_sec * 1000000 + tod2->tv_usec;
+	return t1 - t2;
 }
 
 static void display_results() {
@@ -109,8 +108,7 @@ static void display_results() {
 	exit(0);
 }
 
-int main(int argc, char **argv)  {
-	int optval = 1;
+int main(int argc, char **argv) {
 	int print_help = 0;
 	int send_packets = 5;
 	int fastmode = 0;
@@ -212,6 +210,7 @@ int main(int argc, char **argv)  {
 	si_me.sin_port = htons(MT_MACTELNET_PORT);
 	si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 
+	int optval = 1;
 	setsockopt(insockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval));
 
 	/* Bind to specified address/port */

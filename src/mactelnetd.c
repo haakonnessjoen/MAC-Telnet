@@ -1,20 +1,20 @@
 /*
-    Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
-    Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
+	Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
+	Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #include <config.h>
 #if !defined(__FreeBSD__)
@@ -330,8 +330,7 @@ static void uwtmp_login(struct mt_connection *conn) {
 	strncpy(utent.ut_line, line, sizeof(utent.ut_line));
 	strncpy(utent.ut_id, utent.ut_line + 3, sizeof(utent.ut_id));
 	strncpy(utent.ut_host,
-                ether_ntoa((const struct ether_addr *)conn->srcmac),
-                sizeof(utent.ut_host));
+	ether_ntoa((const struct ether_addr *)conn->srcmac), sizeof(utent.ut_host));
 	gettimeofday(&utent.ut_tv, NULL);
 
 	/* Update utmp and/or wtmp */

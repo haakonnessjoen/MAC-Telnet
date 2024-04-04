@@ -1,20 +1,20 @@
 /*
-    Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
-    Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
+	Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
+	Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #define _BSD_SOURCE
 #include <libintl.h>
@@ -87,7 +87,7 @@ int add_control_packet(struct mt_packet *packet, enum mt_cptype cptype, void *cp
 	unsigned int act_size = data_len + (cptype == MT_CPTYPE_PLAINDATA ? 0 : MT_CPHEADER_LEN);
 
 	/* Something is really wrong. Packets should never become over 1500 bytes,
-       perform an Integer-Overflow safe check */
+	   perform an Integer-Overflow safe check */
 	if (act_size > MT_PACKET_LEN - packet->size) {
 		fprintf(stderr, _("add_control_packet: ERROR, too large packet. Exceeds %d bytes\n"), MT_PACKET_LEN);
 		return -1;
@@ -327,9 +327,9 @@ struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len)
 
 		/* Check if len is invalid */
 		if (p + len > data + packet_len) {
-		        fprintf(stderr, "%s: invalid data: "
-				        "%p + %u > %p + %d\n",
-					__func__, p, len, data, packet_len);
+			fprintf(stderr, "%s: invalid data: "
+				"%p + %u > %p + %d\n",
+				__func__, p, len, data, packet_len);
 			break;
 		}
 

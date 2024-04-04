@@ -1,20 +1,20 @@
 /*
-    Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
-    Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
+	Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
+	Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #ifndef _MACTELNET_H
 #define _MACTELNET_H 1
@@ -154,19 +154,20 @@ extern unsigned char mt_direction_fromserver;
 /* Debugging stuff */
 #if defined(DEBUG_PROTO)
 #ifndef hexdump_defined
-void hexdump(const char *title, const void *buf, unsigned short len)
-{
-    int i;
-    unsigned char *data = (unsigned char *)buf;
+void hexdump(const char *title, const void *buf, unsigned short len) {
+	int i;
+	unsigned char *data = (unsigned char *)buf;
 
-    fprintf(stderr, "%s:\n", title);
-    for (i = 0; i < len; i++) {
-        if (!(i & 0xf))
-            fprintf(stderr, "%04x:", i);
-        fprintf(stderr, " %02x", data[i]);
-        if (!(~i & 0xf) || i == len - 1)
-            fprintf(stderr, "\n");
-    }
+	fprintf(stderr, "%s:\n", title);
+	for (i = 0; i < len; i++) {
+		if (!(i & 0xf)) {
+			fprintf(stderr, "%04x:", i);
+		}
+		fprintf(stderr, " %02x", data[i]);
+		if (!(~i & 0xf) || i == len - 1) {
+			fprintf(stderr, "\n");
+		}
+	}
 }
 #define HEXDUMP(title, buf, len) hexdump(title, buf, len)
 #define hexdump_defined

@@ -337,7 +337,10 @@ static void uwtmp_login(struct mt_connection *conn) {
 	setutxent();
 	pututxline(&utent);
 	endutxent();
-#ifdef __linux__
+
+#if defined(HAVE_UPDWTMPX)
+	updwtmpx(_PATH_WTMP, &utent);
+#elif defined(HAVE_UPDWTMP)
 	updwtmp(_PATH_WTMP, &utent);
 #endif
 }
@@ -362,7 +365,10 @@ static void uwtmp_logout(struct mt_connection *conn) {
 
 			pututxline(&utent);
 			endutxent();
-#ifdef __linux__
+
+#if defined(HAVE_UPDWTMPX)
+			updwtmpx(_PATH_WTMP, &utent);
+#elif defined(HAVE_UPDWTMP)
 			updwtmp(_PATH_WTMP, &utent);
 #endif
 		}

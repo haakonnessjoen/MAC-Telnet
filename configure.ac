@@ -49,7 +49,7 @@ AC_FUNC_CHOWN
 AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_FUNC_STRNLEN
-AC_CHECK_FUNCS([getrandom arc4random alarm bzero clock_gettime getpass gettimeofday inet_ntoa memset select setenv setlocale socket strcasecmp strerror strncasecmp sysinfo uname])
+AC_CHECK_FUNCS([getrandom arc4random alarm bzero clock_gettime getpass gettimeofday inet_ntoa memset select setenv setlocale socket strcasecmp strerror strncasecmp sysinfo uname updwtmp updwtmpx])
 
 AC_CONFIG_FILES([Makefile src/Makefile doc/Makefile config/Makefile po/Makefile.in])
 AC_OUTPUT

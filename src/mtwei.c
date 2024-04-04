@@ -37,7 +37,7 @@
 #include <stdio.h>
 #include <string.h>
 #if defined(__linux__)
-#include <linux/random.h>
+#include <sys/random.h>
 #endif
 
 #if !defined(HAVE_GETRANDOM) && defined(HAVE_ARC4RANDOM)

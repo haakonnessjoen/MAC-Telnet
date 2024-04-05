@@ -30,6 +30,12 @@ jobs:
         uses: rlalik/setup-cpp-compiler@master
         with:
           compiler: ${{ matrix.c_compiler }}
+      - name: Fix gettext on macOS
+        if: runner.os == 'macOS'
+        run: |
+          export GETTEXT_PATH=$(brew --prefix gettext)
+          export LDFLAGS="-L${GETTEXT_PATH}/lib $LDFLAGS"
+          export CPPFLAGS="-I${GETTEXT_PATH}/include"
       - name: autogen/configure
         run: ./autogen.sh
       - name: configure

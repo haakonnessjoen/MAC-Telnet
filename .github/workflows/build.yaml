@@ -2,12 +2,15 @@ name: Configure and Build
 
 on:
   push:
-    branches: [$default-branch]
+    branches:
+      - master
   pull_request:
-    branches: [$default-branch]
+    branches:
+      - master
 
 jobs:
   build:
+    name: Configure and Build
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

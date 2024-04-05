@@ -40,8 +40,8 @@ jobs:
           echo "CPPFLAGS=-I${GETTEXT_PATH}/include" >> $GITHUB_ENV
           export OPENSSL_PATH="$(brew --prefix openssl)"
           echo "OPENSSL_PATH=${OPENSSL_PATH}" >> $GITHUB_ENV
-          echo "CRYPTO_CFLAGS="-I${OPENSSL_PATH}/include" >> $GITHUB_ENV
-          echo "CRYPTO_LIBS="-L${OPENSSL_PATH}/lib ${OPENSSL_PATH}/lib/libcrypto.3.dylib" >> $GITHUB_ENV
+          echo "CRYPTO_CFLAGS=-I${OPENSSL_PATH}/include" >> $GITHUB_ENV
+          echo "CRYPTO_LIBS=-L${OPENSSL_PATH}/lib ${OPENSSL_PATH}/lib/libcrypto.3.dylib" >> $GITHUB_ENV
       - name: autogen/configure
         run: ./autogen.sh
       - name: configure

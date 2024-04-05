@@ -1,4 +1,4 @@
-FROM alpine:3.16 AS builder
+FROM alpine:3.19 AS builder
 
 # Install build dependencies
 RUN apk add --no-cache diffutils build-base automake autoconf git gettext gettext-dev linux-headers openssl-dev
@@ -14,7 +14,7 @@ RUN ./autogen.sh --prefix=/build
 RUN make all install
 
 ## 
-FROM alpine:3.16
+FROM alpine:3.19
 
 # Install runtime dependencies
 RUN apk add --no-cache gettext-libs openssl-dev

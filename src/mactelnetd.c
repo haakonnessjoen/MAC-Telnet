@@ -404,7 +404,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		const EVP_MD *md;
 		unsigned int md_len;
 
-#if defined(_POSIX_MEMLOCK_RANGE)
+#if defined(_POSIX_MEMLOCK_RANGE) && _POSIX_MEMLOCK_RANGE > 0
 		mlock(hashdata, sizeof(hashdata));
 		mlock(hashsum, sizeof(hashsum));
 		mlock(user->password, sizeof(user->password));
@@ -687,7 +687,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 
 		} else if (cpkt.cptype == MT_CPTYPE_PASSWORD && cpkt.length == 17) {
 
-#if defined(_POSIX_MEMLOCK_RANGE)
+#if defined(_POSIX_MEMLOCK_RANGE) && _POSIX_MEMLOCK_RANGE > 0
 			mlock(curconn->trypassword, 17);
 #endif
 			memcpy(curconn->trypassword, cpkt.data, 17);
@@ -695,7 +695,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 
 		} else if (cpkt.cptype == MT_CPTYPE_PASSWORD && cpkt.length == 32) {
 
-#if defined(_POSIX_MEMLOCK_RANGE)
+#if defined(_POSIX_MEMLOCK_RANGE) && _POSIX_MEMLOCK_RANGE > 0
 			mlock(curconn->trypassword, 32);
 #endif
 			memcpy(curconn->trypassword, cpkt.data, 32);
@@ -1079,7 +1079,7 @@ int main (int argc, char **argv) {
 	srand(time(NULL));
 
 	if (use_md5 == 0) {
-#if defined(_POSIX_MEMLOCK_RANGE)
+#if defined(_POSIX_MEMLOCK_RANGE) && _POSIX_MEMLOCK_RANGE > 0
 		mlock(&mtwei, sizeof(mtwei));
 #endif
 		mtwei_init(&mtwei);

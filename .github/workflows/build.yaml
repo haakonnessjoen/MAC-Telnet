@@ -17,7 +17,7 @@ jobs:
 
       matrix:
         os: [ubuntu-latest, macos-13, macos-latest]
-        c_compiler: [gcc, clang]
+        c_compiler: [gcc-10, clang]
 
     steps:
       - uses: actions/checkout@v3
@@ -25,9 +25,14 @@ jobs:
         with:
           brew: gettext autoconf automake libtool openssl
           apt: build-essential autopoint automake autoconf libssl-dev libtool gettext
+      - name: Install compiler
+        id: install_cc
+        uses: rlalik/setup-cpp-compiler@master
+        with:
+          compiler: ${{ matrix.c_compiler }}
       - name: autogen/configure
         run: ./autogen.sh
       - name: configure
-        run: ./configure CC="${{ matrix.c_compiler }}" --prefix="${{ github.workspace }}/build"
+        run: ./configure CC="${{ steps.install_cc.outputs.cc }}" --prefix="${{ github.workspace }}/build"
       - name: make
         run: make all

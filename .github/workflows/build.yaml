@@ -30,28 +30,21 @@ jobs:
         uses: rlalik/setup-cpp-compiler@master
         with:
           compiler: ${{ matrix.c_compiler }}
-      - name: Fix gettext on macOS
+      - name: Fix gettext and openssl on macOS
         if: runner.os == 'macOS'
         id: gettext
         run: |
-          echo "GETTEXT_PATH=$(brew --prefix gettext)" >> $GITHUB_OUTPUT
-          echo "LDFLAGS=-L$(brew --prefix gettext)/lib" >> $GITHUB_OUTPUT
-          echo "CPPFLAGS=-I$(brew --prefix gettext)/include" >> $GITHUB_OUTPUT
+          export GETTEXT_PATH="$(brew --prefix gettext)""
+          echo "GETTEXT_PATH=${GETTEXT_PATH}" >> $GITHUB_ENV
+          echo "LDFLAGS=-L${GETTEXT_PATH}/lib" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I${GETTEXT_PATH}/include" >> $GITHUB_ENV
+          export OPENSSL_PATH="$(brew --prefix openssl)"
+          echo "OPENSSL_PATH=${OPENSSL_PATH}" >> $GITHUB_ENV
+          echo "CRYPTO_CFLAGS="-I${OPENSSL_PATH}/include" >> $GITHUB_ENV
+          echo "CRYPTO_LIBS="-L${OPENSSL_PATH}/lib ${OPENSSL_PATH}/lib/libcrypto.3.dylib" >> $GITHUB_ENV
       - name: autogen/configure
         run: ./autogen.sh
-        env:
-          GETTEXT_PATH: ${{ steps.gettext.outputs.GETTEXT_PATH }}
-          LDFLAGS: ${{ steps.gettext.outputs.LDFLAGS }}
-          CPPFLAGS: ${{ steps.gettext.outputs.CPPFLAGS }}
       - name: configure
         run: ./configure CC="${{ steps.install_cc.outputs.cc }}" --prefix="${{ github.workspace }}/build"
-        env:
-          GETTEXT_PATH: ${{ steps.gettext.outputs.GETTEXT_PATH }}
-          LDFLAGS: ${{ steps.gettext.outputs.LDFLAGS }}
-          CPPFLAGS: ${{ steps.gettext.outputs.CPPFLAGS }}
       - name: make
         run: make all
-        env:
-          GETTEXT_PATH: ${{ steps.gettext.outputs.GETTEXT_PATH }}
-          LDFLAGS: ${{ steps.gettext.outputs.LDFLAGS }}
-          CPPFLAGS: ${{ steps.gettext.outputs.CPPFLAGS }}

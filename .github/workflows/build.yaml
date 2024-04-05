@@ -35,10 +35,10 @@ jobs:
         id: gettext
         run: |
           export GETTEXT_PATH="$(brew --prefix gettext)"
-          echo "GETTEXT_PATH=${GETTEXT_PATH}" >> $GITHUB_ENV
-          echo "LDFLAGS=-L${GETTEXT_PATH}/lib" >> $GITHUB_ENV
-          echo "CPPFLAGS=-I${GETTEXT_PATH}/include" >> $GITHUB_ENV
           export OPENSSL_PATH="$(brew --prefix openssl)"
+          echo "GETTEXT_PATH=${GETTEXT_PATH}" >> $GITHUB_ENV
+          echo "LDFLAGS=-L${GETTEXT_PATH}/lib -L${OPENSSL_PATH}/lib" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I${GETTEXT_PATH}/include -I${OPENSSL_PATH}/include" >> $GITHUB_ENV
           echo "OPENSSL_PATH=${OPENSSL_PATH}" >> $GITHUB_ENV
           echo "CRYPTO_CFLAGS=-I${OPENSSL_PATH}/include" >> $GITHUB_ENV
           echo "CRYPTO_LIBS=-L${OPENSSL_PATH}/lib ${OPENSSL_PATH}/lib/libcrypto.3.dylib" >> $GITHUB_ENV

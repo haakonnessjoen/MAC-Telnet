@@ -226,7 +226,7 @@ static void send_auth(char *login, char *password) {
 	const EVP_MD *md;
 	unsigned int md_len;
 
-#if defined(_POSIX_MEMLOCK_RANGE)
+#if defined(_POSIX_MEMLOCK_RANGE) && _POSIX_MEMLOCK_RANGE > 0
 	mlock(hashdata, sizeof(hashdata));
 	mlock(hashsum, sizeof(hashdata));
 #endif
@@ -546,7 +546,7 @@ int main (int argc, char **argv) {
 
 			case 'p':
 				/* Save password */
-#if defined(_POSIX_MEMLOCK_RANGE)
+#if defined(_POSIX_MEMLOCK_RANGE) && _POSIX_MEMLOCK_RANGE > 0
 				mlock(password, sizeof(password));
 #endif
 				strncpy(password, optarg, sizeof(password) - 1);
@@ -717,7 +717,7 @@ int main (int argc, char **argv) {
 	if (!have_password) {
 		char *tmp;
 		tmp = getpass(quiet_mode ? "" : _("Password: "));
-#if defined(_POSIX_MEMLOCK_RANGE)
+#if defined(_POSIX_MEMLOCK_RANGE) && _POSIX_MEMLOCK_RANGE > 0
 		mlock(password, sizeof(password));
 #endif
 		strncpy(password, tmp, sizeof(password) - 1);
@@ -738,7 +738,7 @@ int main (int argc, char **argv) {
 	sessionkey = rand() % 65535;
 
 	/* Private key */
-#if defined(_POSIX_MEMLOCK_RANGE)
+#if defined(_POSIX_MEMLOCK_RANGE) && _POSIX_MEMLOCK_RANGE > 0
 	mlock(&mtwei, sizeof(mtwei));
 #endif
 	mtwei_init(&mtwei);

@@ -32,13 +32,26 @@ jobs:
           compiler: ${{ matrix.c_compiler }}
       - name: Fix gettext on macOS
         if: runner.os == 'macOS'
+        id: gettext
         run: |
-          export GETTEXT_PATH=$(brew --prefix gettext)
-          export LDFLAGS="-L${GETTEXT_PATH}/lib $LDFLAGS"
-          export CPPFLAGS="-I${GETTEXT_PATH}/include"
+          echo "GETTEXT_PATH=$(brew --prefix gettext)" >> $GITHUB_OUTPUT
+          echo "LDFLAGS=-L$(brew --prefix gettext)/lib" >> $GITHUB_OUTPUT
+          echo "CPPFLAGS=-I$(brew --prefix gettext)/include" >> $GITHUB_OUTPUT
       - name: autogen/configure
         run: ./autogen.sh
+        env:
+          GETTEXT_PATH: ${{ steps.gettext.outputs.GETTEXT_PATH }}
+          LDFLAGS: ${{ steps.gettext.outputs.LDFLAGS }}
+          CPPFLAGS: ${{ steps.gettext.outputs.CPPFLAGS }}
       - name: configure
         run: ./configure CC="${{ steps.install_cc.outputs.cc }}" --prefix="${{ github.workspace }}/build"
+        env:
+          GETTEXT_PATH: ${{ steps.gettext.outputs.GETTEXT_PATH }}
+          LDFLAGS: ${{ steps.gettext.outputs.LDFLAGS }}
+          CPPFLAGS: ${{ steps.gettext.outputs.CPPFLAGS }}
       - name: make
         run: make all
+        env:
+          GETTEXT_PATH: ${{ steps.gettext.outputs.GETTEXT_PATH }}
+          LDFLAGS: ${{ steps.gettext.outputs.LDFLAGS }}
+          CPPFLAGS: ${{ steps.gettext.outputs.CPPFLAGS }}

@@ -34,7 +34,7 @@ jobs:
         if: runner.os == 'macOS'
         id: gettext
         run: |
-          export GETTEXT_PATH="$(brew --prefix gettext)""
+          export GETTEXT_PATH="$(brew --prefix gettext)"
           echo "GETTEXT_PATH=${GETTEXT_PATH}" >> $GITHUB_ENV
           echo "LDFLAGS=-L${GETTEXT_PATH}/lib" >> $GITHUB_ENV
           echo "CPPFLAGS=-I${GETTEXT_PATH}/include" >> $GITHUB_ENV

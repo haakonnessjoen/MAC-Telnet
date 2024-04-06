@@ -1,20 +1,20 @@
 /*
-    Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
-    Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
+	Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
+	Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #include <sys/ioctl.h>
 #include <string.h>
@@ -34,12 +34,12 @@ int raw_term() {
 		return -1;
 	}
 
-	memcpy(&new, &orig_term, sizeof(struct termios) );
+	memcpy(&new, &orig_term, sizeof(struct termios));
 
 	/* raw mode, from tcsetattr man page */
-	new.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
-	new.c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
-	new.c_cflag &= ~(CSIZE|PARENB);
+	new.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+	new.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+	new.c_cflag &= ~(CSIZE | PARENB);
 	new.c_cflag |= CS8;
 
 	if (tcsetattr(STDIN_FILENO, TCSANOW, &new) < 0) {
@@ -84,4 +84,3 @@ int set_terminal_size(int fd, unsigned short width, unsigned short height) {
 
 	return 0;
 }
-

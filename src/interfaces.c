@@ -1,20 +1,20 @@
 /*
-    Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
-    Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
+	Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
+	Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #if defined(__FreeBSD__)
 #define __USE_BSD
@@ -91,7 +91,6 @@ static void net_update_mac(struct net_interface *interfaces) {
 	int tmpsock;
 	struct net_interface *interface;
 
-
 	tmpsock = socket(PF_INET, SOCK_DGRAM, 0);
 	if (tmpsock < 0) {
 		perror("net_update_mac");
@@ -119,7 +118,7 @@ static void net_update_mac(struct net_interface *interfaces) {
 }
 
 static int get_device_index(char *device_name) {
-        struct ifreq ifr;
+	struct ifreq ifr;
 	int tmpsock;
 
 	tmpsock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -147,7 +146,7 @@ int net_get_interfaces(struct net_interface **interfaces) {
 	}
 
 	for (ifaddrsp = int_addrs; ifaddrsp; ifaddrsp = ifaddrsp->ifa_next) {
-		dl_addr = (const struct sockaddr_in *) ifaddrsp->ifa_addr;
+		dl_addr = (const struct sockaddr_in *)ifaddrsp->ifa_addr;
 
 		if (ifaddrsp->ifa_addr == NULL)
 			continue;
@@ -157,8 +156,7 @@ int net_get_interfaces(struct net_interface **interfaces) {
 #else
 		if (ifaddrsp->ifa_addr->sa_family == AF_INET) {
 #endif
-			struct net_interface *interface =
-			  net_get_interface_ptr(interfaces, ifaddrsp->ifa_name, 1);
+			struct net_interface *interface = net_get_interface_ptr(interfaces, ifaddrsp->ifa_name, 1);
 			if (interface != NULL) {
 				found++;
 
@@ -178,11 +176,9 @@ int net_get_interfaces(struct net_interface **interfaces) {
 			struct sockaddr_dl *sdl = (struct sockaddr_dl *)ifaddrsp->ifa_addr;
 
 			if (sdl->sdl_alen == ETH_ALEN) {
-				struct net_interface *interface =
-				  net_get_interface_ptr(interfaces, ifaddrsp->ifa_name, 1);
+				struct net_interface *interface = net_get_interface_ptr(interfaces, ifaddrsp->ifa_name, 1);
 				memcpy(interface->mac_addr, LLADDR(sdl), ETH_ALEN);
-				if (interface != NULL &&
-				  memcmp(interface->mac_addr, &emptymac, ETH_ALEN) != 0) {
+				if (interface != NULL && memcmp(interface->mac_addr, &emptymac, ETH_ALEN) != 0) {
 					interface->has_mac = 1;
 				}
 			}
@@ -216,8 +212,7 @@ int net_get_interfaces(struct net_interface **interfaces) {
 	return found;
 }
 
-unsigned short in_cksum(unsigned short *addr, int len)
-{
+unsigned short in_cksum(unsigned short *addr, int len) {
 	int nleft = len;
 	int sum = 0;
 	unsigned short *w = addr;
@@ -229,7 +224,7 @@ unsigned short in_cksum(unsigned short *addr, int len)
 	}
 
 	if (nleft == 1) {
-		*(unsigned char *) (&answer) = *(unsigned char *) w;
+		*(unsigned char *)(&answer) = *(unsigned char *)w;
 		sum += answer;
 	}
 
@@ -239,9 +234,9 @@ unsigned short in_cksum(unsigned short *addr, int len)
 	return (answer);
 }
 
-unsigned short udp_sum_calc(unsigned char *src_addr,unsigned char *dst_addr, unsigned char *data, unsigned short len) {
-	unsigned short prot_udp=17;
-	unsigned short padd=0;
+unsigned short udp_sum_calc(unsigned char *src_addr, unsigned char *dst_addr, unsigned char *data, unsigned short len) {
+	unsigned short prot_udp = 17;
+	unsigned short padd = 0;
 	unsigned short word16;
 	unsigned int sum = 0;
 	int i;
@@ -253,26 +248,26 @@ unsigned short udp_sum_calc(unsigned char *src_addr,unsigned char *dst_addr, uns
 	}
 
 	/* header+data */
-	for (i = 0; i < len + padd; i += 2){
+	for (i = 0; i < len + padd; i += 2) {
 		word16 = ((data[i] << 8) & 0xFF00) + (data[i + 1] & 0xFF);
 		sum += word16;
 	}
 
 	/* source ip */
-	for (i = 0; i < IPV4_ALEN; i += 2){
+	for (i = 0; i < IPV4_ALEN; i += 2) {
 		word16 = ((src_addr[i] << 8) & 0xFF00) + (src_addr[i + 1] & 0xFF);
 		sum += word16;
 	}
 
 	/* dest ip */
-	for (i = 0; i < IPV4_ALEN; i += 2){
+	for (i = 0; i < IPV4_ALEN; i += 2) {
 		word16 = ((dst_addr[i] << 8) & 0xFF00) + (dst_addr[i + 1] & 0xFF);
 		sum += word16;
 	}
 
 	sum += prot_udp + len;
 
-	while (sum>>16)
+	while (sum >> 16)
 		sum = (sum & 0xFFFF) + (sum >> 16);
 
 	sum = ~sum;
@@ -280,8 +275,22 @@ unsigned short udp_sum_calc(unsigned char *src_addr,unsigned char *dst_addr, uns
 	if (sum == 0)
 		sum = 0xFFFF;
 
-	return (unsigned short) sum;
+	return (unsigned short)sum;
 }
+
+#if !defined(__linux__)
+int net_find_bpf_device() {
+	char dev[11];
+	for (int i = 0; i < 99; ++i) {
+		sprintf(dev, "/dev/bpf%i", i);
+		int fd = open(dev, O_RDWR);
+		if (fd != -1) {
+			return fd;
+		}
+	}
+	return -1;
+}
+#endif
 
 int net_init_raw_socket() {
 	int fd;
@@ -295,7 +304,7 @@ int net_init_raw_socket() {
 	}
 #else
 	/* Transmit raw packets with bpf */
-	fd = open("/dev/bpf0", O_RDWR);
+	fd = net_find_bpf_device();
 	if (fd <= 0) {
 		perror("open_bpf");
 		exit(1);
@@ -305,16 +314,18 @@ int net_init_raw_socket() {
 	return fd;
 }
 
-int net_send_udp(const int fd, struct net_interface *interface, const unsigned char *sourcemac, const unsigned char *destmac, const struct in_addr *sourceip, const int sourceport, const struct in_addr *destip, const int destport, const unsigned char *data, const int datalen) {
+int net_send_udp(const int fd, struct net_interface *interface, const unsigned char *sourcemac,
+				 const unsigned char *destmac, const struct in_addr *sourceip, const int sourceport,
+				 const struct in_addr *destip, const int destport, const unsigned char *data, const int datalen) {
 #ifdef __linux__
 	struct sockaddr_ll socket_address;
 #endif
 	/*
 	 * Create a buffer for the full ethernet frame
 	 * and align header pointers to the correct positions.
-	*/
+	 */
 	static unsigned char stackbuf[ETH_FRAME_LEN];
-	void* buffer = (void*)&stackbuf;
+	void *buffer = (void *)&stackbuf;
 #if defined(__FreeBSD__) || defined(__APPLE__)
 	struct ether_header *eh = (struct ether_header *)buffer;
 	struct ip *ip = (struct ip *)(buffer + 14);
@@ -323,11 +334,10 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 	struct iphdr *ip = (struct iphdr *)(buffer + 14);
 #endif
 	struct udphdr *udp = (struct udphdr *)(buffer + 14 + 20);
-	unsigned char *rest =
-	  (unsigned char *)(buffer + 20 + 14 + sizeof(struct udphdr));
+	unsigned char *rest = (unsigned char *)(buffer + 20 + 14 + sizeof(struct udphdr));
 
 	/* Avoid integer overflow in check */
-	if (datalen > ETH_FRAME_LEN - ((void *)rest - (void*)buffer)) {
+	if (datalen > ETH_FRAME_LEN - ((void *)rest - (void *)buffer)) {
 		fprintf(stderr, _("packet size too large\n"));
 		return 0;
 	}
@@ -354,16 +364,16 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 
 #ifdef __linux__
 	/* Init SendTo struct */
-	socket_address.sll_family   = AF_PACKET;
+	socket_address.sll_family = AF_PACKET;
 	socket_address.sll_protocol = htons(ETH_P_IP);
-	socket_address.sll_ifindex  = interface->ifindex;
-	socket_address.sll_hatype   = ARPHRD_ETHER;
-	socket_address.sll_pkttype  = PACKET_OTHERHOST;
-	socket_address.sll_halen    = ETH_ALEN;
+	socket_address.sll_ifindex = interface->ifindex;
+	socket_address.sll_hatype = ARPHRD_ETHER;
+	socket_address.sll_pkttype = PACKET_OTHERHOST;
+	socket_address.sll_halen = ETH_ALEN;
 
 	memcpy(socket_address.sll_addr, eh->h_source, ETH_ALEN);
-	socket_address.sll_addr[6]  = 0x00;/*not used*/
-	socket_address.sll_addr[7]  = 0x00;/*not used*/
+	socket_address.sll_addr[6] = 0x00; /*not used*/
+	socket_address.sll_addr[7] = 0x00; /*not used*/
 #endif
 
 	/* Init IP Header */
@@ -418,23 +428,19 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 
 	/* Add UDP checksum */
 #if defined(__FreeBSD__) || defined(__APPLE__)
-	udp->uh_sum = udp_sum_calc((unsigned char *)&(ip->ip_src.s_addr),
-	  (unsigned char *)&(ip->ip_dst.s_addr),
-	  (unsigned char *)udp,
-	  sizeof(struct udphdr) + datalen);
+	udp->uh_sum = udp_sum_calc((unsigned char *)&(ip->ip_src.s_addr), (unsigned char *)&(ip->ip_dst.s_addr),
+							   (unsigned char *)udp, sizeof(struct udphdr) + datalen);
 	udp->uh_sum = htons(udp->uh_sum);
 #else
-	udp->check = udp_sum_calc((unsigned char *)&(ip->saddr),
-	  (unsigned char *)&(ip->daddr),
-	  (unsigned char *)udp,
-	  sizeof(struct udphdr) + datalen);
+	udp->check = udp_sum_calc((unsigned char *)&(ip->saddr), (unsigned char *)&(ip->daddr), (unsigned char *)udp,
+							  sizeof(struct udphdr) + datalen);
 	udp->check = htons(udp->check);
 #endif
 
 #ifdef __linux__
 	/* Send the packet */
-	send_result = sendto(fd, buffer, datalen + 8 + 14 + 20, 0,
-	  (struct sockaddr*)&socket_address, sizeof(socket_address));
+	send_result =
+		sendto(fd, buffer, datalen + 8 + 14 + 20, 0, (struct sockaddr *)&socket_address, sizeof(socket_address));
 	if (send_result == -1)
 		perror("sendto");
 #else
@@ -450,8 +456,10 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 	}
 
 	send_result = write(fd, buffer, datalen + 8 + 14 + 20);
-	if (send_result == -1)
-		perror("bpf_write");
+	if (send_result == -1) {
+		// perror("bpf_write");
+		return 0;
+	}
 #endif
 
 	/* Return amount of _data_ bytes sent */

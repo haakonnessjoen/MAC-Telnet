@@ -1,20 +1,20 @@
 /*
-    Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
-    Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
+	Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
+	Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #include <libintl.h>
 #include <locale.h>
@@ -75,16 +75,15 @@ static void print_version() {
 	fprintf(stderr, PROGRAM_NAME " " PACKAGE_VERSION "\n");
 }
 
-static long long int toddiff(struct timeval *tod1, struct timeval *tod2)
-{
-    long long t1, t2;
-    t1 = tod1->tv_sec * 1000000 + tod1->tv_usec;
-    t2 = tod2->tv_sec * 1000000 + tod2->tv_usec;
-    return t1 - t2;
+static long long int toddiff(struct timeval *tod1, struct timeval *tod2) {
+	long long t1, t2;
+	t1 = tod1->tv_sec * 1000000 + tod1->tv_usec;
+	t2 = tod2->tv_sec * 1000000 + tod2->tv_usec;
+	return t1 - t2;
 }
 
 static void display_results() {
-	int percent = (int)((100.f/ping_sent) * pong_received);
+	int percent = (int)((100.f / ping_sent) * pong_received);
 	if (percent > 100) {
 		percent = 0;
 	}
@@ -98,8 +97,9 @@ static void display_results() {
 	}
 
 	printf("\n");
-	printf(_("%d packets transmitted, %d packets received, %d%% packet loss\n"), ping_sent, pong_received, 100 - percent);
-	printf(_("round-trip min/avg/max = %.2f/%.2f/%.2f ms\n"), min_ms, avg_ms/pong_received, max_ms);
+	printf(_("%d packets transmitted, %d packets received, %d%% packet loss\n"), ping_sent, pong_received,
+		   100 - percent);
+	printf(_("round-trip min/avg/max = %.2f/%.2f/%.2f ms\n"), min_ms, avg_ms / pong_received, max_ms);
 
 	/* For bash scripting */
 	if (pong_received == 0) {
@@ -109,8 +109,7 @@ static void display_results() {
 	exit(0);
 }
 
-int main(int argc, char **argv)  {
-	int optval = 1;
+int main(int argc, char **argv) {
 	int print_help = 0;
 	int send_packets = 5;
 	int fastmode = 0;
@@ -152,7 +151,6 @@ int main(int argc, char **argv)  {
 			case '?':
 				print_help = 1;
 				break;
-
 		}
 	}
 
@@ -168,12 +166,12 @@ int main(int argc, char **argv)  {
 
 		if (print_help) {
 			fprintf(stderr, _("\nParameters:\n"
-			"  MAC       MAC-Address of the RouterOS/mactelnetd device.\n"
-			"  -f        Fast mode, do not wait before sending next ping request.\n"
-			"  -s        Specify size of ping packet.\n"
-			"  -c        Number of packets to send. (0 = unlimited)\n"
-			"  -h        This help.\n"
-			"\n"));
+							  "  MAC       MAC-Address of the RouterOS/mactelnetd device.\n"
+							  "  -f        Fast mode, do not wait before sending next ping request.\n"
+							  "  -s        Specify size of ping packet.\n"
+							  "  -c        Number of packets to send. (0 = unlimited)\n"
+							  "  -h        This help.\n"
+							  "\n"));
 		}
 		return 1;
 	}
@@ -207,15 +205,16 @@ int main(int argc, char **argv)  {
 	}
 
 	/* Set initialize address/port */
-	memset((char *) &si_me, 0, sizeof(si_me));
+	memset((char *)&si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
 	si_me.sin_port = htons(MT_MACTELNET_PORT);
 	si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 
-	setsockopt(insockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval));
+	int optval = 1;
+	setsockopt(insockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
 	/* Bind to specified address/port */
-	if (bind(insockfd, (struct sockaddr *)&si_me, sizeof(si_me))==-1) {
+	if (bind(insockfd, (struct sockaddr *)&si_me, sizeof(si_me)) == -1) {
 		fprintf(stderr, _("Error binding to %s:%d\n"), inet_ntoa(si_me.sin_addr), MT_MNDP_PORT);
 		return 1;
 	}
@@ -262,12 +261,12 @@ int main(int argc, char **argv)  {
 
 			init_pingpacket(&packet, interface->mac_addr, dstmac);
 			add_packetdata(&packet, pingdata, ping_size);
-			result = net_send_udp(sockfd, interface, interface->mac_addr, dstmac, &sourceip, MT_MACTELNET_PORT, &destip, MT_MACTELNET_PORT, packet.data, packet.size);
+			result = net_send_udp(sockfd, interface, interface->mac_addr, dstmac, &sourceip, MT_MACTELNET_PORT, &destip,
+								  MT_MACTELNET_PORT, packet.data, packet.size);
 
 			if (result > 0) {
 				sent++;
 			}
-
 		}
 		if (sent == 0) {
 			fprintf(stderr, _("Error sending packet.\n"));
@@ -285,7 +284,7 @@ int main(int argc, char **argv)  {
 
 		while (waitforpacket) {
 			/* Wait for data or timeout */
-			reads = select(insockfd+1, &read_fds, NULL, NULL, &timeout);
+			reads = select(insockfd + 1, &read_fds, NULL, NULL, &timeout);
 			if (reads <= 0) {
 				waitforpacket = 0;
 				fprintf(stderr, _("%s ping timeout\n"), ether_ntoa((struct ether_addr *)&dstmac));
@@ -330,9 +329,12 @@ int main(int argc, char **argv)  {
 
 				avg_ms += diff;
 
-				printf(_("%s %d byte, ping time %.2f ms%s\n"), ether_ntoa((struct ether_addr *)&(pkthdr.srcaddr)), result, diff, (char *)(memcmp(&pongtimestamp,&lasttimestamp,sizeof(lasttimestamp)) == 0 ? " DUP" : ""));
+				printf(_("%s %d byte, ping time %.2f ms%s\n"), ether_ntoa((struct ether_addr *)&(pkthdr.srcaddr)),
+					   result, diff,
+					   (char *)(memcmp(&pongtimestamp, &lasttimestamp, sizeof(lasttimestamp)) == 0 ? " DUP" : ""));
 			} else {
-				printf(_("%s Reply of %d bytes of unequal data\n"), ether_ntoa((struct ether_addr *)&(pkthdr.srcaddr)), result);
+				printf(_("%s Reply of %d bytes of unequal data\n"), ether_ntoa((struct ether_addr *)&(pkthdr.srcaddr)),
+					   result);
 			}
 			pong_received++;
 			memcpy(&lasttimestamp, &pongtimestamp, sizeof(pongtimestamp));

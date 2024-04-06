@@ -1,18 +1,14 @@
-MAC-Telnet for Posix systems
-============================
+# MAC-Telnet for Posix systems
 
 Console tools for connecting to, and serving, devices using MikroTik RouterOS MAC-Telnet protocol.
 
-## CURRENTLY UNDER DEVELOPMENT
+## New EC-SRP key sharing and authentication support
 
-> **Warning**
-> This repository is in mid-way of adding support for RouterOS v6.43 and up, which does not support the old MD5 authentication method.
-> Expect this to be "alpha quality" for now. The new EC-SRP key sharing and authentication protocol is **not** implemented in `mactelnetd` yet.
+The MAC-Telnet client and server now supports the new EC-SRP authentication that is mandatory after Mikrotik removed support for MD5 authentication in RouterOS v6.43 and forward. Support for using the old MD5 authentication is still possible via command line flags for backwards comatibility.
 
-Installation
-------------
+## Installation
 
-### Docker ###
+### Docker
 
 [`haakonn/mactelnet`](https://hub.docker.com/r/haakonn/mactelnet/) contains all four programs:
 
@@ -25,7 +21,7 @@ Note that Docker runs containers on isolated internal networks by default. [`--n
 
 See [Usage](#usage) for more.
 
-### CentOS 7 ###
+### CentOS 7
 
 > **Warning**
 > Currently untested in new version.
@@ -33,17 +29,16 @@ See [Usage](#usage) for more.
 To install dependencies:
 
     yum -y install wget automake gettext gettext-devel gcc make
-       
-    
+
 Download source tarball, extract, compile and install:
-    
+
     wget http://github.com/haakonnessjoen/MAC-Telnet/tarball/master -O mactelnet.tar.gz
     tar zxvf mactelnet.tar.gz
     cd haakonness*/
     ./autogen.sh
     make all install
 
-### Linux / kfreebsd ###
+### Linux / kfreebsd
 
 Dependencies: gcc (or similar), automake, autoconf
 
@@ -59,7 +54,7 @@ Download source tarball, extract, compile and install:
     ./autogen.sh
     make all install
 
-### FreeBSD ###
+### FreeBSD
 
 > **Warning**
 > Currently untested in new version.
@@ -79,7 +74,7 @@ Download source tarball, extract, compile and install:
     ./configure LDFLAGS=" -L/usr/local/lib"
     gmake all install
 
-### Mac OS X ###
+### Mac OS X
 
 Install dependencies, download source tarball, extract, compile and install:
 
@@ -101,9 +96,7 @@ Install dependencies, download source tarball, extract, compile and install:
     ./autogen.sh
     make all install
 
-
-Usage
------
+## Usage
 
     # mactelnet -h
     Usage: mactelnet <MAC|identity> [-h] [-n] [-a <path>] [-A] [-t <timeout>] [-u <user>] [-p <password>] [-U <user>] | -l [-B] [-t <timeout>]
@@ -159,12 +152,11 @@ Example using mac address:
 
 You can use the well known "expect" tool to automate/script dialogues via mactelnet!
 
-### List available hosts ###
+### List available hosts
 
     # mactelnet -l
 
-MAC-Ping usage
---------------
+## MAC-Ping usage
 
     # macping -h
     Usage: macping <MAC> [-h] [-c <count>] [-s <packet size>]
@@ -193,4 +185,4 @@ Or for use in bash-scripting:
 
 ## Huge thanks
 
-Thanks to [@comed-ian](https://github.com/comed-ian) for creating a working proof of concept python script that successfully authenticated using the new authentication method in RouterOS 4.43+, and [@kmeaw](https://github.com/kmeaw) for porting the code to C, and implementing it in mactelnet.
+Thanks to [@comed-ian](https://github.com/comed-ian) for creating a working proof of concept python script that successfully authenticated using the new authentication method in RouterOS 4.43+, and [@kmeaw](https://github.com/kmeaw) for porting the code to C, and implementing it in mactelnet and mactelnetd.

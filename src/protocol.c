@@ -1,20 +1,20 @@
 /*
-    Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
-    Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
+	Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
+	Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #define _BSD_SOURCE
 #include <libintl.h>
@@ -37,8 +37,8 @@
 #endif
 #include <time.h>
 #if defined(__APPLE__)
-# include <libkern/OSByteOrder.h>
-# define le32toh OSSwapLittleToHostInt32
+#include <libkern/OSByteOrder.h>
+#define le32toh OSSwapLittleToHostInt32
 #elif defined(__FreeBSD__)
 #include <sys/endian.h>
 #else
@@ -51,7 +51,8 @@
 
 #define _(STRING) gettext(STRING)
 
-int init_packet(struct mt_packet *packet, enum mt_ptype ptype, unsigned char *srcmac, unsigned char *dstmac, unsigned short sessionkey, unsigned int counter) {
+int init_packet(struct mt_packet *packet, enum mt_ptype ptype, unsigned char *srcmac, unsigned char *dstmac,
+				unsigned short sessionkey, unsigned int counter) {
 	unsigned char *data = packet->data;
 
 	/* Packet version */
@@ -87,11 +88,11 @@ int add_control_packet(struct mt_packet *packet, enum mt_cptype cptype, void *cp
 	unsigned int act_size = data_len + (cptype == MT_CPTYPE_PLAINDATA ? 0 : MT_CPHEADER_LEN);
 
 	/* Something is really wrong. Packets should never become over 1500 bytes,
-       perform an Integer-Overflow safe check */
+	   perform an Integer-Overflow safe check */
 	if (act_size > MT_PACKET_LEN - packet->size) {
 		fprintf(stderr, _("add_control_packet: ERROR, too large packet. Exceeds %d bytes\n"), MT_PACKET_LEN);
 		return -1;
-		//exit(1);
+		// exit(1);
 	}
 
 	/* PLAINDATA isn't really a controlpacket, but we handle it here, since
@@ -192,7 +193,6 @@ void parse_packet(unsigned char *data, struct mt_mactelnet_hdr *pkthdr) {
 	pkthdr->data = data + 22;
 }
 
-
 int parse_control_packet(unsigned char *packetdata, unsigned short data_len, struct mt_mactelnet_control_hdr *cpkthdr) {
 	static unsigned char *int_data;
 	static unsigned int int_data_len;
@@ -222,7 +222,6 @@ int parse_control_packet(unsigned char *packetdata, unsigned short data_len, str
 
 	/* Check for valid minimum packet length & magic header */
 	if ((int_data_len - int_pos) >= MT_CPHEADER_LEN && memcmp(data, &mt_mactelnet_cpmagic, 4) == 0) {
-
 		/* Control packet type */
 		cpkthdr->cptype = data[4];
 
@@ -270,7 +269,8 @@ int mndp_init_packet(struct mt_packet *packet, unsigned char version, unsigned c
 	return sizeof(*header);
 }
 
-int mndp_add_attribute(struct mt_packet *packet, enum mt_mndp_attrtype attrtype, void *attrdata, unsigned short data_len) {
+int mndp_add_attribute(struct mt_packet *packet, enum mt_mndp_attrtype attrtype, void *attrdata,
+					   unsigned short data_len) {
 	unsigned char *data = packet->data + packet->size;
 	unsigned short type = attrtype;
 	unsigned short len = data_len;
@@ -294,7 +294,6 @@ int mndp_add_attribute(struct mt_packet *packet, enum mt_mndp_attrtype attrtype,
 	return 4 + data_len;
 }
 
-
 struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len) {
 	const unsigned char *p;
 	static struct mt_mndp_info packet;
@@ -308,13 +307,13 @@ struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len)
 
 	bzero(packetp, sizeof(*packetp));
 
-	mndp_hdr = (struct mt_mndp_hdr*)data;
+	mndp_hdr = (struct mt_mndp_hdr *)data;
 
 	memcpy(&packetp->header, mndp_hdr, sizeof(struct mt_mndp_hdr));
 
 	p = data + sizeof(struct mt_mndp_hdr);
 
-	while(p + 4 < data + packet_len) {
+	while (p + 4 < data + packet_len) {
 		unsigned short type, len;
 
 		memcpy(&type, p, 2);
@@ -327,8 +326,9 @@ struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len)
 
 		/* Check if len is invalid */
 		if (p + len > data + packet_len) {
-		        fprintf(stderr, "%s: invalid data: "
-				        "%p + %u > %p + %d\n",
+			fprintf(stderr,
+					"%s: invalid data: "
+					"%p + %u > %p + %d\n",
 					__func__, p, len, data, packet_len);
 			break;
 		}
@@ -402,9 +402,9 @@ struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len)
 				packetp->ifname[len] = '\0';
 				break;
 
-			/*default:
-				 Unhandled MNDP type
-			*/
+				/*default:
+					 Unhandled MNDP type
+				*/
 		}
 
 		p += len;
@@ -434,7 +434,7 @@ int query_mndp(const char *identity, unsigned char *mac) {
 	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
 	/* Set initialize address/port */
-	memset((char *) &si_me, 0, sizeof(si_me));
+	memset((char *)&si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
 	si_me.sin_port = htons(MT_MNDP_PORT);
 	si_me.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -447,15 +447,15 @@ int query_mndp(const char *identity, unsigned char *mac) {
 	}
 
 	/* Set the socket to allow sending broadcast packets */
-	setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &optval, sizeof (optval));
+	setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval));
 
 	/* Request routers identify themselves */
-	memset((char *) &si_remote, 0, sizeof(si_remote));
+	memset((char *)&si_remote, 0, sizeof(si_remote));
 	si_remote.sin_family = AF_INET;
 	si_remote.sin_port = htons(MT_MNDP_PORT);
 	si_remote.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 
-	if (sendto(sock, &message, sizeof (message), 0, (struct sockaddr *)&si_remote, sizeof(si_remote)) == -1) {
+	if (sendto(sock, &message, sizeof(message), 0, (struct sockaddr *)&si_remote, sizeof(si_remote)) == -1) {
 		fprintf(stderr, _("Unable to send broadcast packet: Router lookup will be slow\n"));
 		fastlookup = 0;
 	} else {
@@ -513,16 +513,15 @@ int query_mndp_or_mac(char *address, unsigned char *dstmac, int verbose) {
 	while (*p++) {
 		if (*p == ':') {
 			colons++;
-		}
-		else if (*p == '-') {
+		} else if (*p == '-') {
 			dashs++;
 		}
 	}
 
 	/*
-	* Windows users often enter macs with dash instead
-	* of colon.
-	*/
+	 * Windows users often enter macs with dash instead
+	 * of colon.
+	 */
 	if (colons == 0 && dashs == 5) {
 		p = address;
 		while (*p++) {
@@ -555,7 +554,7 @@ int query_mndp_or_mac(char *address, unsigned char *dstmac, int verbose) {
 	} else {
 		/* Convert mac address string to ether_addr struct */
 #if defined(__APPLE__)
-		struct ether_addr* dstmac_buf = ether_aton(address);
+		struct ether_addr *dstmac_buf = ether_aton(address);
 		memcpy(dstmac, dstmac_buf, sizeof(struct ether_addr));
 #else
 		ether_aton_r(address, (struct ether_addr *)dstmac);

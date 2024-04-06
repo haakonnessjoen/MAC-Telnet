@@ -397,11 +397,6 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 	char *slavename;
 	int act_pass_len;
 
-	// In case we just got a duplicate login packet
-	if (curconn->state == STATE_ACTIVE) {
-		return;
-	}
-
 	/* Reparse user file before each login */
 	read_userfile();
 
@@ -613,67 +608,8 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 	success = parse_control_packet(data, data_len - MT_HEADER_LEN, &cpkt);
 
 	while (success) {
-		if (use_md5 == 1 && cpkt.cptype == MT_CPTYPE_BEGINAUTH) {
-			int plen,i;
-			if (!curconn->have_pass_salt) {
-				for (i = 0; i < 16; ++i) {
-					curconn->pass_salt[i] = rand() % 256;
-				}
-				curconn->have_pass_salt = 1;
 
-				memset(curconn->trypassword, 0, sizeof(curconn->trypassword));
-			}
-			init_packet(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
-			plen = add_control_packet(&pdata, MT_CPTYPE_PASSSALT, (curconn->pass_salt), 16);
-			curconn->outcounter += plen;
-
-			send_udp(curconn, &pdata);
-
-		} else if (use_md5 == 0 && cpkt.cptype == MT_CPTYPE_BEGINAUTH) {
-			/* Ignore, the client wil immediately send a passsalt/encryption key control packet after this */
-		} else if (use_md5 == 0 && cpkt.cptype == MT_CPTYPE_PASSSALT && curconn->state != STATE_ACTIVE && cpkt.length > MTWEI_PUBKEY_LEN + 1) {
-			strncpy(curconn->username, (const char *)cpkt.data, cpkt.length - MTWEI_PUBKEY_LEN);
-			if (cpkt.length - strlen(curconn->username) - 1 == MTWEI_PUBKEY_LEN) {
-				memcpy(curconn->client_key, cpkt.data + strlen(curconn->username) + 1, MTWEI_PUBKEY_LEN);
-
-				int plen;
-				size_t i;
-				for (i = 0; i < sizeof(curconn->pass_salt); ++i) {
-					curconn->pass_salt[i] = rand() % 256;
-				}
-
-				/* Reparse user file before each login */
-				read_userfile();
-
-				struct mt_credentials *user;
-				if ((user = find_user(curconn->username)) != NULL) {
-					curconn->have_pass_salt = 1;
-					uint8_t validator[32];
-					mtwei_id(curconn->username, user->password, curconn->pass_salt + MTWEI_PUBKEY_LEN, validator);
-					curconn->private_key = mtwei_keygen(&mtwei, curconn->pass_salt, validator);
-				} else {
-					/* Continue auth flow, so we do not let an attacker figure out if the user exists or not */
-					curconn->have_pass_salt = 1;
-					curconn->invalid_login = 1;
-				}
-
-				init_packet(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
-				plen = add_control_packet(&pdata, MT_CPTYPE_PASSSALT, (curconn->pass_salt), 49);
-				curconn->outcounter += plen;
-
-				send_udp(curconn, &pdata);
-			} else {
-				syslog(LOG_NOTICE, _("(%d) Invalid mtwei key by %s."), curconn->seskey, curconn->username);
-				// Time out connection
-				curconn->state = STATE_CLOSED;
-			}
-
-		} else if (cpkt.cptype == MT_CPTYPE_USERNAME && curconn->state != STATE_ACTIVE) {
-			memcpy(curconn->username, cpkt.data, act_size = (cpkt.length > MT_MNDP_MAX_STRING_SIZE - 1 ? MT_MNDP_MAX_STRING_SIZE - 1 : cpkt.length));
-			curconn->username[act_size] = 0;
-			got_user_packet = 1;
-
-		} else if (cpkt.cptype == MT_CPTYPE_TERM_WIDTH && cpkt.length >= 2) {
+		if (cpkt.cptype == MT_CPTYPE_TERM_WIDTH && cpkt.length >= 2) {
 			unsigned short width;
 
 			memcpy(&width, cpkt.data, 2);
@@ -691,24 +627,88 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 			memcpy(curconn->terminal_type, cpkt.data, act_size = (cpkt.length > 30 - 1 ? 30 - 1 : cpkt.length));
 			curconn->terminal_type[act_size] = 0;
 
-		} else if (cpkt.cptype == MT_CPTYPE_PASSWORD && (cpkt.length == 17 || cpkt.length == 32)) {
-#if defined(_POSIX_MEMLOCK_RANGE) && _POSIX_MEMLOCK_RANGE > 0
-			mlock(curconn->trypassword, cpkt.length);
-#endif
-			memcpy(curconn->trypassword, cpkt.data, cpkt.length);
-			got_pass_packet = 1;
-
-		} else if (cpkt.cptype == MT_CPTYPE_PASSWORD && cpkt.length == 0) {
-			got_pass_packet = 1;
-			curconn->invalid_login = 1;
 		} else if (cpkt.cptype == MT_CPTYPE_PLAINDATA) {
 			/* relay data from client to shell */
 			if (curconn->state == STATE_ACTIVE && curconn->ptsfd != -1) {
 				write_wrapped(curconn->ptsfd, cpkt.data, cpkt.length);
 			}
 
+		} else if (curconn->state == STATE_AUTH) {
+			if (use_md5 == 1 && cpkt.cptype == MT_CPTYPE_BEGINAUTH) {
+				int plen,i;
+				if (!curconn->have_pass_salt) {
+					for (i = 0; i < 16; ++i) {
+						curconn->pass_salt[i] = rand() % 256;
+					}
+					curconn->have_pass_salt = 1;
+
+					memset(curconn->trypassword, 0, sizeof(curconn->trypassword));
+				}
+				init_packet(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+				plen = add_control_packet(&pdata, MT_CPTYPE_PASSSALT, (curconn->pass_salt), 16);
+				curconn->outcounter += plen;
+
+				send_udp(curconn, &pdata);
+
+			} else if (use_md5 == 0 && cpkt.cptype == MT_CPTYPE_BEGINAUTH) {
+				/* Ignore, the client wil immediately send a passsalt/encryption key control packet after this */
+			} else if (use_md5 == 0 && cpkt.cptype == MT_CPTYPE_PASSSALT && cpkt.length > MTWEI_PUBKEY_LEN + 1) {
+				strncpy(curconn->username, (const char *)cpkt.data, cpkt.length - MTWEI_PUBKEY_LEN);
+				if (cpkt.length - strlen(curconn->username) - 1 == MTWEI_PUBKEY_LEN) {
+					memcpy(curconn->client_key, cpkt.data + strlen(curconn->username) + 1, MTWEI_PUBKEY_LEN);
+
+					int plen;
+					size_t i;
+					for (i = 0; i < sizeof(curconn->pass_salt); ++i) {
+						curconn->pass_salt[i] = rand() % 256;
+					}
+
+					/* Reparse user file before each login */
+					read_userfile();
+
+					struct mt_credentials *user;
+					if ((user = find_user(curconn->username)) != NULL) {
+						curconn->have_pass_salt = 1;
+						uint8_t validator[32];
+						mtwei_id(curconn->username, user->password, curconn->pass_salt + MTWEI_PUBKEY_LEN, validator);
+						curconn->private_key = mtwei_keygen(&mtwei, curconn->pass_salt, validator);
+					} else {
+						/* Continue auth flow, so we do not let an attacker figure out if the user exists or not */
+						curconn->have_pass_salt = 1;
+						curconn->invalid_login = 1;
+					}
+
+					init_packet(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+					plen = add_control_packet(&pdata, MT_CPTYPE_PASSSALT, (curconn->pass_salt), 49);
+					curconn->outcounter += plen;
+
+					send_udp(curconn, &pdata);
+				} else {
+					syslog(LOG_NOTICE, _("(%d) Invalid mtwei key by %s."), curconn->seskey, curconn->username);
+					// Time out connection
+					curconn->state = STATE_CLOSED;
+				}
+
+			} else if (cpkt.cptype == MT_CPTYPE_USERNAME) {
+				memcpy(curconn->username, cpkt.data, act_size = (cpkt.length > MT_MNDP_MAX_STRING_SIZE - 1 ? MT_MNDP_MAX_STRING_SIZE - 1 : cpkt.length));
+				curconn->username[act_size] = 0;
+				got_user_packet = 1;
+
+			} else if (cpkt.cptype == MT_CPTYPE_PASSWORD && (cpkt.length == 17 || cpkt.length == 32)) {
+	#if defined(_POSIX_MEMLOCK_RANGE) && _POSIX_MEMLOCK_RANGE > 0
+				mlock(curconn->trypassword, cpkt.length);
+	#endif
+				memcpy(curconn->trypassword, cpkt.data, cpkt.length);
+				got_pass_packet = 1;
+
+			} else if (cpkt.cptype == MT_CPTYPE_PASSWORD && cpkt.length == 0) {
+				got_pass_packet = 1;
+				curconn->invalid_login = 1;
+			} else {
+				syslog(LOG_WARNING, _("(%d) Unhandeled control packet type: %d, length: %d"), curconn->seskey, cpkt.cptype, cpkt.length);
+			}
 		} else {
-			syslog(LOG_WARNING, _("(%d) Unhandeled control packet type: %d, length: %d"), curconn->seskey, cpkt.cptype, cpkt.length);
+			syslog(LOG_WARNING, _("(%d) Unhandeled control packet type: %d, in state: %d, length: %d"), curconn->seskey, curconn->state, cpkt.cptype, cpkt.length);
 		}
 
 		/* Parse next control packet */

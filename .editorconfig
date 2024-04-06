@@ -1,0 +1,10 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+
+[*.[ch]]
+indent_style = tabs
+insert_final_newline = true
+tab_width = 4

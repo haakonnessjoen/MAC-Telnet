@@ -27,8 +27,8 @@
 #include <fcntl.h>
 #include <signal.h>
 #if defined(__APPLE__)
-# include <libkern/OSByteOrder.h>
-# define htole16 OSSwapHostToLittleInt16
+#include <libkern/OSByteOrder.h>
+#define htole16 OSSwapHostToLittleInt16
 #elif defined(__FreeBSD__)
 #include <sys/endian.h>
 #else
@@ -110,7 +110,7 @@ static char username[MT_MNDP_MAX_STRING_SIZE];
 static char password[MT_MNDP_MAX_STRING_SIZE];
 static char nonpriv_username[MT_MNDP_MAX_STRING_SIZE];
 
-struct net_interface *interfaces=NULL;
+struct net_interface *interfaces = NULL;
 struct net_interface *active_interface;
 
 /* Protocol data direction */
@@ -125,9 +125,10 @@ static void print_version() {
 }
 
 void drop_privileges(char *username) {
-	struct passwd *user = (struct passwd *) getpwnam(username);
+	struct passwd *user = (struct passwd *)getpwnam(username);
 	if (user == NULL) {
-		fprintf(stderr, _("Failed dropping privileges. The user %s is not a valid username on local system.\n"), username);
+		fprintf(stderr, _("Failed dropping privileges. The user %s is not a valid username on local system.\n"),
+				username);
 		exit(1);
 	}
 	if (getuid() == 0) {
@@ -161,9 +162,11 @@ static int send_udp(struct mt_packet *packet, int retransmit) {
 		socket_address.sin_port = htons(MT_MACTELNET_PORT);
 		socket_address.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 
-		sent_bytes = sendto(send_socket, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
+		sent_bytes = sendto(send_socket, packet->data, packet->size, 0, (struct sockaddr *)&socket_address,
+							sizeof(socket_address));
 	} else {
-		sent_bytes = net_send_udp(sockfd, active_interface, srcmac, dstmac, &sourceip,  sourceport, &destip, MT_MACTELNET_PORT, packet->data, packet->size);
+		sent_bytes = net_send_udp(sockfd, active_interface, srcmac, dstmac, &sourceip, sourceport, &destip,
+								  MT_MACTELNET_PORT, packet->data, packet->size);
 	}
 
 	/*
@@ -295,7 +298,7 @@ static void send_auth(char *login, char *password) {
 }
 
 static void sig_winch(int sig) {
-	unsigned short width,height;
+	unsigned short width, height;
 	struct mt_packet data;
 	int plen;
 
@@ -319,7 +322,7 @@ static int handle_packet(unsigned char *data, int data_len) {
 	struct mt_mactelnet_hdr pkthdr;
 
 	/* Minimal size checks (pings are not supported here) */
-	if (data_len < MT_HEADER_LEN){
+	if (data_len < MT_HEADER_LEN) {
 		return -1;
 	}
 	parse_packet(data, &pkthdr);
@@ -352,7 +355,6 @@ static int handle_packet(unsigned char *data, int data_len) {
 		success = parse_control_packet(data + MT_HEADER_LEN, data_len - MT_HEADER_LEN, &cpkt);
 
 		while (success) {
-
 			/* If we receive pass_salt, transmit auth data back */
 			if (cpkt.cptype == MT_CPTYPE_PASSSALT) {
 				/* check validity, server sends exactly 49 (or 16 for legacy auth) bytes */
@@ -366,7 +368,8 @@ static int handle_packet(unsigned char *data, int data_len) {
 					memcpy(pass_salt, cpkt.data + sizeof(server_key), sizeof(pass_salt));
 					send_auth(username, password);
 				} else {
-					fprintf(stderr, _("Invalid salt length: %d (instead of 16 or 49) received from server %s\n"), cpkt.length, ether_ntoa((struct ether_addr *)dstmac));
+					fprintf(stderr, _("Invalid salt length: %d (instead of 16 or 49) received from server %s\n"),
+							cpkt.length, ether_ntoa((struct ether_addr *)dstmac));
 					/* exit, server returned invalid data */
 					running = 0;
 					break;
@@ -382,7 +385,6 @@ static int handle_packet(unsigned char *data, int data_len) {
 			/* END_AUTH means that the user/password negotiation is done, and after this point
 			   terminal data may arrive, so we set up the terminal to raw mode. */
 			else if (cpkt.cptype == MT_CPTYPE_END_AUTH) {
-
 				/* we have entered "terminal mode" */
 				terminal_mode = 1;
 
@@ -390,7 +392,7 @@ static int handle_packet(unsigned char *data, int data_len) {
 					/* stop input buffering at all levels. Give full control of terminal to RouterOS */
 					raw_term();
 
-					setvbuf(stdin,  (char*)NULL, _IONBF, 0);
+					setvbuf(stdin, (char *)NULL, _IONBF, 0);
 
 					/* Add resize signal handler */
 					signal(SIGWINCH, sig_winch);
@@ -400,8 +402,7 @@ static int handle_packet(unsigned char *data, int data_len) {
 			/* Parse next controlpacket */
 			success = parse_control_packet(NULL, 0, &cpkt);
 		}
-	}
-	else if (pkthdr.ptype == MT_PTYPE_ACK) {
+	} else if (pkthdr.ptype == MT_PTYPE_ACK) {
 		/* Handled elsewhere */
 	}
 
@@ -420,7 +421,8 @@ static int handle_packet(unsigned char *data, int data_len) {
 		/* exit */
 		running = 0;
 	} else {
-		fprintf(stderr, _("Unhandeled packet type: %d received from server %s\n"), pkthdr.ptype, ether_ntoa((struct ether_addr *)dstmac));
+		fprintf(stderr, _("Unhandeled packet type: %d received from server %s\n"), pkthdr.ptype,
+				ether_ntoa((struct ether_addr *)dstmac));
 		return -1;
 	}
 
@@ -436,9 +438,6 @@ static int find_interface() {
 	struct timeval timeout;
 	int optval = 1;
 	struct net_interface *interface;
-
-	/* TODO: reread interfaces on HUP */
-	//bzero(&interfaces, sizeof(struct net_interface) * MAX_INTERFACES);
 
 	bzero(emptymac, ETH_ALEN);
 
@@ -505,7 +504,7 @@ static int find_interface() {
 /*
  * TODO: Rewrite main() when all sub-functionality is tested
  */
-int main (int argc, char **argv) {
+int main(int argc, char **argv) {
 	int result;
 	struct mt_packet data;
 	struct sockaddr_in si_me;
@@ -532,7 +531,6 @@ int main (int argc, char **argv) {
 		}
 
 		switch (c) {
-
 			case 'n':
 				use_raw_socket = 1;
 				break;
@@ -600,7 +598,6 @@ int main (int argc, char **argv) {
 			case '?':
 				print_help = 1;
 				break;
-
 		}
 	}
 	if (run_mndp) {
@@ -608,29 +605,34 @@ int main (int argc, char **argv) {
 	}
 	if (argc - optind < 1 || print_help) {
 		print_version();
-		fprintf(stderr, _("Usage: %s <MAC|identity> [-nqoA] [-a <path>] [-t <timeout>] [-u <user>] [-p <password>] [-U <user>] | -l [-B] [-t <timeout>]\n"), argv[0]);
+		fprintf(stderr,
+				_("Usage: %s <MAC|identity> [-nqoA] [-a <path>] [-t <timeout>] [-u <user>] [-p <password>] [-U <user>] "
+				  "| -l [-B] [-t <timeout>]\n"),
+				argv[0]);
 
 		if (print_help) {
-			fprintf(stderr, _("\nParameters:\n"
-			"  MAC            MAC-Address of the RouterOS/mactelnetd device. Use mndp to\n"
-			"                 discover it.\n"
-			"  identity       The identity/name of your destination device. Uses\n"
-			"                 MNDP protocol to find it.\n"
-			"  -l             List/Search for routers nearby (MNDP). You may use -t to set timeout.\n"
-			"  -B             Batch mode. Use computer readable output (CSV), for use with -l.\n"
-			"  -n             Do not use broadcast packets. Less insecure but requires\n"
-			"                 root privileges.\n"
-			"  -a <path>      Use specified path instead of the default: %s for autologin config file.\n"
-			"  -A             Disable autologin feature.\n"
-			"  -t <timeout>   Amount of seconds to wait for a response on each interface.\n"
-			"  -u <user>      Specify username on command line.\n"
-			"  -p <password>  Specify password on command line.\n"
-			"  -U <user>      Drop privileges to this user. Used in conjunction with -n\n"
-			"                 for security.\n"
-			"  -q             Quiet mode.\n"
-			"  -o             Force old MD5 authentication algorithm.\n"
-			"  -h             This help.\n"
-			"\n"), AUTOLOGIN_PATH);
+			fprintf(stderr,
+					_("\nParameters:\n"
+					  "  MAC            MAC-Address of the RouterOS/mactelnetd device. Use mndp to\n"
+					  "                 discover it.\n"
+					  "  identity       The identity/name of your destination device. Uses\n"
+					  "                 MNDP protocol to find it.\n"
+					  "  -l             List/Search for routers nearby (MNDP). You may use -t to set timeout.\n"
+					  "  -B             Batch mode. Use computer readable output (CSV), for use with -l.\n"
+					  "  -n             Do not use broadcast packets. Less insecure but requires\n"
+					  "                 root privileges.\n"
+					  "  -a <path>      Use specified path instead of the default: %s for autologin config file.\n"
+					  "  -A             Disable autologin feature.\n"
+					  "  -t <timeout>   Amount of seconds to wait for a response on each interface.\n"
+					  "  -u <user>      Specify username on command line.\n"
+					  "  -p <password>  Specify password on command line.\n"
+					  "  -U <user>      Drop privileges to this user. Used in conjunction with -n\n"
+					  "                 for security.\n"
+					  "  -q             Quiet mode.\n"
+					  "  -o             Force old MD5 authentication algorithm.\n"
+					  "  -h             This help.\n"
+					  "\n"),
+					AUTOLOGIN_PATH);
 		}
 		return 1;
 	}
@@ -691,14 +693,14 @@ int main (int argc, char **argv) {
 	}
 
 	if (!use_raw_socket) {
-		if (setsockopt(insockfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof (optval))==-1) {
+		if (setsockopt(insockfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval)) == -1) {
 			perror("SO_BROADCAST");
 			return 1;
 		}
 	}
 
 	/* Need to use, to be able to autodetect which interface to use */
-	setsockopt(insockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval));
+	setsockopt(insockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
 	/* Get mac-address from string, or check for hostname via mndp */
 	if (!query_mndp_or_mac(argv[optind], dstmac, !quiet_mode)) {
@@ -711,7 +713,7 @@ int main (int argc, char **argv) {
 			printf(_("Login: "));
 			fflush(stdout);
 		}
-		(void) scanf("%127s", username);
+		(void)scanf("%127s", username);
 	}
 
 	if (!have_password) {
@@ -725,7 +727,6 @@ int main (int argc, char **argv) {
 		/* security */
 		memset(tmp, 0, strlen(tmp));
 	}
-
 
 	/* Set random source port */
 	sourceport = 1024 + (rand() % 1024);
@@ -752,7 +753,7 @@ int main (int argc, char **argv) {
 	}
 
 	/* Initialize receiving socket on the device chosen */
-	memset((char *) &si_me, 0, sizeof(si_me));
+	memset((char *)&si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
 	si_me.sin_port = htons(sourceport);
 
@@ -783,7 +784,8 @@ int main (int argc, char **argv) {
 		}
 		strcpy((char *)loginkey, username);
 		memcpy(loginkey + strlen(username) + 1, public_key, sizeof(public_key));
-		outcounter += add_control_packet(&data, MT_CPTYPE_PASSSALT, loginkey, sizeof(public_key) + strlen(username) + 1);
+		outcounter +=
+			add_control_packet(&data, MT_CPTYPE_PASSSALT, loginkey, sizeof(public_key) + strlen(username) + 1);
 	}
 
 	/* TODO: handle result of send_udp */
@@ -806,7 +808,7 @@ int main (int argc, char **argv) {
 		timeout.tv_usec = 0;
 
 		/* Wait for data or timeout */
-		reads = select(insockfd+1, &read_fds, NULL, NULL, &timeout);
+		reads = select(insockfd + 1, &read_fds, NULL, NULL, &timeout);
 		if (reads > 0) {
 			/* Handle data from server */
 			if (FD_ISSET(insockfd, &read_fds)) {
@@ -831,7 +833,7 @@ int main (int argc, char **argv) {
 					terminal_gone = 1;
 				}
 			}
-		/* Handle select() timeout */
+			/* Handle select() timeout */
 		} else {
 			/* handle keepalive counter, transmit keepalive packet every 10 seconds
 			   of inactivity  */

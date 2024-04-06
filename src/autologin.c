@@ -1,20 +1,20 @@
 /*
-    Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
-    Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
+	Mac-Telnet - Connect to RouterOS or mactelnetd devices via MAC address
+	Copyright (C) 2010, Håkon Nessjøen <haakon.nessjoen@gmail.com>
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #include <libintl.h>
 #include <locale.h>
@@ -36,7 +36,8 @@ struct autologin_profile *autologin_find_profile(char *identifier) {
 	int i;
 	struct autologin_profile *default_profile = NULL;
 
-	if (strlen(identifier) == 0) return NULL;
+	if (strlen(identifier) == 0)
+		return NULL;
 
 	for (i = 0; i < AUTOLOGIN_MAXPROFILES; ++i) {
 		if (login_profiles[i].inuse && strcasecmp(identifier, login_profiles[i].identifier) == 0) {
@@ -56,7 +57,7 @@ static char *tilde_to_path(char *path) {
 		memset(newpath, 0, sizeof(newpath));
 		strncpy(newpath, homepath, sizeof(newpath) - 1);
 		/* strncat is confusing, try not to overflow */
-		strncat(newpath, path+1, sizeof(newpath) - strlen(newpath) - 1);
+		strncat(newpath, path + 1, sizeof(newpath) - strlen(newpath) - 1);
 		return newpath;
 	}
 	return path;
@@ -68,9 +69,9 @@ int autologin_readfile(char *configfile) {
 	int i = -1;
 	char *file_to_read;
 	char key[AUTOLOGIN_MAXSTR];
-	char *p=key;
+	char *p = key;
 	char value[AUTOLOGIN_MAXSTR];
-	int line_counter=1;
+	int line_counter = 1;
 	enum autologin_state state = ALS_NONE;
 
 	memset(login_profiles, 0, sizeof(login_profiles));
@@ -89,7 +90,8 @@ int autologin_readfile(char *configfile) {
 	}
 	while ((c = fgetc(fp)) && !feof(fp)) {
 		if (c == '#') {
-			while ((c = fgetc(fp)) != '\n' && !feof(fp));
+			while ((c = fgetc(fp)) != '\n' && !feof(fp))
+				;
 		}
 
 		switch (state) {
@@ -132,22 +134,26 @@ int autologin_readfile(char *configfile) {
 					break;
 				}
 				if (c == '\n') {
-					fprintf(stderr, _("Error on line %d in %s: New line in middle of identifier\n"), line_counter, configfile);
+					fprintf(stderr, _("Error on line %d in %s: New line in middle of identifier\n"), line_counter,
+							configfile);
 					state = ALS_NONE;
 					break;
 				}
 				*p++ = c;
-				if (p - login_profiles[i].identifier == AUTOLOGIN_MAXSTR-1) {
+				if (p - login_profiles[i].identifier == AUTOLOGIN_MAXSTR - 1) {
 					*p = 0;
-					fprintf(stderr, _("Error on line %d in %s: Identifier string too long.\n"), line_counter, configfile);
-					while ((c = fgetc(fp)) != '\n' && c != ']' && !feof(fp));
+					fprintf(stderr, _("Error on line %d in %s: Identifier string too long.\n"), line_counter,
+							configfile);
+					while ((c = fgetc(fp)) != '\n' && c != ']' && !feof(fp))
+						;
 					state = ALS_PREKEY;
 					break;
 				}
 				break;
 
 			case ALS_KEY:
-				if (p == key && c == '\n') break;
+				if (p == key && c == '\n')
+					break;
 				if (c == '=') {
 					state = ALS_PREVALUE;
 					break;
@@ -160,15 +166,17 @@ int autologin_readfile(char *configfile) {
 					break;
 				}
 				if (c == '\n') {
-					fprintf(stderr, _("Error on line %d in %s: Newline before '=' character\n"), line_counter, configfile);
+					fprintf(stderr, _("Error on line %d in %s: Newline before '=' character\n"), line_counter,
+							configfile);
 					state = ALS_PREKEY;
 					break;
 				}
 				*p++ = c;
-				if (p - key == AUTOLOGIN_MAXSTR-1) {
+				if (p - key == AUTOLOGIN_MAXSTR - 1) {
 					*p = 0;
 					fprintf(stderr, _("Error on line %d in %s: Key string too long.\n"), line_counter, configfile);
-					while ((c = fgetc(fp)) != '\n' && c != '=' && !feof(fp));
+					while ((c = fgetc(fp)) != '\n' && c != '=' && !feof(fp))
+						;
 					if (c == '\n') {
 						state = ALS_PREKEY;
 					} else {
@@ -178,7 +186,8 @@ int autologin_readfile(char *configfile) {
 				break;
 
 			case ALS_VALUE:
-				if (p == value && c == '\n') break;
+				if (p == value && c == '\n')
+					break;
 				if (c == '\n') {
 					if (strncasecmp(key, "user", AUTOLOGIN_MAXSTR) == 0) {
 						strncpy(login_profiles[i].username, value, AUTOLOGIN_MAXSTR);
@@ -187,7 +196,8 @@ int autologin_readfile(char *configfile) {
 						strncpy(login_profiles[i].password, value, AUTOLOGIN_MAXSTR);
 						login_profiles[i].hasPassword = 1;
 					} else {
-						fprintf(stderr, _("Warning on line %d of %s: Unknown parameter %s, ignoring.\n"), line_counter, configfile, key);
+						fprintf(stderr, _("Warning on line %d of %s: Unknown parameter %s, ignoring.\n"), line_counter,
+								configfile, key);
 					}
 					state = ALS_PREKEY;
 					break;
@@ -196,10 +206,11 @@ int autologin_readfile(char *configfile) {
 					break;
 				}
 				*p++ = c;
-				if (p - value == AUTOLOGIN_MAXSTR-1) {
+				if (p - value == AUTOLOGIN_MAXSTR - 1) {
 					*p = 0;
 					fprintf(stderr, _("Error on line %d in %s: Value string too long.\n"), line_counter, configfile);
-					while ((c = fgetc(fp)) != '\n' && !feof(fp));
+					while ((c = fgetc(fp)) != '\n' && !feof(fp))
+						;
 					if (c == '\n') {
 						state = ALS_PREKEY;
 					}
@@ -217,7 +228,7 @@ int autologin_readfile(char *configfile) {
 		}
 	}
 
-	done:
+done:
 	fclose(fp);
 
 	return 1;

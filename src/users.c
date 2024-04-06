@@ -34,7 +34,7 @@ struct mt_credentials *mt_users = NULL;
 void read_userfile() {
 	struct mt_credentials *cred, *tmp;
 	FILE *file = fopen(USERSFILE, "r");
-	char line [BUFSIZ];
+	char line[BUFSIZ];
 
 	if (file == NULL) {
 		perror(USERSFILE);
@@ -46,7 +46,7 @@ void read_userfile() {
 		free(cred);
 	}
 
-	while ( fgets(line, sizeof line, file) ) {
+	while (fgets(line, sizeof line, file)) {
 		char *user;
 		char *password;
 		size_t size;
@@ -74,7 +74,7 @@ void read_userfile() {
 	fclose(file);
 }
 
-struct mt_credentials* find_user(char *username) {
+struct mt_credentials *find_user(char *username) {
 	struct mt_credentials *cred;
 
 	DL_FOREACH(mt_users, cred) {

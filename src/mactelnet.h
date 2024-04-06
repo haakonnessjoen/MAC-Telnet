@@ -19,7 +19,4 @@
 
 #define CONNECT_TIMEOUT 2
 
-enum auth_mode_t {
-	AUTH_MODE_MD5,
-	AUTH_MODE_EC_SRP
-};
+enum auth_mode_t { AUTH_MODE_MD5, AUTH_MODE_EC_SRP };

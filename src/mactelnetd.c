@@ -34,10 +34,10 @@
 #include <fcntl.h>
 #include <signal.h>
 #if defined(__APPLE__)
-# include <sys/sysctl.h>
-# include <libkern/OSByteOrder.h>
-# define le16toh OSSwapLittleToHostInt16
-# define htole32 OSSwapHostToLittleInt32
+#include <sys/sysctl.h>
+#include <libkern/OSByteOrder.h>
+#define le16toh OSSwapLittleToHostInt16
+#define htole32 OSSwapHostToLittleInt32
 #elif defined(__FreeBSD__)
 #include <sys/endian.h>
 #else
@@ -121,11 +121,7 @@ static int use_md5 = 0;
 static mtwei_state_t mtwei;
 
 /* Connection states */
-enum mt_connection_state {
-	STATE_AUTH,
-	STATE_CLOSED,
-	STATE_ACTIVE
-};
+enum mt_connection_state { STATE_AUTH, STATE_CLOSED, STATE_ACTIVE };
 
 /** Connection struct */
 struct mt_connection {
@@ -239,7 +235,7 @@ static void setup_sockets() {
 				continue;
 			}
 
-			if (setsockopt(interface->socketfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof (optval))==-1) {
+			if (setsockopt(interface->socketfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval)) == -1) {
 				perror("SO_BROADCAST");
 				continue;
 			}
@@ -254,19 +250,21 @@ static void setup_sockets() {
 			if (bind(interface->socketfd, (struct sockaddr *)&si_me, sizeof(si_me)) == -1) {
 				close(interface->socketfd);
 				interface->socketfd = -1;
-				fprintf(stderr, _("Error binding to %s:%d, %s\n"), inet_ntoa(si_me.sin_addr), sourceport, strerror(errno));
-				syslog(LOG_NOTICE, _("Error binding to %s:%d on %s\n"), inet_ntoa(si_me.sin_addr), sourceport, interface->name);
+				fprintf(stderr, _("Error binding to %s:%d, %s\n"), inet_ntoa(si_me.sin_addr), sourceport,
+						strerror(errno));
+				syslog(LOG_NOTICE, _("Error binding to %s:%d on %s\n"), inet_ntoa(si_me.sin_addr), sourceport,
+					   interface->name);
 				continue;
 			}
 			syslog(LOG_NOTICE, _("Using %s to transmit packets from %s\n"), interface->name, ether_ntoa(mac));
 		}
-
 	}
 }
 
 static int send_udp(const struct mt_connection *conn, const struct mt_packet *packet) {
 	if (use_raw_socket) {
-		return net_send_udp(sockfd, conn->interface, conn->dstmac, conn->srcmac, &sourceip, sourceport, &destip, conn->srcport, packet->data, packet->size);
+		return net_send_udp(sockfd, conn->interface, conn->dstmac, conn->srcmac, &sourceip, sourceport, &destip,
+							conn->srcport, packet->data, packet->size);
 	} else {
 		// We can't send on a socket that is not open
 		if (conn->interface->socketfd < 0) {
@@ -279,7 +277,8 @@ static int send_udp(const struct mt_connection *conn, const struct mt_packet *pa
 		socket_address.sin_port = htons(conn->srcport);
 		socket_address.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 
-		return sendto(conn->interface->socketfd, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
+		return sendto(conn->interface->socketfd, packet->data, packet->size, 0, (struct sockaddr *)&socket_address,
+					  sizeof(socket_address));
 	}
 }
 
@@ -288,7 +287,9 @@ static int send_special_udp(struct net_interface *interface, unsigned short port
 
 	if (use_raw_socket) {
 		memset(dstmac, 0xff, ETH_ALEN);
-		return net_send_udp(sockfd, interface, interface->mac_addr, dstmac, (const struct in_addr *)&interface->ipv4_addr, port, &destip, port, packet->data, packet->size);
+		return net_send_udp(sockfd, interface, interface->mac_addr, dstmac,
+							(const struct in_addr *)&interface->ipv4_addr, port, &destip, port, packet->data,
+							packet->size);
 	} else {
 		// We can't send on a socket that is not open
 		if (interface->socketfd < 0) {
@@ -301,10 +302,10 @@ static int send_special_udp(struct net_interface *interface, unsigned short port
 		socket_address.sin_port = htons(port);
 		socket_address.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 
-		return sendto(interface->socketfd, packet->data, packet->size, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
+		return sendto(interface->socketfd, packet->data, packet->size, 0, (struct sockaddr *)&socket_address,
+					  sizeof(socket_address));
 	}
 }
-
 
 static void display_motd() {
 	FILE *fp;
@@ -342,14 +343,13 @@ static void uwtmp_login(struct mt_connection *conn) {
 	}
 
 	/* Setup utmp struct */
-	memset((void *) &utent, 0, sizeof(utent));
+	memset((void *)&utent, 0, sizeof(utent));
 	utent.ut_type = USER_PROCESS;
 	utent.ut_pid = pid;
 	strncpy(utent.ut_user, conn->username, sizeof(utent.ut_user));
 	strncpy(utent.ut_line, line, sizeof(utent.ut_line));
 	strncpy(utent.ut_id, utent.ut_line + 3, sizeof(utent.ut_id));
-	strncpy(utent.ut_host,
-	ether_ntoa((const struct ether_addr *)conn->srcmac), sizeof(utent.ut_host));
+	strncpy(utent.ut_host, ether_ntoa((const struct ether_addr *)conn->srcmac), sizeof(utent.ut_host));
 	gettimeofday(&utent.ut_tv, NULL);
 
 	/* Update utmp and/or wtmp */
@@ -451,7 +451,8 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 			hashsum[0] = 0;
 		} else {
 			mtwei_id(curconn->username, user->password, curconn->pass_salt + MTWEI_PUBKEY_LEN, (uint8_t *)hashdata);
-			mtwei_docryptos(&mtwei, curconn->private_key, curconn->client_key, curconn->pass_salt, (uint8_t *)hashdata, hashsum);
+			mtwei_docryptos(&mtwei, curconn->private_key, curconn->client_key, curconn->pass_salt, (uint8_t *)hashdata,
+							hashsum);
 		}
 	}
 
@@ -478,10 +479,10 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 	/* Open pts handle */
 	curconn->ptsfd = posix_openpt(O_RDWR);
 	if (curconn->ptsfd == -1 || grantpt(curconn->ptsfd) == -1 || unlockpt(curconn->ptsfd) == -1) {
-			syslog(LOG_ERR, "posix_openpt: %s", strerror(errno));
-			/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
-			abort_connection(curconn, pkthdr, _("Terminal error\r\n"));
-			return;
+		syslog(LOG_ERR, "posix_openpt: %s", strerror(errno));
+		/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
+		abort_connection(curconn, pkthdr, _("Terminal error\r\n"));
+		return;
 	}
 
 	/* Get file path for our pts */
@@ -490,7 +491,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		pid_t pid;
 		struct stat sb;
 		struct passwd *user = (struct passwd *)malloc(sizeof(struct passwd));
-		struct passwd *tmpuser=user;
+		struct passwd *tmpuser = user;
 		char *buffer;
 
 		if (user == NULL) {
@@ -509,7 +510,8 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		}
 
 		if (getpwnam_r(curconn->username, user, buffer, 1024, &tmpuser) != 0) {
-			syslog(LOG_WARNING, _("(%d) Login ok, but local user not accessible (%s)."), curconn->seskey, curconn->username);
+			syslog(LOG_WARNING, _("(%d) Login ok, but local user not accessible (%s)."), curconn->seskey,
+				   curconn->username);
 			/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
 			abort_connection(curconn, pkthdr, _("Local user not accessible\r\n"));
 			free(user);
@@ -518,7 +520,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		}
 
 		/* Change the owner of the slave pts */
-		 chown(slavename, user->pw_uid, user->pw_gid);
+		chown(slavename, user->pw_uid, user->pw_gid);
 
 		curconn->slavefd = open(slavename, O_RDWR);
 		if (curconn->slavefd == -1) {
@@ -553,7 +555,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 			setsid();
 
 			/* Don't let shell process inherit slavefd */
-			fcntl (curconn->slavefd, F_SETFD, FD_CLOEXEC);
+			fcntl(curconn->slavefd, F_SETFD, FD_CLOEXEC);
 			close(curconn->ptsfd);
 
 			/* Redirect STDIN/STDIO/STDERR */
@@ -570,7 +572,8 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 
 			/* Set user id/group id */
 			if ((setgid(user->pw_gid) != 0) || (setuid(user->pw_uid) != 0)) {
-				syslog(LOG_ERR, _("(%d) Could not log in %s (%d:%d): setuid/setgid: %s"), curconn->seskey, curconn->username, user->pw_uid, user->pw_gid, strerror(errno));
+				syslog(LOG_ERR, _("(%d) Could not log in %s (%d:%d): setuid/setgid: %s"), curconn->seskey,
+					   curconn->username, user->pw_uid, user->pw_gid, strerror(errno));
 				/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
 				abort_connection(curconn, pkthdr, _("Internal error\r\n"));
 				exit(0);
@@ -578,10 +581,12 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 
 			/* Abort login if /etc/nologin exists */
 			if (stat(_PATH_NOLOGIN, &sb) == 0 && getuid() != 0) {
-				syslog(LOG_NOTICE, _("(%d) User %s disconnected with " _PATH_NOLOGIN " message."), curconn->seskey, curconn->username);
+				syslog(LOG_NOTICE, _("(%d) User %s disconnected with " _PATH_NOLOGIN " message."), curconn->seskey,
+					   curconn->username);
 				display_nologin();
 				curconn->state = STATE_CLOSED;
-				init_packet(&pdata, MT_PTYPE_END, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+				init_packet(&pdata, MT_PTYPE_END, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey,
+							curconn->outcounter);
 				send_udp(curconn, &pdata);
 				exit(0);
 			}
@@ -593,8 +598,8 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 
 			/* Spawn shell */
 			/* TODO: Maybe use "login -f USER" instead? renders motd and executes shell correctly for system */
-			execl(user->pw_shell, user->pw_shell, "-", (char *) 0);
-			exit(0); // just to be sure.
+			execl(user->pw_shell, user->pw_shell, "-", (char *)0);
+			exit(0);  // just to be sure.
 		}
 		free(user);
 		free(buffer);
@@ -602,13 +607,12 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		curconn->pid = pid;
 		set_terminal_size(curconn->ptsfd, curconn->terminal_width, curconn->terminal_height);
 	}
-
 }
 
 /* sigh */
-void write_wrapped(int file, const unsigned char* str, int len) {
-   ssize_t x = write(file, str, len);
-   (void) x;
+void write_wrapped(int file, const unsigned char *str, int len) {
+	ssize_t x = write(file, str, len);
+	(void)x;
 }
 
 static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelnet_hdr *pkthdr, int data_len) {
@@ -626,7 +630,6 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 	success = parse_control_packet(data, data_len - MT_HEADER_LEN, &cpkt);
 
 	while (success) {
-
 		if (cpkt.cptype == MT_CPTYPE_TERM_WIDTH && cpkt.length >= 2) {
 			unsigned short width;
 
@@ -653,7 +656,7 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 
 		} else if (curconn->state == STATE_AUTH) {
 			if (use_md5 == 1 && cpkt.cptype == MT_CPTYPE_BEGINAUTH) {
-				int plen,i;
+				int plen, i;
 				if (!curconn->have_pass_salt) {
 					for (i = 0; i < 16; ++i) {
 						curconn->pass_salt[i] = rand() % 256;
@@ -662,7 +665,8 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 
 					memset(curconn->trypassword, 0, sizeof(curconn->trypassword));
 				}
-				init_packet(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+				init_packet(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey,
+							curconn->outcounter);
 				plen = add_control_packet(&pdata, MT_CPTYPE_PASSSALT, (curconn->pass_salt), 16);
 				curconn->outcounter += plen;
 
@@ -696,7 +700,8 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 						curconn->invalid_login = 1;
 					}
 
-					init_packet(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey, curconn->outcounter);
+					init_packet(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey,
+								curconn->outcounter);
 					plen = add_control_packet(&pdata, MT_CPTYPE_PASSSALT, (curconn->pass_salt), 49);
 					curconn->outcounter += plen;
 
@@ -708,14 +713,16 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 				}
 
 			} else if (cpkt.cptype == MT_CPTYPE_USERNAME) {
-				memcpy(curconn->username, cpkt.data, act_size = (cpkt.length > MT_MNDP_MAX_STRING_SIZE - 1 ? MT_MNDP_MAX_STRING_SIZE - 1 : cpkt.length));
+				memcpy(
+					curconn->username, cpkt.data,
+					act_size = (cpkt.length > MT_MNDP_MAX_STRING_SIZE - 1 ? MT_MNDP_MAX_STRING_SIZE - 1 : cpkt.length));
 				curconn->username[act_size] = 0;
 				got_user_packet = 1;
 
 			} else if (cpkt.cptype == MT_CPTYPE_PASSWORD && (cpkt.length == 17 || cpkt.length == 32)) {
-	#if defined(_POSIX_MEMLOCK_RANGE) && _POSIX_MEMLOCK_RANGE > 0
+#if defined(_POSIX_MEMLOCK_RANGE) && _POSIX_MEMLOCK_RANGE > 0
 				mlock(curconn->trypassword, cpkt.length);
-	#endif
+#endif
 				memcpy(curconn->trypassword, cpkt.data, cpkt.length);
 				got_pass_packet = 1;
 
@@ -723,10 +730,12 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 				got_pass_packet = 1;
 				curconn->invalid_login = 1;
 			} else {
-				syslog(LOG_WARNING, _("(%d) Unhandeled control packet type: %d, length: %d"), curconn->seskey, cpkt.cptype, cpkt.length);
+				syslog(LOG_WARNING, _("(%d) Unhandeled control packet type: %d, length: %d"), curconn->seskey,
+					   cpkt.cptype, cpkt.length);
 			}
 		} else {
-			syslog(LOG_WARNING, _("(%d) Unhandeled control packet type: %d, in state: %d, length: %d"), curconn->seskey, curconn->state, cpkt.cptype, cpkt.length);
+			syslog(LOG_WARNING, _("(%d) Unhandeled control packet type: %d, in state: %d, length: %d"), curconn->seskey,
+				   curconn->state, cpkt.cptype, cpkt.length);
 		}
 
 		/* Parse next control packet */
@@ -781,7 +790,8 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 				/* Ignore multiple session starts from the same sender, this can be same mac but different interface */
 				break;
 			}
-			syslog(LOG_DEBUG, _("(%d) New connection from %s."), pkthdr.seskey, ether_ntoa((struct ether_addr*)&(pkthdr.srcaddr)));
+			syslog(LOG_DEBUG, _("(%d) New connection from %s."), pkthdr.seskey,
+				   ether_ntoa((struct ether_addr *)&(pkthdr.srcaddr)));
 			curconn = calloc(1, sizeof(struct mt_connection));
 			curconn->seskey = pkthdr.seskey;
 			curconn->lastdata = time(NULL);
@@ -846,12 +856,14 @@ static void handle_packet(unsigned char *data, int data_len, const struct sockad
 			}
 
 			/* ack the data packet */
-			init_packet(&pdata, MT_PTYPE_ACK, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey, pkthdr.counter + (data_len - MT_HEADER_LEN));
+			init_packet(&pdata, MT_PTYPE_ACK, pkthdr.dstaddr, pkthdr.srcaddr, pkthdr.seskey,
+						pkthdr.counter + (data_len - MT_HEADER_LEN));
 			send_udp(curconn, &pdata);
 
 			/* Accept first packet, and all packets greater than incounter, and if counter has
 			wrapped around. */
-			if (curconn->incounter == 0 || pkthdr.counter > curconn->incounter || (curconn->incounter - pkthdr.counter) > 16777216) {
+			if (curconn->incounter == 0 || pkthdr.counter > curconn->incounter ||
+				(curconn->incounter - pkthdr.counter) > 16777216) {
 				curconn->incounter = pkthdr.counter;
 			} else {
 				/* Ignore double or old packets */
@@ -885,8 +897,8 @@ void mndp_broadcast() {
 	int mib[] = {CTL_KERN, KERN_BOOTTIME};
 	struct timeval boottime;
 	size_t tv_size = sizeof(boottime);
-	if (sysctl(mib, sizeof(mib)/sizeof(mib[0]), &boottime, &tv_size, NULL, 0) == -1) {
-	  return;
+	if (sysctl(mib, sizeof(mib) / sizeof(mib[0]), &boottime, &tv_size, NULL, 0) == -1) {
+		return;
 	}
 	uptime = htole32(boottime.tv_sec);
 #elif defined(__linux__)
@@ -1007,7 +1019,8 @@ void sighup_handler() {
 			if (interface != NULL) {
 				p->interface = interface;
 			} else {
-				syslog(LOG_NOTICE, _("(%d) Connection closed because interface %s is gone."), p->seskey, p->interface_name);
+				syslog(LOG_NOTICE, _("(%d) Connection closed because interface %s is gone."), p->seskey,
+					   p->interface_name);
 				list_remove_connection(p);
 			}
 		}
@@ -1017,7 +1030,7 @@ void sighup_handler() {
 /*
  * TODO: Rewrite main() when all sub-functionality is tested
  */
-int main (int argc, char **argv) {
+int main(int argc, char **argv) {
 	int result;
 	struct sockaddr_in si_me;
 	struct sockaddr_in si_me_mndp;
@@ -1025,7 +1038,7 @@ int main (int argc, char **argv) {
 	struct mt_packet pdata;
 	struct net_interface *interface;
 	fd_set read_fds;
-	int c,optval = 1;
+	int c, optval = 1;
 	int print_help = 0;
 	int foreground = 0;
 	int interface_count = 0;
@@ -1061,7 +1074,6 @@ int main (int argc, char **argv) {
 			case '?':
 				print_help = 1;
 				break;
-
 		}
 	}
 
@@ -1073,19 +1085,19 @@ int main (int argc, char **argv) {
 #if !defined(__APPLE__)
 			/*_ This is the usage output for operating systems other than MacOS */
 			fprintf(stderr, _("\nParameters:\n"
-			"  -f        Run process in foreground.\n"
-			"  -n        Do not use broadcast packets. Just a tad less insecure.\n"
-			"  -o        Use MD5 for password hashing.\n"
-			"  -h        This help.\n"
-			"\n"));
+							  "  -f        Run process in foreground.\n"
+							  "  -n        Do not use broadcast packets. Just a tad less insecure.\n"
+							  "  -o        Use MD5 for password hashing.\n"
+							  "  -h        This help.\n"
+							  "\n"));
 #else
 			/*_ This is the usage output for MacOS which always runs in the forground
 				as it should be daemonized by launchd */
 			fprintf(stderr, _("\nParameters:\n"
-			"  -n        Do not use broadcast packets. Just a tad less insecure.\n"
-			"  -o        Use MD5 for password hashing.\n"
-			"  -h        This help.\n"
-			"\n"));
+							  "  -n        Do not use broadcast packets. Just a tad less insecure.\n"
+							  "  -o        Use MD5 for password hashing.\n"
+							  "  -h        This help.\n"
+							  "\n"));
 #endif
 		}
 		return 1;
@@ -1131,15 +1143,15 @@ int main (int argc, char **argv) {
 	inet_pton(AF_INET, (char *)"255.255.255.255", &destip);
 
 	/* Initialize receiving socket on the device chosen */
-	memset((char *) &si_me, 0, sizeof(si_me));
+	memset((char *)&si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
 	si_me.sin_port = htons(sourceport);
 	memcpy(&(si_me.sin_addr), &sourceip, IPV4_ALEN);
 
-	setsockopt(insockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval));
+	setsockopt(insockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
 	/* Bind to udp port */
-	if (bind(insockfd, (struct sockaddr *)&si_me, sizeof(si_me))==-1) {
+	if (bind(insockfd, (struct sockaddr *)&si_me, sizeof(si_me)) == -1) {
 		fprintf(stderr, _("Error binding to %s:%d, %s\n"), inet_ntoa(si_me.sin_addr), sourceport, strerror(errno));
 		return 1;
 	}
@@ -1158,11 +1170,12 @@ int main (int argc, char **argv) {
 	si_me_mndp.sin_port = htons(MT_MNDP_PORT);
 	memcpy(&(si_me_mndp.sin_addr), &sourceip, IPV4_ALEN);
 
-	setsockopt(mndpsockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval));
+	setsockopt(mndpsockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
 	/* Bind to udp port */
-	if (bind(mndpsockfd, (struct sockaddr *)&si_me_mndp, sizeof(si_me_mndp))==-1) {
-		fprintf(stderr, _("MNDP: Error binding to %s:%d, %s\n"), inet_ntoa(si_me_mndp.sin_addr), MT_MNDP_PORT, strerror(errno));
+	if (bind(mndpsockfd, (struct sockaddr *)&si_me_mndp, sizeof(si_me_mndp)) == -1) {
+		fprintf(stderr, _("MNDP: Error binding to %s:%d, %s\n"), inet_ntoa(si_me_mndp.sin_addr), MT_MNDP_PORT,
+				strerror(errno));
 	}
 
 	openlog("mactelnetd", LOG_PID, LOG_DAEMON);
@@ -1180,10 +1193,10 @@ int main (int argc, char **argv) {
 #endif
 
 	/* Handle zombies etc */
-	signal(SIGCHLD,SIG_IGN);
-	signal(SIGTSTP,SIG_IGN);
-	signal(SIGTTOU,SIG_IGN);
-	signal(SIGTTIN,SIG_IGN);
+	signal(SIGCHLD, SIG_IGN);
+	signal(SIGTSTP, SIG_IGN);
+	signal(SIGTTOU, SIG_IGN);
+	signal(SIGTTIN, SIG_IGN);
 	signal(SIGHUP, sighup_handler);
 	signal(SIGTERM, sigterm_handler);
 
@@ -1201,7 +1214,7 @@ int main (int argc, char **argv) {
 	while (1) {
 		int reads;
 		struct mt_connection *p, *tmpconn;
-		int maxfd=0;
+		int maxfd = 0;
 		time_t now;
 
 		/* Init select */
@@ -1224,7 +1237,7 @@ int main (int argc, char **argv) {
 		timeout.tv_usec = 0;
 
 		/* Wait for data or timeout */
-		reads = select(maxfd+1, &read_fds, NULL, NULL, &timeout);
+		reads = select(maxfd + 1, &read_fds, NULL, NULL, &timeout);
 		if (reads > 0) {
 			/* Handle data from clients
 			 TODO: Enable broadcast support (without raw sockets)
@@ -1255,7 +1268,7 @@ int main (int argc, char **argv) {
 				/* Check if we have data ready in the pty buffer for the active session */
 				if (p->state == STATE_ACTIVE && p->ptsfd > 0 && p->wait_for_ack == 0 && FD_ISSET(p->ptsfd, &read_fds)) {
 					unsigned char keydata[1024];
-					int datalen,plen;
+					int datalen, plen;
 
 					/* Read it */
 					datalen = read(p->ptsfd, &keydata, sizeof(keydata));
@@ -1277,12 +1290,12 @@ int main (int argc, char **argv) {
 						}
 						list_remove_connection(p);
 					}
-				}
-				else if (p->state == STATE_ACTIVE && p->ptsfd > 0 && p->wait_for_ack == 1 && FD_ISSET(p->ptsfd, &read_fds)) {
+				} else if (p->state == STATE_ACTIVE && p->ptsfd > 0 && p->wait_for_ack == 1 &&
+						   FD_ISSET(p->ptsfd, &read_fds)) {
 					printf(_("(%d) Waiting for ack\n"), p->seskey);
 				}
 			}
-		/* Handle select() timeout */
+			/* Handle select() timeout */
 		}
 		time(&now);
 

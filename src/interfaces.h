@@ -38,10 +38,11 @@ struct net_interface {
 	struct net_interface *next;
 };
 
-
 extern int net_get_interfaces(struct net_interface **interfaces);
 extern struct net_interface *net_get_interface_ptr(struct net_interface **interfaces, char *name, int create);
 extern int net_init_raw_socket();
-extern int net_send_udp(const int socket, struct net_interface *interface, const unsigned char *sourcemac, const unsigned char *destmac, const struct in_addr *sourceip, const int sourceport, const struct in_addr *destip, const int destport, const unsigned char *data, const int datalen);
+extern int net_send_udp(const int socket, struct net_interface *interface, const unsigned char *sourcemac,
+						const unsigned char *destmac, const struct in_addr *sourceip, const int sourceport,
+						const struct in_addr *destip, const int destport, const unsigned char *data, const int datalen);
 extern unsigned short in_cksum(unsigned short *addr, int len);
 #endif

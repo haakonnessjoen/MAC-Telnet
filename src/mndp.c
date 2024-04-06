@@ -39,13 +39,13 @@
 
 #define _(STRING) gettext(STRING)
 
+char *ether_ntoa_z(const struct ether_addr *addr);
+
 /* This file is also used for the -l option in mactelnet */
 #ifndef FROM_MACTELNET
 
 /* Protocol data direction, not used here, but obligatory for protocol.c */
 unsigned char mt_direction_fromserver = 0;
-
-char *ether_ntoa_z(const struct ether_addr *addr);
 
 int main(int argc, char **argv) {
 	int batch_mode = 0;

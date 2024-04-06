@@ -33,6 +33,6 @@ struct mt_credentials {
 extern struct mt_credentials *mt_users;
 
 extern void read_userfile();
-struct mt_credentials* find_user(char *username);
+struct mt_credentials *find_user(char *username);
 
 #endif

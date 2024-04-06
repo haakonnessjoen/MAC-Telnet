@@ -24,28 +24,30 @@
 
 /* Define the state of the EC-SRP Algorithm. */
 typedef struct mtwei_state_s {
-	BN_CTX *ctx;           /* BN context for temporaries */
-	EC_GROUP *curve25519;  /* Elliptic curve parameters */
-	EC_POINT *g;           /* Curve25519 generator point */
-	BIGNUM *order;         /* Curve25519 order */
-	BIGNUM *w2m, *m2w;     /* Weierstrass-to-Montgomery and back conversion constants */
-	BIGNUM *mod;           /* Curve25519 arithmetic modulus */
+	BN_CTX *ctx;		  /* BN context for temporaries */
+	EC_GROUP *curve25519; /* Elliptic curve parameters */
+	EC_POINT *g;		  /* Curve25519 generator point */
+	BIGNUM *order;		  /* Curve25519 order */
+	BIGNUM *w2m, *m2w;	  /* Weierstrass-to-Montgomery and back conversion constants */
+	BIGNUM *mod;		  /* Curve25519 arithmetic modulus */
 } mtwei_state_t;
 
 /* Initialize the algorithm. */
-void mtwei_init (mtwei_state_t *state);
+void mtwei_init(mtwei_state_t *state);
 
 /* Generate a keypair, optionally entangled with a validator. */
-BIGNUM* mtwei_keygen (mtwei_state_t *state, uint8_t *pubkey_out, uint8_t *validator);
+BIGNUM *mtwei_keygen(mtwei_state_t *state, uint8_t *pubkey_out, uint8_t *validator);
 
 /* Use SHA256 to generate an SRP identifier. */
 void mtwei_id(const char *username, const char *password, const unsigned char *salt, uint8_t *validator_out);
 
 /* Run EC-SRP cryptography on the client and generate the response. */
-void mtwei_docrypto(mtwei_state_t *state, BIGNUM *privkey, const uint8_t *server_key, const uint8_t *client_key, uint8_t *validator, uint8_t *buf_out);
+void mtwei_docrypto(mtwei_state_t *state, BIGNUM *privkey, const uint8_t *server_key, const uint8_t *client_key,
+					uint8_t *validator, uint8_t *buf_out);
 
 /* Run EC-SRP cryptography on the server and predict the response. */
-void mtwei_docryptos(mtwei_state_t *state, BIGNUM *privkey, const uint8_t *client_key, const uint8_t *server_key, uint8_t *validator, uint8_t *buf_out);
+void mtwei_docryptos(mtwei_state_t *state, BIGNUM *privkey, const uint8_t *client_key, const uint8_t *server_key,
+					 uint8_t *validator, uint8_t *buf_out);
 
 #define MTWEI_PUBKEY_LEN 33
 #define MTWEI_VALIDATOR_LEN 32

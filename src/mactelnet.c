@@ -370,6 +370,9 @@ static int handle_packet(unsigned char *data, int data_len) {
 				} else {
 					fprintf(stderr, _("Invalid salt length: %d (instead of 16 or 49) received from server %s\n"),
 							cpkt.length, ether_ntoa((struct ether_addr *)dstmac));
+					/* Exit, server returned invalid data */
+					running = 0;
+					break;
 				}
 			}
 

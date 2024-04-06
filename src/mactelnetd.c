@@ -215,6 +215,7 @@ static struct net_interface *find_socket(unsigned char *mac) {
 	return NULL;
 }
 
+/* Setup sockets for sending on specific interfaces only */
 static void setup_sockets() {
 	struct net_interface *interface;
 
@@ -224,6 +225,11 @@ static void setup_sockets() {
 		struct ether_addr *mac = (struct ether_addr *)&(interface->mac_addr);
 
 		if (!interface->has_mac) {
+			continue;
+		}
+
+		if (interface->ipv4_addr[0] == 0) {
+			// Ignore invalid ipv4 addresses
 			continue;
 		}
 
@@ -245,13 +251,15 @@ static void setup_sockets() {
 			si_me.sin_port = htons(MT_MACTELNET_PORT);
 			memcpy(&(si_me.sin_addr.s_addr), interface->ipv4_addr, IPV4_ALEN);
 
-			if (bind(interface->socketfd, (struct sockaddr *)&si_me, sizeof(si_me))==-1) {
+			if (bind(interface->socketfd, (struct sockaddr *)&si_me, sizeof(si_me)) == -1) {
+				close(interface->socketfd);
+				interface->socketfd = -1;
 				fprintf(stderr, _("Error binding to %s:%d, %s\n"), inet_ntoa(si_me.sin_addr), sourceport, strerror(errno));
+				syslog(LOG_NOTICE, _("Error binding to %s:%d on %s\n"), inet_ntoa(si_me.sin_addr), sourceport, interface->name);
 				continue;
 			}
+			syslog(LOG_NOTICE, _("Using %s to transmit packets from %s\n"), interface->name, ether_ntoa(mac));
 		}
-
-		syslog(LOG_NOTICE, _("Listening on %s for %s\n"), interface->name, ether_ntoa(mac));
 
 	}
 }
@@ -260,6 +268,11 @@ static int send_udp(const struct mt_connection *conn, const struct mt_packet *pa
 	if (use_raw_socket) {
 		return net_send_udp(sockfd, conn->interface, conn->dstmac, conn->srcmac, &sourceip, sourceport, &destip, conn->srcport, packet->data, packet->size);
 	} else {
+		// We can't send on a socket that is not open
+		if (conn->interface->socketfd < 0) {
+			return 0;
+		}
+
 		/* Init SendTo struct */
 		struct sockaddr_in socket_address;
 		socket_address.sin_family = AF_INET;
@@ -277,6 +290,11 @@ static int send_special_udp(struct net_interface *interface, unsigned short port
 		memset(dstmac, 0xff, ETH_ALEN);
 		return net_send_udp(sockfd, interface, interface->mac_addr, dstmac, (const struct in_addr *)&interface->ipv4_addr, port, &destip, port, packet->data, packet->size);
 	} else {
+		// We can't send on a socket that is not open
+		if (interface->socketfd < 0) {
+			return 0;
+		}
+
 		/* Init SendTo struct */
 		struct sockaddr_in socket_address;
 		socket_address.sin_family = AF_INET;
@@ -892,6 +910,8 @@ void mndp_broadcast() {
 		return;
 	}
 
+	int num_devices = 0;
+	int num_devices_sent = 0;
 	DL_FOREACH(interfaces, interface) {
 		struct mt_mndp_hdr *header = (struct mt_mndp_hdr *)&(pdata.data);
 
@@ -899,6 +919,7 @@ void mndp_broadcast() {
 			continue;
 		}
 
+		num_devices++;
 		mndp_init_packet(&pdata, 0, 1);
 		mndp_add_attribute(&pdata, MT_MNDPTYPE_ADDRESS, interface->mac_addr, ETH_ALEN);
 		mndp_add_attribute(&pdata, MT_MNDPTYPE_IDENTITY, s_uname.nodename, strlen(s_uname.nodename));
@@ -910,7 +931,13 @@ void mndp_broadcast() {
 		mndp_add_attribute(&pdata, MT_MNDPTYPE_IFNAME, interface->name, strlen(interface->name));
 
 		header->cksum = in_cksum((unsigned short *)&(pdata.data), pdata.size);
-		send_special_udp(interface, MT_MNDP_PORT, &pdata);
+		if (send_special_udp(interface, MT_MNDP_PORT, &pdata) > 0) {
+			num_devices_sent++;
+		}
+	}
+
+	if (num_devices > 0 && num_devices_sent == 0) {
+		syslog(LOG_WARNING, _("Was not able to send any MNDP packets"));
 	}
 }
 

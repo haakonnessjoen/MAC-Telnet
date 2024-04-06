@@ -283,6 +283,20 @@ unsigned short udp_sum_calc(unsigned char *src_addr,unsigned char *dst_addr, uns
 	return (unsigned short) sum;
 }
 
+#if !defined(__linux__)
+int net_find_bpf_device() {
+	char dev[11];
+	for (int i = 0; i < 99; ++i) {
+		sprintf(dev, "/dev/bpf%i", i);
+		int fd = open(dev, O_RDWR);
+		if (fd != -1) {
+			return fd;
+		}
+	}
+	return -1;
+}
+#endif
+
 int net_init_raw_socket() {
 	int fd;
 
@@ -295,7 +309,7 @@ int net_init_raw_socket() {
 	}
 #else
 	/* Transmit raw packets with bpf */
-	fd = open("/dev/bpf0", O_RDWR);
+	fd = net_find_bpf_device();
 	if (fd <= 0) {
 		perror("open_bpf");
 		exit(1);
@@ -450,8 +464,10 @@ int net_send_udp(const int fd, struct net_interface *interface, const unsigned c
 	}
 
 	send_result = write(fd, buffer, datalen + 8 + 14 + 20);
-	if (send_result == -1)
-		perror("bpf_write");
+	if (send_result == -1) {
+		// perror("bpf_write");
+		return 0;
+	}
 #endif
 
 	/* Return amount of _data_ bytes sent */

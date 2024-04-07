@@ -28,6 +28,7 @@ configure.scan
 po/Makevars.template
 po/POTFILES
 po/*.gmo
+po/*.mo
 po/*.pot
 po/remove-potcdate.sed
 src/macping

@@ -8,14 +8,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mactelnet\n"
 "Report-Msgid-Bugs-To: haakon.nessjoen@gmail.com\n"
-"POT-Creation-Date: 2024-04-05 02:12+0200\n"
-"PO-Revision-Date: 2012-11-30 09:49+0300\n"
-"Last-Translator: Boian Bonev <bbonev@ipacct.com>\n"
+"POT-Creation-Date: 2024-04-08 01:24+0200\n"
+"PO-Revision-Date: 2024-04-08 01:33+0200\n"
+"Last-Translator: Chat GPT <chatgpt@lunatic.no>\n"
 "Language-Team: Boian Bonev <bbonev@ipacct.com>\n"
 "Language: bg\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 3.4.2\n"
 
 #: src/mactelnet.c:130
 #, c-format
@@ -26,22 +27,22 @@ msgstr ""
 "Грешка при опит за намаляване на правата. Потребител %s не е валиден в "
 "локалната система.\n"
 
-#: src/mactelnet.c:136
+#: src/mactelnet.c:137
 #, c-format
 msgid "setgid: Error dropping group privileges\n"
 msgstr "setgid: Грешка при намаляване на груповите права\n"
 
-#: src/mactelnet.c:140
+#: src/mactelnet.c:141
 #, c-format
 msgid "setuid: Error dropping user privileges\n"
 msgstr "setgid: Грешка при намаляване на потребителските привилегии\n"
 
-#: src/mactelnet.c:145
+#: src/mactelnet.c:146
 #, c-format
 msgid "Failed to drop privileges\n"
 msgstr "Грешка при намаляване на правата\n"
 
-#: src/mactelnet.c:211
+#: src/mactelnet.c:214
 #, c-format
 msgid ""
 "\n"
@@ -50,46 +51,47 @@ msgstr ""
 "\n"
 "Изтече времето за свързване\n"
 
-#: src/mactelnet.c:247
+#: src/mactelnet.c:250
 #, c-format
 msgid "Error: md5 digest not found\n"
 msgstr "Грешка: md5 хаш не е намерен\n"
 
-#: src/mactelnet.c:252
+#: src/mactelnet.c:255
 #, c-format
 msgid "Error initializing md5 context\n"
 msgstr "Грешка при инициализиране на контекста на md5\n"
 
-#: src/mactelnet.c:369
+#: src/mactelnet.c:371
 #, c-format
 msgid "Invalid salt length: %d (instead of 16 or 49) received from server %s\n"
-msgstr "Невалидна дължина на сол: %d (вместо 16 или 49), получена от сървъра %s\n"
+msgstr ""
+"Невалидна дължина на сол: %d (вместо 16 или 49), получена от сървъра %s\n"
 
-#: src/mactelnet.c:414
+#: src/mactelnet.c:418
 #, c-format
 msgid "Connection closed.\n"
 msgstr "Връзката е затворена.\n"
 
-#: src/mactelnet.c:420
+#: src/mactelnet.c:424
 #, c-format
 msgid "Unhandeled packet type: %d received from server %s\n"
 msgstr "Необработваем тип на пакет: %d, получен от %s\n"
 
-#: src/mactelnet.c:443
+#: src/mactelnet.c:445
 #, c-format
 msgid "Error: No suitable devices found\n"
 msgstr "Грешка: Няма намерено подходящо устройство\n"
 
-#: src/mactelnet.c:608
+#: src/mactelnet.c:609
 #, c-format
 msgid ""
 "Usage: %s <MAC|identity> [-nqoA] [-a <path>] [-t <timeout>] [-u <user>] [-p "
 "<password>] [-U <user>] | -l [-B] [-t <timeout>]\n"
 msgstr ""
-"Използване: %s <MAC|идентификатор> [-nqoA] [-a <път>] [-t <таймаут>] [-u <потребител>] [-p "
-"<парола>] [-U <потребител>] | -l [-B] [-t <таймаут>]\n"
+"Използване: %s <MAC|идентификатор> [-nqoA] [-a <път>] [-t <таймаут>] [-u "
+"<потребител>] [-p <парола>] [-U <потребител>] | -l [-B] [-t <таймаут>]\n"
 
-#: src/mactelnet.c:611
+#: src/mactelnet.c:615
 #, c-format
 msgid ""
 "\n"
@@ -100,7 +102,8 @@ msgid ""
 "                 MNDP protocol to find it.\n"
 "  -l             List/Search for routers nearby (MNDP). You may use -t to "
 "set timeout.\n"
-"  -B             Batch mode. Use computer readable output (CSV), for use with -l.\n"
+"  -B             Batch mode. Use computer readable output (CSV), for use "
+"with -l.\n"
 "  -n             Do not use broadcast packets. Less insecure but requires\n"
 "                 root privileges.\n"
 "  -a <path>      Use specified path instead of the default: %s for autologin "
@@ -125,13 +128,13 @@ msgstr ""
 "  идентификатор   Идентификатор/име на далечното устройство. Открива се по\n"
 "                  MNDP протокол.\n"
 "  -l              Показва/Търси за устройства наоколо. (използва MNDP)\n"
-"  -B              Партиден режим. Използване на компютърно четим изход (CSV), за употреба "
-"с -l.\n"
+"  -B              Партиден режим. Използване на компютърно четим изход "
+"(CSV), за употреба с -l.\n"
 "  -n              Да не се използват броудкаст пакети. По-малко несигурно, "
 "но пък\n"
 "                  изисква права на потребител root.\n"
-"  -a <път>        Използване на указания път вместо стандартния: %s за файл на конфигурация за "
-"автоматично влизане.\n"
+"  -a <път>        Използване на указания път вместо стандартния: %s за файл "
+"на конфигурация за автоматично влизане.\n"
 "  -A              Изключване на функцията за автоматично влизане.\n"
 "  -t <изчакване>  Брой секунди за изчакване на отговор за всеки интерфейс.\n"
 "  -u <потребител> Задава потребител от командния ред.\n"
@@ -140,144 +143,160 @@ msgstr ""
 "заедно\n"
 "                  с -n за повишена сигурност.\n"
 "  -q              Тих режим.\n"
-"  -o              Принудително използване на стария MD5 алгоритъм за аутентикация.\n"
+"  -o              Принудително използване на стария MD5 алгоритъм за "
+"аутентикация.\n"
 "  -h              Тази инструкция.\n"
 "\n"
 
-#: src/mactelnet.c:645
+#: src/mactelnet.c:650
 #, c-format
 msgid "Using autologin credentials from %s\n"
 msgstr "Използване на автоматично влизане с учетелни данни от %s\n"
 
-#: src/mactelnet.c:669
+#: src/mactelnet.c:674
 #, c-format
 msgid "You need to have root privileges to use the -n parameter.\n"
 msgstr "Необходими са права на потребител root, за да използвате опция -n.\n"
 
-#: src/mactelnet.c:679
+#: src/mactelnet.c:684
 #, c-format
 msgid "The -U option must be used in conjunction with the -n parameter.\n"
 msgstr "Опция -U трябва да се използва заедно с опция -n.\n"
 
-#: src/mactelnet.c:708
+#: src/mactelnet.c:713
 #, c-format
 msgid "Login: "
 msgstr "Потребител: "
 
-#: src/mactelnet.c:716
+#: src/mactelnet.c:721
 msgid "Password: "
 msgstr "Парола: "
 
-#: src/mactelnet.c:748
+#: src/mactelnet.c:752
 #, c-format
 msgid "Connecting to %s..."
 msgstr "Свързване към %s..."
 
-#: src/mactelnet.c:758 src/mactelnetd.c:248 src/mactelnetd.c:1119
+#: src/mactelnet.c:762 src/mactelnetd.c:253 src/mactelnetd.c:1155
 #, c-format
 msgid "Error binding to %s:%d, %s\n"
 msgstr "Грешка при свързване от %s:%d, %s\n"
 
-#: src/mactelnet.c:763
+#: src/mactelnet.c:767
 #, c-format
 msgid "Connection failed.\n"
 msgstr "Връзката не е осъществена.\n"
 
-#: src/mactelnet.c:767
+#: src/mactelnet.c:771
 #, c-format
 msgid "done\n"
 msgstr "готово\n"
 
-#: src/mactelnetd.c:253
+#: src/mactelnetd.c:255
 #, c-format
-msgid "Listening on %s for %s\n"
-msgstr "Слуша на %s за %s\n"
+msgid "Error binding to %s:%d on %s\n"
+msgstr "Грешка при свързване към %s:%d на %s\n"
 
-#: src/mactelnetd.c:448 src/mactelnetd.c:652
+#: src/mactelnetd.c:259
+#, c-format
+msgid "Using %s to transmit packets from %s\n"
+msgstr "Използване на %s за предаване на пакети от %s\n"
+
+#: src/mactelnetd.c:464
 #, c-format
 msgid "(%d) Invalid login by %s."
 msgstr "(%d) Неправилен вход от %s."
 
-#: src/mactelnetd.c:451
+#: src/mactelnetd.c:467
 msgid "Login failed, incorrect username or password\r\n"
 msgstr "Неуспешен вход, невалиден потребител или парола\r\n"
 
-#: src/mactelnetd.c:468
+#: src/mactelnetd.c:484
 msgid "Terminal error\r\n"
 msgstr "Грешка в терминала\r\n"
 
-#: src/mactelnetd.c:482 src/mactelnetd.c:490
+#: src/mactelnetd.c:498 src/mactelnetd.c:506
 #, c-format
 msgid "(%d) Error allocating memory."
 msgstr "(%d) Грешка при заделяне на памет."
 
-#: src/mactelnetd.c:484 src/mactelnetd.c:492
+#: src/mactelnetd.c:500 src/mactelnetd.c:508
 msgid "System error, out of memory\r\n"
 msgstr "Системна грешка, недостатъчно памет\r\n"
 
-#: src/mactelnetd.c:497
+#: src/mactelnetd.c:513
 #, c-format
 msgid "(%d) Login ok, but local user not accessible (%s)."
 msgstr "(%d) Успешен вход, но локалният потребител не е достъпен (%s)."
 
-#: src/mactelnetd.c:499
+#: src/mactelnetd.c:516
 msgid "Local user not accessible\r\n"
 msgstr "Локалният потребител не е достъпен\r\n"
 
-#: src/mactelnetd.c:510
+#: src/mactelnetd.c:527
 #, c-format
 msgid "Error opening %s: %s"
 msgstr "Грешка при отваряне %s: %s"
 
-#: src/mactelnetd.c:512
+#: src/mactelnetd.c:529
 msgid "Error opening terminal\r\n"
 msgstr "Грешка при отваряне на терминал\r\n"
 
-#: src/mactelnetd.c:523
+#: src/mactelnetd.c:540
 #, c-format
 msgid "(%d) User %s logged in."
 msgstr "(%d) Потребител %s влезе."
 
-#: src/mactelnetd.c:558
+#: src/mactelnetd.c:575
 #, c-format
 msgid "(%d) Could not log in %s (%d:%d): setuid/setgid: %s"
 msgstr "(%d) Неуспешен вход %s (%d:%d): setuid/setgid: %s"
 
-#: src/mactelnetd.c:560
+#: src/mactelnetd.c:578
 msgid "Internal error\r\n"
 msgstr "Вътрешна грешка\r\n"
 
-#: src/mactelnetd.c:566
+#: src/mactelnetd.c:584
 #, c-format
 msgid "(%d) User %s disconnected with "
 msgstr "(%d) Потребител %s е изхвърлен с "
 
-#: src/mactelnetd.c:661
+#: src/mactelnetd.c:710
 #, c-format
 msgid "(%d) Invalid mtwei key by %s."
 msgstr "(%d) Невалиден ключ mtwei от %s."
 
-#: src/mactelnetd.c:712
+#: src/mactelnetd.c:733
 #, c-format
 msgid "(%d) Unhandeled control packet type: %d, length: %d"
 msgstr "(%d) Необработен тип на контролен пакет: %d, дължина: %d"
 
-#: src/mactelnetd.c:769
+#: src/mactelnetd.c:737
+#, c-format
+msgid "(%d) Unhandeled control packet type: %d, in state: %d, length: %d"
+msgstr ""
+"(%d) Необработен тип на контролен пакет: %d, в състояние: %d, дължина: %d"
+
+#: src/mactelnetd.c:793
 #, c-format
 msgid "(%d) New connection from %s."
 msgstr "(%d) Нова връзка от %s."
 
-#: src/mactelnetd.c:797 src/mactelnetd.c:1252
+#: src/mactelnetd.c:822 src/mactelnetd.c:1289
 #, c-format
 msgid "(%d) Connection closed."
 msgstr "(%d) Връзката е затворена."
 
-#: src/mactelnetd.c:850
+#: src/mactelnetd.c:877
 #, c-format
 msgid "(%d) Unhandeled packet type: %d"
 msgstr "(%d) Необработваем пакет от тип: %d"
 
-#: src/mactelnetd.c:925
+#: src/mactelnetd.c:952
+msgid "Was not able to send any MNDP packets"
+msgstr "Не успях да изпратя нито един MNDP пакет"
+
+#: src/mactelnetd.c:961
 msgid ""
 "\r\n"
 "\r\n"
@@ -287,29 +306,29 @@ msgstr ""
 "\r\n"
 "Демон процеса прекратява работата си.\r\n"
 
-#: src/mactelnetd.c:927
+#: src/mactelnetd.c:963
 msgid "Daemon shutting down"
 msgstr "Демон процеса прекратява работата си"
 
-#: src/mactelnetd.c:960
+#: src/mactelnetd.c:996
 msgid "SIGHUP: Reloading interfaces"
 msgstr "SIGHUP: Презареждане на интерфейсите"
 
-#: src/mactelnetd.c:973
+#: src/mactelnetd.c:1009
 msgid "No devices found! Exiting.\n"
 msgstr "Няма намерени устройства! Изход.\n"
 
-#: src/mactelnetd.c:986
+#: src/mactelnetd.c:1022
 #, c-format
 msgid "(%d) Connection closed because interface %s is gone."
 msgstr "(%d) Връзката е затворена поради изчезнал интерфейс %s."
 
-#: src/mactelnetd.c:1046
+#: src/mactelnetd.c:1082
 #, c-format
 msgid "Usage: %s [-fnoh]\n"
 msgstr "Използване: %s [-fnoh]\n"
 
-#: src/mactelnetd.c:1051
+#: src/mactelnetd.c:1087
 #, c-format
 msgid ""
 "\n"
@@ -328,41 +347,58 @@ msgstr ""
 "  -h        Тази инструкция.\n"
 "\n"
 
-#: src/mactelnetd.c:1071 src/macping.c:189
+#: src/mactelnetd.c:1096
+#, c-format
+msgid ""
+"\n"
+"Parameters:\n"
+"  -n        Do not use broadcast packets. Just a tad less insecure.\n"
+"  -o        Use MD5 for password hashing.\n"
+"  -h        This help.\n"
+"\n"
+msgstr ""
+"\n"
+"Параметри:\n"
+"  -n        Не използвайте broadcast пакети. Малко по-малко несигурно.\n"
+"  -o        Използвайте MD5 за хеширане на паролата.\n"
+"  -h        Тази инструкция.\n"
+"\n"
+
+#: src/mactelnetd.c:1107 src/macping.c:189
 #, c-format
 msgid "You need to have root privileges to use %s.\n"
 msgstr "Необходими са права на потребител root, за да използвате %s.\n"
 
-#: src/mactelnetd.c:1141
+#: src/mactelnetd.c:1177
 #, c-format
 msgid "MNDP: Error binding to %s:%d, %s\n"
 msgstr "MNDP: Грешка при свързване от %s:%d, %s\n"
 
-#: src/mactelnetd.c:1145
+#: src/mactelnetd.c:1182
 #, c-format
 msgid "Bound to %s:%d"
 msgstr "Свързване от %s:%d"
 
-#: src/mactelnetd.c:1173
+#: src/mactelnetd.c:1210
 msgid "Unable to find any valid network interfaces\n"
 msgstr "Няма валидни мрежови интерфейси\n"
 
-#: src/mactelnetd.c:1250
+#: src/mactelnetd.c:1287
 #, c-format
 msgid "(%d) Connection to user %s closed."
 msgstr "(%d) Връзката към потребител %s е прекъсната."
 
-#: src/mactelnetd.c:1258
+#: src/mactelnetd.c:1295
 #, c-format
 msgid "(%d) Waiting for ack\n"
 msgstr "(%d) Изчакване на потвърждение\n"
 
-#: src/mactelnetd.c:1274
+#: src/mactelnetd.c:1311
 #, c-format
 msgid "(%d) Session timed out"
 msgstr "(%d) Изтекло време за изчакване на сесията"
 
-#: src/mactelnetd.c:1277
+#: src/mactelnetd.c:1314
 msgid "Timeout\r\n"
 msgstr "Изтекло време за изчакване\r\n"
 
@@ -371,7 +407,7 @@ msgstr "Изтекло време за изчакване\r\n"
 msgid "%d packets transmitted, %d packets received, %d%% packet loss\n"
 msgstr "%d изпратени пакета, %d получени пакета, %d%% изгубени пакети\n"
 
-#: src/macping.c:101
+#: src/macping.c:102
 #, c-format
 msgid "round-trip min/avg/max = %.2f/%.2f/%.2f ms\n"
 msgstr "двупосочно време мин/ср/макс = %.2f/%.2f/%.2f мс\n"
@@ -381,7 +417,9 @@ msgstr "двупосочно време мин/ср/макс = %.2f/%.2f/%.2f м
 msgid ""
 "Number of packets to send must be more than 0 and up to 100 in fast mode.\n"
 msgstr ""
-"Броят на пакетите, които трябва да се изпратят, трябва да бъде повече от 0 и до 100 в бърз режим.\n"
+"Броят на пакетите, които трябва да се изпратят, трябва да бъде повече от 0 и "
+"до 100 в бърз режим.\n"
+
 #: src/macping.c:165
 #, c-format
 msgid "Usage: %s <MAC> [-h] [-f] [-c <count>] [-s <packet size>]\n"
@@ -413,7 +451,7 @@ msgstr ""
 msgid "Packet size must be between 18 and %d\n"
 msgstr "Размерът на пакета трябва да е от 18 до %d\n"
 
-#: src/macping.c:218 src/mndp.c:87 src/protocol.c:444
+#: src/macping.c:218 src/mndp.c:88 src/protocol.c:444
 #, c-format
 msgid "Error binding to %s:%d\n"
 msgstr "Грешка при свързване от %s:%d\n"
@@ -433,92 +471,92 @@ msgstr "%s изтекло време за изчакване\n"
 msgid "%s %d byte, ping time %.2f ms%s\n"
 msgstr "%s %d байта, време за ping %.2f мс%s\n"
 
-#: src/macping.c:334
+#: src/macping.c:336
 #, c-format
 msgid "%s Reply of %d bytes of unequal data\n"
 msgstr "%s Отговор от %d байта с несъвпадащи данни\n"
 
-#: src/mndp.c:92
+#: src/mndp.c:93
 #, c-format
 msgid "Searching for MikroTik routers... Abort with CTRL+C.\n"
 msgstr "Търсене на MikroTik рутери... Прекъсване с CTRL+C.\n"
 
-#: src/mndp.c:96
+#: src/mndp.c:97
 #, c-format
 msgid "Unable to send broadcast packets: Operating in receive only mode.\n"
 msgstr ""
-"Не може да се изпратят броудкаст пакети: Работи се само в режим на приемане.\n"
+"Не може да се изпратят броудкаст пакети: Работи се само в режим на "
+"приемане.\n"
 
-#: src/mndp.c:106
+#: src/mndp.c:107
 #, c-format
 msgid "Unable to send broadcast packet: Operating in receive only mode.\n"
 msgstr ""
 "Не може да се изпрати броудкаст пакет: Работи се само в режим на приемане.\n"
 
-
-#: src/mndp.c:113
+#: src/mndp.c:114
 msgid "IP"
 msgstr "IP"
 
-#: src/mndp.c:113
+#: src/mndp.c:114
 msgid "MAC-Address"
 msgstr "MAC-Адрес"
 
-#: src/mndp.c:113
+#: src/mndp.c:115
 msgid "Identity (platform version hardware) uptime"
 msgstr "Идентификатор (платформа версия хардуер) време от стартиране"
 
-#: src/mndp.c:132
+#: src/mndp.c:134
 #, c-format
 msgid "An error occurred. aborting\n"
 msgstr "Възникна грешка. Прекратяване на операцията\n"
 
-#: src/mndp.c:148
+#: src/mndp.c:149
 #, c-format
 msgid "  up %d days %d hours"
 msgstr "  за %d дни и %d часа"
 
-#: src/autologin.c:86
+#: src/autologin.c:87
 #, c-format
 msgid "Error opening autologin file %s: %s\n"
 msgstr "Грешка при отварянето на файла за автоматично влизане %s: %s\n"
 
-#: src/autologin.c:135
+#: src/autologin.c:137
 #, c-format
 msgid "Error on line %d in %s: New line in middle of identifier\n"
 msgstr "Грешка на ред %d в %s: Нов ред в средата на идентификатора\n"
 
-#: src/autologin.c:142
+#: src/autologin.c:145
 #, c-format
 msgid "Error on line %d in %s: Identifier string too long.\n"
 msgstr "Грешка на ред %d в %s: Твърде дълъг низ за идентификатор.\n"
 
-#: src/autologin.c:163
+#: src/autologin.c:169
 #, c-format
 msgid "Error on line %d in %s: Newline before '=' character\n"
 msgstr "Грешка на ред %d в %s: Нов ред преди знака '='\n"
 
-#: src/autologin.c:170
+#: src/autologin.c:177
 #, c-format
 msgid "Error on line %d in %s: Key string too long.\n"
 msgstr "Грешка на ред %d в %s: Твърде дълъг низ за ключ.\n"
 
-#: src/autologin.c:190
+#: src/autologin.c:199
 #, c-format
 msgid "Warning on line %d of %s: Unknown parameter %s, ignoring.\n"
 msgstr "Предупреждение на ред %d от %s: Непознат параметър %s, игнориране.\n"
 
-#: src/autologin.c:201
+#: src/autologin.c:211
 #, c-format
 msgid "Error on line %d in %s: Value string too long.\n"
 msgstr "Грешка на ред %d в %s: Твърде дълъг низ за стойност.\n"
 
-#: src/interfaces.c:331
+#: src/interfaces.c:341
 #, c-format
 msgid "packet size too large\n"
 msgstr "размера на пакета е твърде голям\n"
 
-#: src/protocol.c:92 src/protocol.c:157
+#: src/protocol.c:93 src/protocol.c:158
 #, c-format
 msgid "add_control_packet: ERROR, too large packet. Exceeds %d bytes\n"
 msgstr ""
@@ -537,17 +575,21 @@ msgstr ""
 "Не е възможно да се изпрати броудкаст пакет: Търсенето на рутери ще работи "
 "бавно\n"
 
-#: src/protocol.c:542
+#: src/protocol.c:541
 #, c-format
 msgid "Searching for '%s'..."
 msgstr "Търсене за '%s'..."
 
-#: src/protocol.c:546
+#: src/protocol.c:545
 #, c-format
 msgid "not found\n"
 msgstr "не е намерен\n"
 
-#: src/protocol.c:553
+#: src/protocol.c:552
 #, c-format
 msgid "found\n"
 msgstr "намерен\n"
+
+#, c-format
+#~ msgid "Listening on %s for %s\n"
+#~ msgstr "Слуша на %s за %s\n"

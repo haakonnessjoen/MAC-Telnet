@@ -20,6 +20,7 @@ case "$OSTYPE" in
   darwin*)
     LDFLAGS=${LDFLAGS=-lintl}
     export LDFLAGS
+	echo "MACOS"
     ;;
   linux*)
     echo "LINUX"

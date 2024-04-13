@@ -37,6 +37,17 @@ m4_ifdef([PKG_PROG_PKG_CONFIG], [
     AC_SEARCH_LIBS([EVP_MD_CTX_new], [crypto], [], [AC_MSG_FAILURE([can't find openssl >= 1.1.0 crypto lib])])
 ])
 
+AC_ARG_WITH([config],
+	[AS_HELP_STRING([--without-config], [don't install default config file])],
+		[enable_config=$withval], [enable_config=yes])
+
+AC_ARG_WITH([mactelnetd],
+	[AS_HELP_STRING([--without-mactelnetd], [don't install mactelnetd binary])],
+		[enable_mactelnetd=$withval], [enable_mactelnetd=yes])
+
+AM_CONDITIONAL([INSTALL_CONFIG], [test x"$enable_config" != "xno" && test x"$enable_mactelnetd" != "xno"])
+AM_CONDITIONAL([BUILD_MACTELNETD], [test x"$enable_mactelnetd" != "xno"])
+
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h float.h libintl.h locale.h netinet/in.h paths.h stdlib.h string.h sys/ioctl.h sys/socket.h sys/time.h syslog.h termios.h unistd.h utmp.h utmpx.h])
 

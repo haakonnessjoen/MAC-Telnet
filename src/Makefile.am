@@ -1,5 +1,8 @@
 bin_PROGRAMS = mactelnet macping mndp
+
+if BUILD_MACTELNETD
 sbin_PROGRAMS = mactelnetd
+endif
 
 mactelnet_SOURCES = config.h mactelnet.c mactelnet.h protocol.c protocol.h console.c console.h interfaces.c interfaces.h mndp.c mndp.h autologin.c autologin.h extra.h utlist.h mtwei.c mtwei.h
 mactelnet_CFLAGS = -DFROM_MACTELNET

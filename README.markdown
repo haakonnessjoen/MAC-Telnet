@@ -8,6 +8,10 @@ The MAC-Telnet client and server now supports the new EC-SRP authentication that
 
 ## Installation
 
+### Without mactelnetd
+
+If you only want the `mactelnet` client, and not the `mactelnetd` server, you can add the `--without-mactelnetd` flag to the `./configure` command before compiling.
+
 ### Docker
 
 [`haakonn/mactelnet`](https://hub.docker.com/r/haakonn/mactelnet/) contains all four programs:
@@ -118,7 +122,7 @@ Install dependencies, download source tarball, extract, compile and install:
       -U <user>      Drop privileges to this user. Used in conjunction with -n
                      for security.
       -q             Quiet mode.
-      -o             Force old authentication algorithm.
+      -o             Force old MD5 authentication method.
       -h             This help.
 
 Example using identity:
@@ -185,4 +189,5 @@ Or for use in bash-scripting:
 
 ## Huge thanks
 
-Thanks to [@comed-ian](https://github.com/comed-ian) for creating a working proof of concept python script that successfully authenticated using the new authentication method in RouterOS 4.43+, and [@kmeaw](https://github.com/kmeaw) for porting the code to C, and implementing it in mactelnet and mactelnetd.
+- Thanks to [@comed-ian](https://github.com/comed-ian) for creating a working proof of concept python script that successfully authenticated using the new authentication method in RouterOS 4.43+, and [@kmeaw](https://github.com/kmeaw) for porting the code to C, and implementing it in mactelnet and mactelnetd.
+- Thanks to Omni Flux for doing [the initial reverse engineering](https://omniflux.com/devel/mikrotik/Mikrotik_MAC_Telnet_Procotol.txt) of the MAC Telnet protocol, that inspired me to write these programs, as well as the mactelnet Wireshark plugin.

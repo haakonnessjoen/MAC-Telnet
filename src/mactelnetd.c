@@ -63,11 +63,16 @@
 #include <sys/mman.h>
 #elif defined(__APPLE__) || defined(__FreeBSD__)
 #include <sys/mman.h>
+#include <pthread.h>
+#include <sys/syscall.h>
 #endif
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #if defined(__linux__)
 #include <sys/sysinfo.h>
+#if defined(HAVE_LINUX_NETLINK_H)
+#include <linux/netlink.h>
+#endif
 #endif
 #include <pwd.h>
 #include <utmpx.h>
@@ -1005,10 +1010,13 @@ void sighup_handler() {
 		interfaces = NULL;
 	}
 
+// If we don't have network auto-reload, we need to exit if we can't find any interfaces
+#if !defined(HAVE_LINUX_NETLINK_H) || !defined(__linux__) || !defined(__APPLE__)
 	if (net_get_interfaces(&interfaces) <= 0) {
 		syslog(LOG_ERR, _("No devices found! Exiting.\n"));
 		exit(1);
 	}
+#endif
 
 	setup_sockets();
 
@@ -1206,6 +1214,12 @@ int main(int argc, char **argv) {
 		}
 	}
 
+#if defined(__APPLE__)
+	init_network_watcher();
+#elif defined(__linux__) && defined(FROM_MACTELNETD) && defined(HAVE_LINUX_NETLINK_H)
+	int dfd = get_netlink_fd();
+#endif
+
 	if (interface_count == 0) {
 		syslog(LOG_ERR, _("Unable to find any valid network interfaces\n"));
 		exit(1);
@@ -1221,7 +1235,13 @@ int main(int argc, char **argv) {
 		FD_ZERO(&read_fds);
 		FD_SET(insockfd, &read_fds);
 		FD_SET(mndpsockfd, &read_fds);
+
 		maxfd = insockfd > mndpsockfd ? insockfd : mndpsockfd;
+
+#if defined(__linux__) && defined(HAVE_LINUX_NETLINK_H)
+		FD_SET(dfd, &read_fds);
+		maxfd = dfd > maxfd ? dfd : mndpsockfd;
+#endif
 
 		/* Add active connections to select queue */
 		DL_FOREACH(connections_head, p) {
@@ -1239,9 +1259,18 @@ int main(int argc, char **argv) {
 		/* Wait for data or timeout */
 		reads = select(maxfd + 1, &read_fds, NULL, NULL, &timeout);
 		if (reads > 0) {
-			/* Handle data from clients
-			 TODO: Enable broadcast support (without raw sockets)
-			 */
+#if defined(__linux__) && defined(HAVE_LINUX_NETLINK_H)
+			if (FD_ISSET(dfd, &read_fds)) {
+				// Read the netlink socket
+				read_netlink(dfd);
+
+				// Debounce
+				if (should_refresh_interfaces()) {
+					syslog(LOG_NOTICE, _("Network change detected"));
+					sighup_handler();
+				}
+			}
+#endif
 			if (FD_ISSET(insockfd, &read_fds)) {
 				unsigned char buff[MT_PACKET_LEN];
 				struct sockaddr_in saddress;

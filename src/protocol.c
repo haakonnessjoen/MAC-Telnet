@@ -327,8 +327,8 @@ struct mt_mndp_info *parse_mndp(const unsigned char *data, const int packet_len)
 		/* Check if len is invalid */
 		if (p + len > data + packet_len) {
 			fprintf(stderr,
-					"%s: invalid data: "
-					"%p + %u > %p + %d\n",
+					_("%s: invalid data: "
+					  "%p + %u > %p + %d\n"),
 					__func__, p, len, data, packet_len);
 			break;
 		}

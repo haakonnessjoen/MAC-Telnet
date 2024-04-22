@@ -6,3 +6,4 @@ src/mndp.c
 src/autologin.c
 src/interfaces.c
 src/protocol.c
+src/mtwei.c

@@ -779,7 +779,7 @@ int main(int argc, char **argv) {
 
 	if (force_md5 == 0) {
 		if (strlen(username) + 1 + sizeof(public_key) >= sizeof(loginkey)) {
-			fprintf(stderr, "Username too long\n");
+			fprintf(stderr, _("Username too long\n"));
 			exit(1);
 		}
 		strcpy((char *)loginkey, username);

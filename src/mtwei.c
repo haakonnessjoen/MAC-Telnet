@@ -36,9 +36,12 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <libintl.h>
 #if defined(__linux__)
 #include <sys/random.h>
 #endif
+
+#define _(STRING) gettext(STRING)
 
 #if !defined(HAVE_GETRANDOM) && defined(HAVE_ARC4RANDOM)
 int getrandom(char *buf, size_t size, int flags) {
@@ -48,12 +51,12 @@ int getrandom(char *buf, size_t size, int flags) {
 #endif
 
 // assert, output message to stderr, and jump to abort label for cleanup
-#define CHECKNULL(exp)                                                                                        \
-	do {                                                                                                      \
-		if ((exp) == NULL) {                                                                                  \
-			fprintf(stderr, "FATAL ERROR: Function returned NULL at %s:%d: %s;\n", __FILE__, __LINE__, #exp); \
-			goto abort;                                                                                       \
-		}                                                                                                     \
+#define CHECKNULL(exp)                                                                                           \
+	do {                                                                                                         \
+		if ((exp) == 0) {                                                                                        \
+			fprintf(stderr, _("FATAL ERROR: Function returned NULL at %s:%d: %s;\n"), __FILE__, __LINE__, #exp); \
+			goto abort;                                                                                          \
+		}                                                                                                        \
 	} while (0)
 
 void mtwei_init(mtwei_state_t *state) {
@@ -148,7 +151,7 @@ static BIGNUM *tangle(mtwei_state_t *state, EC_POINT *target, uint8_t *validator
 	}
 
 	if (!EC_POINT_add(state->curve25519, target, target, validator_pt, state->ctx)) {
-		fprintf(stderr, "Cannot mix gamma into pubkey: %s\n", ERR_error_string(ERR_get_error(), NULL));
+		fprintf(stderr, _("Cannot mix gamma into pubkey: %s\n"), ERR_error_string(ERR_get_error(), NULL));
 		abort();
 	}
 
@@ -186,7 +189,7 @@ BIGNUM *mtwei_keygen(mtwei_state_t *state, uint8_t *pubkey_out, uint8_t *validat
 
 	CHECKNULL(privkey = BN_bin2bn(client_priv, sizeof(client_priv), NULL));
 	if (!EC_POINT_mul(state->curve25519, pubkey, NULL, state->g, privkey, state->ctx)) {
-		fprintf(stderr, "Cannot make a public key: %s\n", ERR_error_string(ERR_get_error(), NULL));
+		fprintf(stderr, _("Cannot make a public key: %s\n"), ERR_error_string(ERR_get_error(), NULL));
 		goto abort;
 	}
 

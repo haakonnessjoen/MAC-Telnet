@@ -22,8 +22,23 @@ if test "x$GMSGFMT" = "x:"; then
   AC_MSG_ERROR([GNU gettext command line tools are required but not found.])
 fi
 
+AC_CHECK_HEADER([CoreFoundation/CoreFoundation.h],
+  [
+	have_corefoundation=true
+	AC_SUBST([COREFOUNDATION_LIBS], ["-framework CoreFoundation"])
+  ], [have_corefoundation=false]
+)
+AM_CONDITIONAL(HAVE_COREFOUNDATION, $have_corefoundation)
+
+AC_CHECK_HEADER([SystemConfiguration/SystemConfiguration.h],
+  [
+	have_systemconfiguration=true
+	AC_SUBST([SYSTEMCONFIGURATION_LIBS], ["-framework SystemConfiguration"])
+  ], [have_systemconfiguration=false]
+)
+AM_CONDITIONAL(HAVE_SYSTEMCONFIGURATION, $have_systemconfiguration)
+
 AC_CHECK_LIB([rt], [nanosleep])
-AC_CHECK_LIB([intl], [nanosleep])
 
 # Use pkg-config to check for libcrypto, if available
 # Otherwise, fall back to AC_SEARCH_LIBS
@@ -49,7 +64,24 @@ AM_CONDITIONAL([INSTALL_CONFIG], [test x"$enable_config" != "xno" && test x"$ena
 AM_CONDITIONAL([BUILD_MACTELNETD], [test x"$enable_mactelnetd" != "xno"])
 
 # Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h float.h libintl.h locale.h netinet/in.h paths.h stdlib.h string.h sys/ioctl.h sys/socket.h sys/time.h syslog.h termios.h unistd.h utmp.h utmpx.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h sys/random.h float.h libintl.h locale.h linux/netlink.h netinet/in.h paths.h stdlib.h string.h sys/ioctl.h sys/socket.h sys/time.h syslog.h termios.h unistd.h utmp.h utmpx.h])
+
+# Check if the target platform is macOS
+case "$host_os" in
+  darwin*)
+    AC_CHECK_LIB([pthread], [pthread_create])
+
+    AC_CHECK_LIB([intl], [libintl_gettext])
+
+    if test "$ac_cv_lib_pthread_pthread_create" = "yes"; then
+        AC_SUBST([PTHREAD_LIBS], ["-lpthread"])
+    else
+        AC_MSG_ERROR([pthreads library not found])
+    fi
+    ;;
+  *)
+    ;;
+esac
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_PID_T

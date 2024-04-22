@@ -38,6 +38,18 @@ struct net_interface {
 	struct net_interface *next;
 };
 
+extern int should_refresh_interfaces();
+
+#if defined(__linux__) && defined(FROM_MACTELNETD) && defined(HAVE_LINUX_NETLINK_H)
+extern int get_netlink_fd();
+extern void read_netlink(int fd);
+#endif
+
+#if defined(__APPLE__) && defined(FROM_MACTELNETD)
+extern void *init_network_watcher_thread(void *arg);
+extern void init_network_watcher();
+#endif
+
 extern int net_get_interfaces(struct net_interface **interfaces);
 extern struct net_interface *net_get_interface_ptr(struct net_interface **interfaces, char *name, int create);
 extern int net_init_raw_socket();

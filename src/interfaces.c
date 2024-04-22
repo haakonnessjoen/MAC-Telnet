@@ -16,6 +16,7 @@
 	with this program; if not, write to the Free Software Foundation, Inc.,
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
+#include <config.h>
 #if defined(__FreeBSD__)
 #define __USE_BSD
 #define __FAVOR_BSD
@@ -26,6 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <ifaddrs.h>
@@ -41,9 +43,18 @@
 #else
 #include <netinet/ether.h>
 #endif
+#ifdef HAVE_LINUX_NETLINK_H
+#include <linux/netlink.h>
+#include <linux/rtnetlink.h>
+#endif
+#ifdef __APPLE__
+#include <pthread.h>
+#include <SystemConfiguration/SystemConfiguration.h>
+#endif
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
+#include <syslog.h>
 #ifndef __linux__
 #include <net/if_dl.h>
 #include <net/bpf.h>
@@ -72,7 +83,7 @@ struct net_interface *net_get_interface_ptr(struct net_interface **interfaces, c
 	if (create) {
 		interface = (struct net_interface *)calloc(1, sizeof(struct net_interface));
 		if (interface == NULL) {
-			fprintf(stderr, "Unable to allocate memory for interface\n");
+			fprintf(stderr, _("Unable to allocate memory for interface\n"));
 			exit(1);
 		}
 		strncpy(interface->name, name, 254);
@@ -211,6 +222,104 @@ int net_get_interfaces(struct net_interface **interfaces) {
 #endif
 	return found;
 }
+
+int should_refresh_interfaces() {
+	static time_t last_refresh = 0;
+	time_t now = time(NULL);
+
+	if (now - last_refresh > 1) {
+		last_refresh = now;
+		return 1;
+	}
+
+	return 0;
+}
+
+#if defined(__linux__) && defined(FROM_MACTELNETD) && defined(HAVE_LINUX_NETLINK_H)
+
+int get_netlink_fd() {
+	int fd;
+	struct sockaddr_nl addr;
+	struct nlmsghdr *nh;
+	char buf[BUFSIZ];
+
+	fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+	if (fd < 0) {
+		perror("netlink:socket");
+		exit(1);
+	}
+	memset(&addr, 0, sizeof(addr));
+	addr.nl_family = AF_NETLINK;
+	addr.nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR;
+
+	int err = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+	if (err < 0) {
+		perror("netlink:bind");
+		exit(1);
+	}
+
+	return fd;
+}
+
+void read_netlink(int fd) {
+	static char buf[BUFSIZ];
+
+	memset(buf, 0, sizeof(buf));
+	recv(fd, buf, sizeof(buf), 0);
+	/*
+	  We ignore the result for now, we will just do a full refresh of the
+	  network interfaces
+	*/
+}
+
+#endif
+
+#if defined(__APPLE__) && defined(FROM_MACTELNETD)
+
+void callback(SCDynamicStoreRef store, CFArrayRef changedKeys, void *info) {
+	if (!should_refresh_interfaces()) {
+		return;
+	}
+
+	syslog(LOG_NOTICE, _("Network change detected"));
+
+	// Handle the network change
+	pid_t pid = getpid();
+	kill(pid, SIGHUP);
+}
+
+void *init_network_watcher_thread(void *arg) {
+	SCDynamicStoreRef store;
+	CFRunLoopSourceRef source;
+
+	store = SCDynamicStoreCreate(NULL, CFSTR("no.lunatic.mactelnet.NetworkChangeDetector"), callback, NULL);
+	source = SCDynamicStoreCreateRunLoopSource(NULL, store, 0);
+
+	CFRunLoopAddSource(CFRunLoopGetCurrent(), source, kCFRunLoopDefaultMode);
+
+	CFStringRef keysToMonitor[] = {CFSTR("State:/Network/Interface"), CFSTR("State:/Network/Global/IPv4")};
+
+	CFArrayRef keysArray = CFArrayCreate(NULL, (const void **)keysToMonitor,
+										 sizeof(keysToMonitor) / sizeof(keysToMonitor[0]), &kCFTypeArrayCallBacks);
+	SCDynamicStoreSetNotificationKeys(store, keysArray, NULL);
+
+	CFRunLoopRun();
+
+	CFRelease(store);
+	CFRelease(source);
+
+	return NULL;
+}
+
+void init_network_watcher() {
+	pthread_t thread;
+	int result = pthread_create(&thread, NULL, init_network_watcher_thread, NULL);
+	if (result != 0) {
+		fprintf(stderr, _("Error creating network watcher thread: %s\n"), strerror(result));
+		exit(EXIT_FAILURE);
+	}
+}
+#endif
 
 unsigned short in_cksum(unsigned short *addr, int len) {
 	int nleft = len;

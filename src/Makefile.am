@@ -1,5 +1,9 @@
 bin_PROGRAMS = mactelnet macping mndp
 
+if HAVE_LIBINTL
+LDFLAGS += -lintl
+endif
+
 if BUILD_MACTELNETD
 sbin_PROGRAMS = mactelnetd
 endif
@@ -19,11 +23,9 @@ macping_SOURCES = config.h macping.c interfaces.c interfaces.h protocol.c protoc
 AM_CPPFLAGS = -DLOCALEDIR='"$(localedir)"'
 
 if BUILD_MACTELNETD
-mactelnetd_SOURCES += mactelnetd-interface.o
 mactelnetd-interface.o: interfaces.c
 	$(COMPILE) $(mactelnetd_CFLAGS) $(OUTPUT_OPTION) $<
-else
-mactelnet_SOURCES += mactelnet-interface.o
+endif
+
 mactelnet-interface.o: interfaces.c
 	$(COMPILE) $(mactelnet_CFLAGS) $(OUTPUT_OPTION) $<
-endif

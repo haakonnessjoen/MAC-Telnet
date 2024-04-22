@@ -71,7 +71,7 @@ case "$host_os" in
   darwin*)
     AC_CHECK_LIB([pthread], [pthread_create])
 
-    AC_CHECK_LIB([intl], [libintl_gettext])
+    AC_CHECK_LIB([intl], [libintl_gettext], [HAVE_LIBINTL=yes], [HAVE_LIBINTL=no])
 
     if test "$ac_cv_lib_pthread_pthread_create" = "yes"; then
         AC_SUBST([PTHREAD_LIBS], ["-lpthread"])
@@ -82,6 +82,8 @@ case "$host_os" in
   *)
     ;;
 esac
+
+AM_CONDITIONAL([HAVE_LIBINTL], [test "x$HAVE_LIBINTL" = "xyes"])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_PID_T

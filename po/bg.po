@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mactelnet\n"
 "Report-Msgid-Bugs-To: haakon.nessjoen@gmail.com\n"
-"POT-Creation-Date: 2024-04-22 19:22+0200\n"
+"POT-Creation-Date: 2024-04-22 21:15+0200\n"
 "PO-Revision-Date: 2024-04-22 19:42+0200\n"
 "Last-Translator: Chat GPT <chatgpt@lunatic.no>\n"
 "Language-Team: Boian Bonev <bbonev@ipacct.com>\n"
@@ -177,7 +177,7 @@ msgstr "Парола: "
 msgid "Connecting to %s..."
 msgstr "Свързване към %s..."
 
-#: src/mactelnet.c:762 src/mactelnetd.c:258 src/mactelnetd.c:1155
+#: src/mactelnet.c:762 src/mactelnetd.c:258 src/mactelnetd.c:1163
 #, c-format
 msgid "Error binding to %s:%d, %s\n"
 msgstr "Грешка при свързване от %s:%d, %s\n"
@@ -287,7 +287,7 @@ msgstr ""
 msgid "(%d) New connection from %s."
 msgstr "(%d) Нова връзка от %s."
 
-#: src/mactelnetd.c:827 src/mactelnetd.c:1311
+#: src/mactelnetd.c:827 src/mactelnetd.c:1318
 #, c-format
 msgid "(%d) Connection closed."
 msgstr "(%d) Връзката е затворена."
@@ -319,17 +319,21 @@ msgstr "Демон процеса прекратява работата си"
 msgid "SIGHUP: Reloading interfaces"
 msgstr "SIGHUP: Презареждане на интерфейсите"
 
-#: src/mactelnetd.c:1022
+#: src/mactelnetd.c:1016
+msgid "No devices found! Exiting.\n"
+msgstr "Няма намерени устройства! Изход.\n"
+
+#: src/mactelnetd.c:1030
 #, c-format
 msgid "(%d) Connection closed because interface %s is gone."
 msgstr "(%d) Връзката е затворена поради изчезнал интерфейс %s."
 
-#: src/mactelnetd.c:1082
+#: src/mactelnetd.c:1090
 #, c-format
 msgid "Usage: %s [-fnoh]\n"
 msgstr "Използване: %s [-fnoh]\n"
 
-#: src/mactelnetd.c:1087
+#: src/mactelnetd.c:1095
 #, c-format
 msgid ""
 "\n"
@@ -348,7 +352,7 @@ msgstr ""
 "  -h        Тази инструкция.\n"
 "\n"
 
-#: src/mactelnetd.c:1096
+#: src/mactelnetd.c:1104
 #, c-format
 msgid ""
 "\n"
@@ -365,45 +369,45 @@ msgstr ""
 "  -h        Тази инструкция.\n"
 "\n"
 
-#: src/mactelnetd.c:1107 src/macping.c:189
+#: src/mactelnetd.c:1115 src/macping.c:189
 #, c-format
 msgid "You need to have root privileges to use %s.\n"
 msgstr "Необходими са права на потребител root, за да използвате %s.\n"
 
-#: src/mactelnetd.c:1177
+#: src/mactelnetd.c:1185
 #, c-format
 msgid "MNDP: Error binding to %s:%d, %s\n"
 msgstr "MNDP: Грешка при свързване от %s:%d, %s\n"
 
-#: src/mactelnetd.c:1182
+#: src/mactelnetd.c:1190
 #, c-format
 msgid "Bound to %s:%d"
 msgstr "Свързване от %s:%d"
 
-#: src/mactelnetd.c:1216
+#: src/mactelnetd.c:1224
 msgid "Unable to find any valid network interfaces\n"
 msgstr "Няма валидни мрежови интерфейси\n"
 
-#: src/mactelnetd.c:1261 src/interfaces.c:282
+#: src/mactelnetd.c:1269 src/interfaces.c:284
 msgid "Network change detected"
 msgstr "Промяна в мрежата открита"
 
-#: src/mactelnetd.c:1309
+#: src/mactelnetd.c:1316
 #, c-format
 msgid "(%d) Connection to user %s closed."
 msgstr "(%d) Връзката към потребител %s е прекъсната."
 
-#: src/mactelnetd.c:1317
+#: src/mactelnetd.c:1324
 #, c-format
 msgid "(%d) Waiting for ack\n"
 msgstr "(%d) Изчакване на потвърждение\n"
 
-#: src/mactelnetd.c:1333
+#: src/mactelnetd.c:1340
 #, c-format
 msgid "(%d) Session timed out"
 msgstr "(%d) Изтекло време за изчакване на сесията"
 
-#: src/mactelnetd.c:1336
+#: src/mactelnetd.c:1343
 msgid "Timeout\r\n"
 msgstr "Изтекло време за изчакване\r\n"
 
@@ -556,17 +560,17 @@ msgstr "Предупреждение на ред %d от %s: Непознат п
 msgid "Error on line %d in %s: Value string too long.\n"
 msgstr "Грешка на ред %d в %s: Твърде дълъг низ за стойност.\n"
 
-#: src/interfaces.c:84
+#: src/interfaces.c:86
 #, c-format
 msgid "Unable to allocate memory for interface\n"
 msgstr "Неуспешно заделяне на памет за интерфейса\n"
 
-#: src/interfaces.c:316
+#: src/interfaces.c:318
 #, c-format
 msgid "Error creating network watcher thread: %s\n"
 msgstr "Грешка при създаване на нишка за наблюдение за мрежа: %s\n"
 
-#: src/interfaces.c:448
+#: src/interfaces.c:450
 #, c-format
 msgid "packet size too large\n"
 msgstr "размера на пакета е твърде голям\n"
@@ -628,9 +632,6 @@ msgstr "Не може да се направи общ ключ: %s\n"
 #, fuzzy, c-format
 #~ msgid "SIGHUP: Reloading interfaces\n"
 #~ msgstr "SIGHUP: Презареждане на интерфейсите"
-
-#~ msgid "No devices found! Exiting.\n"
-#~ msgstr "Няма намерени устройства! Изход.\n"
 
 #, c-format
 #~ msgid "Listening on %s for %s\n"

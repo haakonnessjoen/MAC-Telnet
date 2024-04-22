@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mactelnet\n"
 "Report-Msgid-Bugs-To: haakon.nessjoen@gmail.com\n"
-"POT-Creation-Date: 2024-04-22 19:22+0200\n"
+"POT-Creation-Date: 2024-04-22 21:15+0200\n"
 "PO-Revision-Date: 2024-04-22 19:37+0200\n"
 "Last-Translator: Håkon Nessjøen <haakon.nessjoen@gmail.com>\n"
 "Language-Team: Håkon Nessjøen <haakon.nessjoen@gmail.com>\n"
@@ -175,7 +175,7 @@ msgstr "Passord: "
 msgid "Connecting to %s..."
 msgstr "Kobler til %s…"
 
-#: src/mactelnet.c:762 src/mactelnetd.c:258 src/mactelnetd.c:1155
+#: src/mactelnet.c:762 src/mactelnetd.c:258 src/mactelnetd.c:1163
 #, c-format
 msgid "Error binding to %s:%d, %s\n"
 msgstr "Problemer med å binde til %s:%d, %s\n"
@@ -284,7 +284,7 @@ msgstr "(%d) Uhåndtert kontrollpakke-type: %d, i tilstand: %d, lengde: %d"
 msgid "(%d) New connection from %s."
 msgstr "(%d) Ny tilkobling fra %s."
 
-#: src/mactelnetd.c:827 src/mactelnetd.c:1311
+#: src/mactelnetd.c:827 src/mactelnetd.c:1318
 #, c-format
 msgid "(%d) Connection closed."
 msgstr "(%d) Tilkobling lukket."
@@ -316,17 +316,21 @@ msgstr "Tjener avslutter"
 msgid "SIGHUP: Reloading interfaces"
 msgstr "SIGHUP: Laster grensesnitt på nytt"
 
-#: src/mactelnetd.c:1022
+#: src/mactelnetd.c:1016
+msgid "No devices found! Exiting.\n"
+msgstr "Ingen enheter funnet! Avslutter.\n"
+
+#: src/mactelnetd.c:1030
 #, c-format
 msgid "(%d) Connection closed because interface %s is gone."
 msgstr "(%d) Tilkobling lukket på grunn av at %s er borte."
 
-#: src/mactelnetd.c:1082
+#: src/mactelnetd.c:1090
 #, c-format
 msgid "Usage: %s [-fnoh]\n"
 msgstr "Bruksmåte: %s [-fnoh]\n"
 
-#: src/mactelnetd.c:1087
+#: src/mactelnetd.c:1095
 #, c-format
 msgid ""
 "\n"
@@ -345,7 +349,7 @@ msgstr ""
 "  -h        Denne hjelpen.\n"
 "\n"
 
-#: src/mactelnetd.c:1096
+#: src/mactelnetd.c:1104
 #, c-format
 msgid ""
 "\n"
@@ -362,45 +366,45 @@ msgstr ""
 "  -h        Denne hjelpen.\n"
 "\n"
 
-#: src/mactelnetd.c:1107 src/macping.c:189
+#: src/mactelnetd.c:1115 src/macping.c:189
 #, c-format
 msgid "You need to have root privileges to use %s.\n"
 msgstr "Du trenger superbruker-rettigheter for å bruke %s.\n"
 
-#: src/mactelnetd.c:1177
+#: src/mactelnetd.c:1185
 #, c-format
 msgid "MNDP: Error binding to %s:%d, %s\n"
 msgstr "MNDP: Klarte ikke binde til %s:%d, %s\n"
 
-#: src/mactelnetd.c:1182
+#: src/mactelnetd.c:1190
 #, c-format
 msgid "Bound to %s:%d"
 msgstr "Bundet til %s:%d"
 
-#: src/mactelnetd.c:1216
+#: src/mactelnetd.c:1224
 msgid "Unable to find any valid network interfaces\n"
 msgstr "Klarte ikke finne noen gyldige nettverksgrensesnitt\n"
 
-#: src/mactelnetd.c:1261 src/interfaces.c:282
+#: src/mactelnetd.c:1269 src/interfaces.c:284
 msgid "Network change detected"
 msgstr "Nettverksforandring oppdaget"
 
-#: src/mactelnetd.c:1309
+#: src/mactelnetd.c:1316
 #, c-format
 msgid "(%d) Connection to user %s closed."
 msgstr "(%d) Tilkobling til bruker %s lukket."
 
-#: src/mactelnetd.c:1317
+#: src/mactelnetd.c:1324
 #, c-format
 msgid "(%d) Waiting for ack\n"
 msgstr "(%d) Venter på ack\n"
 
-#: src/mactelnetd.c:1333
+#: src/mactelnetd.c:1340
 #, c-format
 msgid "(%d) Session timed out"
 msgstr "(%d) Sesjonen utgikk på tidsavbrudd"
 
-#: src/mactelnetd.c:1336
+#: src/mactelnetd.c:1343
 msgid "Timeout\r\n"
 msgstr "Tidsavbrudd\r\n"
 
@@ -548,17 +552,17 @@ msgstr "Advarsel på linje %d i %s: Ugyldig parameter %s, ignorerer.\n"
 msgid "Error on line %d in %s: Value string too long.\n"
 msgstr "Feil på linje %d i %s: Strengverdi for lang.\n"
 
-#: src/interfaces.c:84
+#: src/interfaces.c:86
 #, c-format
 msgid "Unable to allocate memory for interface\n"
 msgstr "Kunne ikke finne noen gyldige nettverksgrensesnitt\n"
 
-#: src/interfaces.c:316
+#: src/interfaces.c:318
 #, c-format
 msgid "Error creating network watcher thread: %s\n"
 msgstr "Kunne ikke starte nettverksovervåkningstråd: %s\n"
 
-#: src/interfaces.c:448
+#: src/interfaces.c:450
 #, c-format
 msgid "packet size too large\n"
 msgstr "pakkestørrelse for stor\n"
@@ -616,9 +620,6 @@ msgstr "Kan ikke lage en offentlig nøkkel: %s\n"
 #, fuzzy, c-format
 #~ msgid "SIGHUP: Reloading interfaces\n"
 #~ msgstr "SIGHUP: Laster grensesnitt på nytt"
-
-#~ msgid "No devices found! Exiting.\n"
-#~ msgstr "Ingen enheter funnet! Avslutter.\n"
 
 #, c-format
 #~ msgid "Listening on %s for %s\n"

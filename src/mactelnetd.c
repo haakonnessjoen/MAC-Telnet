@@ -338,6 +338,7 @@ static void display_nologin() {
 
 static void uwtmp_login(struct mt_connection *conn) {
 	struct utmpx utent;
+	struct timeval tv;
 	pid_t pid;
 
 	pid = getpid();
@@ -355,7 +356,9 @@ static void uwtmp_login(struct mt_connection *conn) {
 	strncpy(utent.ut_line, line, sizeof(utent.ut_line));
 	strncpy(utent.ut_id, utent.ut_line + 3, sizeof(utent.ut_id));
 	strncpy(utent.ut_host, ether_ntoa((const struct ether_addr *)conn->srcmac), sizeof(utent.ut_host));
-	gettimeofday(&utent.ut_tv, NULL);
+	gettimeofday(&tv, NULL);
+	utent.ut_tv.tv_sec = tv.tv_sec;
+	utent.ut_tv.tv_usec = tv.tv_usec;
 
 	/* Update utmp and/or wtmp */
 	setutxent();

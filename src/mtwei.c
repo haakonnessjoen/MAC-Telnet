@@ -129,19 +129,27 @@ static BIGNUM *tangle(mtwei_state_t *state, EC_POINT *target, uint8_t *validator
 	BN_mod_add(vpub_x, vpub_x, state->w2m, state->mod, state->ctx);
 	BN_bn2binpad(vpub_x, buf_out, 32);
 
+#if OPENSSL_VERSION_NUMBER >= 0x030000000  // 3.0.0
+	EVP_Digest(buf_out, 32, buf_out, NULL, EVP_sha256(), NULL);
+#else
 	SHA256_CTX keys;
 	SHA256_Init(&keys);
 	SHA256_Update(&keys, buf_out, 32);
 	SHA256_Final(buf_out, &keys);
+#endif
 
 	CHECKNULL(edpx = BN_bin2bn(buf_out, 32, NULL));
 	CHECKNULL(edpxm = BN_new());
 
 	while (1) {
-		SHA256_Init(&keys);
 		BN_bn2binpad(edpx, buf_out, 32);
+#if OPENSSL_VERSION_NUMBER >= 0x030000000  // 3.0.0
+		EVP_Digest(buf_out, 32, buf_out, NULL, EVP_sha256(), NULL);
+#else
+		SHA256_Init(&keys);
 		SHA256_Update(&keys, buf_out, 32);
 		SHA256_Final(buf_out, &keys);
+#endif
 		BN_bin2bn(buf_out, 32, edpxm);
 		BN_mod_add(edpxm, edpxm, state->m2w, state->mod, state->ctx);
 		if (EC_POINT_set_compressed_coordinates(state->curve25519, validator_pt, edpxm, negate, state->ctx) == 1) {
@@ -217,6 +225,22 @@ abort:
 }
 
 void mtwei_id(const char *username, const char *password, const unsigned char *salt, uint8_t *validator_out) {
+#if OPENSSL_VERSION_NUMBER >= 0x030000000  // 3.0.0
+	EVP_MD_CTX *mdctx;
+	mdctx = EVP_MD_CTX_new();
+	EVP_DigestInit_ex2(mdctx, EVP_sha256(), NULL);
+	EVP_DigestUpdate(mdctx, username, strlen(username));
+	EVP_DigestUpdate(mdctx, ":", 1);
+	EVP_DigestUpdate(mdctx, password, strlen(password));
+	EVP_DigestFinal_ex(mdctx, validator_out, NULL);
+
+	EVP_DigestInit_ex2(mdctx, EVP_sha256(), NULL);
+	EVP_DigestUpdate(mdctx, salt, 16);
+	EVP_DigestUpdate(mdctx, validator_out, SHA256_DIGEST_LENGTH);
+	EVP_DigestFinal_ex(mdctx, validator_out, NULL);
+
+	EVP_MD_CTX_free(mdctx);
+#else
 	SHA256_CTX v, v1;
 	SHA256_Init(&v1);
 	SHA256_Update(&v1, username, strlen(username));
@@ -228,6 +252,7 @@ void mtwei_id(const char *username, const char *password, const unsigned char *s
 	SHA256_Update(&v, salt, 16);
 	SHA256_Update(&v, validator_out, SHA256_DIGEST_LENGTH);
 	SHA256_Final(validator_out, &v);
+#endif
 }
 
 void mtwei_docrypto(mtwei_state_t *state, BIGNUM *privkey, const uint8_t *server_key, const uint8_t *client_key,
@@ -250,10 +275,20 @@ void mtwei_docrypto(mtwei_state_t *state, BIGNUM *privkey, const uint8_t *server
 	SHA256_CTX keys;
 	CHECKNULL(v = tangle(state, server_pubkey, validator, 1));
 
+#if OPENSSL_VERSION_NUMBER >= 0x030000000  // 3.0.0
+	EVP_MD_CTX *mdctx;
+	mdctx = EVP_MD_CTX_new();
+	EVP_DigestInit_ex2(mdctx, EVP_sha256(), NULL);
+	EVP_DigestUpdate(mdctx, client_key, 32);
+	EVP_DigestUpdate(mdctx, server_key, 32);
+	EVP_DigestFinal_ex(mdctx, buf_out, NULL);
+	EVP_MD_CTX_free(mdctx);
+#else
 	SHA256_Init(&keys);
 	SHA256_Update(&keys, client_key, 32);
 	SHA256_Update(&keys, server_key, 32);
 	SHA256_Final(buf_out, &keys);
+#endif
 
 	CHECKNULL(vh = BN_bin2bn(buf_out, 32, NULL));
 
@@ -269,11 +304,21 @@ void mtwei_docrypto(mtwei_state_t *state, BIGNUM *privkey, const uint8_t *server
 	CHECKNULL(z_input = BN_new());
 	BN_mod_add(z_input, pt_x, state->w2m, state->mod, state->ctx);
 
+#if OPENSSL_VERSION_NUMBER >= 0x030000000  // 3.0.0
+	mdctx = EVP_MD_CTX_new();
+	EVP_DigestInit_ex2(mdctx, EVP_sha256(), NULL);
+	EVP_DigestUpdate(mdctx, buf_out, 32);
+	BN_bn2binpad(z_input, buf_out, 32);
+	EVP_DigestUpdate(mdctx, buf_out, 32);
+	EVP_DigestFinal_ex(mdctx, buf_out, NULL);
+	EVP_MD_CTX_free(mdctx);
+#else
 	SHA256_Init(&keys);
 	SHA256_Update(&keys, buf_out, 32);
 	BN_bn2binpad(z_input, buf_out, 32);
 	SHA256_Update(&keys, buf_out, 32);
 	SHA256_Final(buf_out, &keys);
+#endif
 
 	EC_POINT_clear_free(pub);
 	EC_POINT_clear_free(server_pubkey);
@@ -318,10 +363,20 @@ void mtwei_docryptos(mtwei_state_t *state, BIGNUM *privkey, const uint8_t *clien
 	SHA256_CTX keys;
 	CHECKNULL(v = BN_bin2bn(validator, 32, NULL));
 
+#if OPENSSL_VERSION_NUMBER >= 0x030000000  // 3.0.0
+	EVP_MD_CTX *mdctx;
+	mdctx = EVP_MD_CTX_new();
+	EVP_DigestInit_ex2(mdctx, EVP_sha256(), NULL);
+	EVP_DigestUpdate(mdctx, client_key, 32);
+	EVP_DigestUpdate(mdctx, server_key, 32);
+	EVP_DigestFinal_ex(mdctx, buf_out, NULL);
+	EVP_MD_CTX_free(mdctx);
+#else
 	SHA256_Init(&keys);
 	SHA256_Update(&keys, client_key, 32);
 	SHA256_Update(&keys, server_key, 32);
 	SHA256_Final(buf_out, &keys);
+#endif
 
 	CHECKNULL(validator_pt = EC_POINT_new(state->curve25519));
 	EC_POINT_mul(state->curve25519, validator_pt, NULL, state->g, v, state->ctx);
@@ -341,11 +396,21 @@ void mtwei_docryptos(mtwei_state_t *state, BIGNUM *privkey, const uint8_t *clien
 	CHECKNULL(z_input = BN_new());
 	BN_mod_add(z_input, pt_x, state->w2m, state->mod, state->ctx);
 
+#if OPENSSL_VERSION_NUMBER >= 0x030000000  // 3.0.0
+	mdctx = EVP_MD_CTX_new();
+	EVP_DigestInit_ex2(mdctx, EVP_sha256(), NULL);
+	EVP_DigestUpdate(mdctx, buf_out, 32);
+	BN_bn2binpad(z_input, buf_out, 32);
+	EVP_DigestUpdate(mdctx, buf_out, 32);
+	EVP_DigestFinal_ex(mdctx, buf_out, NULL);
+	EVP_MD_CTX_free(mdctx);
+#else
 	SHA256_Init(&keys);
 	SHA256_Update(&keys, buf_out, 32);
 	BN_bn2binpad(z_input, buf_out, 32);
 	SHA256_Update(&keys, buf_out, 32);
 	SHA256_Final(buf_out, &keys);
+#endif
 
 	EC_POINT_clear_free(pub);
 	EC_POINT_clear_free(client_pubkey);

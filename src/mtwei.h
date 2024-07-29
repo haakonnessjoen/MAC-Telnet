@@ -21,6 +21,7 @@
 #include <openssl/ec.h>
 #include <openssl/err.h>
 #include <openssl/sha.h>
+#include <openssl/evp.h>
 
 /* Define the state of the EC-SRP Algorithm. */
 typedef struct mtwei_state_s {

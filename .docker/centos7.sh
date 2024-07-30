@@ -27,7 +27,7 @@ package_version=`grep Version MAC-Telnet/config/mactelnet.spec | awk '{print $2}
 
 # Create source archive for RPM Build
 pushd MAC-Telnet
-git archive --prefix=mactelnet-${package_version}/ HEAD | gzip > /tmp/rpmbuild/SOURCES/mactelnet-${package_version}.tar.gz
+git archive --prefix=mactelnet-${package_version}/ v${package_version} | gzip > /tmp/rpmbuild/SOURCES/mactelnet-${package_version}.tar.gz
 popd
 
 # Build RPM

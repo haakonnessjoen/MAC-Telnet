@@ -1,12 +1,12 @@
 Name:     mactelnet
-Version:  0.5.1
+Version:  0.5.2
 Release:  1%{?gitrev:.%{gitrev}git}%{?dist}
 Summary:  Console tools for connecting to, and serving, devices using MikroTik RouterOS MAC-Telnet protocol.
 Epoch:    7
 
-License:  GNU
+License:  GPL-2.0-or-later WITH Autoconf-exception-generic
 Group:    Applications/System
-URL:      http://lunatic.no/2010/10/routeros-mac-telnet-application-for-linux-users/
+URL:      https://salsa.debian.org/debian/mactelnet
 
 
 # Generated with:

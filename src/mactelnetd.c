@@ -79,6 +79,7 @@
 #include <syslog.h>
 #include <sys/utsname.h>
 #include <openssl/evp.h>
+#include <openssl/rand.h>
 
 #include "protocol.h"
 #include "console.h"
@@ -703,9 +704,21 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 						mtwei_id(curconn->username, user->password, curconn->pass_salt + MTWEI_PUBKEY_LEN, validator);
 						curconn->private_key = mtwei_keygen(&mtwei, curconn->pass_salt, validator);
 					} else {
-						/* Continue auth flow, so we do not let an attacker figure out if the user exists or not */
+						/* Continue auth flow, so we do not let an attacker figure out if the user exists or not.
+						   we need to set a fake private key, so we can continue the auth flow until the user sends password,
+						   then we can send "invalid login" message, and disconnect the user. */
 						curconn->have_pass_salt = 1;
 						curconn->invalid_login = 1;
+						uint8_t validator[32];
+						char username[33];
+						RAND_bytes(username, 32);
+						username[32] = 0;
+						char password[33];
+						RAND_bytes(password, 32);
+						password[32] = 0;
+
+						mtwei_id(username, password, curconn->pass_salt + MTWEI_PUBKEY_LEN, validator);
+						curconn->private_key = mtwei_keygen(&mtwei, curconn->pass_salt, validator);
 					}
 
 					init_packet(&pdata, MT_PTYPE_DATA, pkthdr->dstaddr, pkthdr->srcaddr, pkthdr->seskey,

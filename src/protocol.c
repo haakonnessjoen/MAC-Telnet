@@ -44,8 +44,8 @@
 #else
 #include <endian.h>
 #endif
-#include <config.h>
 
+#include "config.h"
 #include "protocol.h"
 #include "extra.h"
 

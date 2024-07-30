@@ -51,9 +51,9 @@
 #include <linux/if_ether.h>
 #include <sys/mman.h>
 #endif
-#include <config.h>
-
 #include <openssl/evp.h>
+
+#include "config.h"
 #include "mtwei.h"
 #include "protocol.h"
 #include "console.h"

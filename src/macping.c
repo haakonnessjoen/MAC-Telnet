@@ -38,8 +38,8 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <float.h>
-#include <config.h>
 
+#include "config.h"
 #include "protocol.h"
 #include "interfaces.h"
 #include "utlist.h"

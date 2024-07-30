@@ -16,7 +16,7 @@
 	with this program; if not, write to the Free Software Foundation, Inc.,
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-#include <config.h>
+#include "config.h"
 #if !defined(__FreeBSD__)
 #define _POSIX_C_SOURCE 199309L
 #define _XOPEN_SOURCE 600

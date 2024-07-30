@@ -23,8 +23,8 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
-#include <config.h>
 
+#include "config.h"
 #include "autologin.h"
 #include "extra.h"
 

@@ -24,7 +24,7 @@ jobs:
       - uses: ConorMacBride/install-package@v1
         with:
           brew: gettext autoconf automake libtool openssl
-          apt: build-essential autopoint automake autoconf libssl-dev libtool gettext
+          apt: build-essential autopoint automake autoconf libssl-dev libtool gettext libbsd-dev
       - name: Install compiler
         id: install_cc
         uses: rlalik/setup-cpp-compiler@master

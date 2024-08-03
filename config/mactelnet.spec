@@ -8,6 +8,13 @@ License:  GPL-2.0-or-later WITH Autoconf-exception-generic
 Group:    Applications/System
 URL:      https://salsa.debian.org/debian/mactelnet
 
+BuildRequires:  automake autoconf make
+BuildRequires:  coreutils
+BuildRequires:  gcc
+BuildRequires:  gettext-devel
+BuildRequires:  openssl-devel
+BuildRequires:  libbsd-devel
+BuildRequires:  sed
 
 # Generated with:
 # git archive --prefix=%{name}-%{version}/ v%{version} | gzip > %{name}-%{version}.tar.gz

@@ -66,6 +66,20 @@ AM_CONDITIONAL([BUILD_MACTELNETD], [test x"$enable_mactelnetd" != "xno"])
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h sys/random.h float.h libintl.h locale.h linux/netlink.h netinet/in.h paths.h stdlib.h string.h sys/ioctl.h sys/socket.h sys/time.h syslog.h termios.h unistd.h utmp.h utmpx.h])
 
+dnl check for readpassphrase. If none is found, we use getpass (with a warning)
+AC_CHECK_HEADER([readpassphrase.h],
+    [READPASSPHRASE=native],
+    AC_CHECK_HEADER([bsd/readpassphrase.h],
+        [READPASSPHRASE=bsd],
+        [AC_MSG_WARN([falling back to obsoleted getpass(3)])]))
+
+AS_IF([test "x$READPASSPHRASE" = "xnative"],[
+    AC_DEFINE([HAVE_READPASSPHRASE], [1], [Enable readpassphrase])])
+
+AS_IF([test "x$READPASSPHRASE" = "xbsd"],[
+    AC_DEFINE([HAVE_BSDREADPASSPHRASE], [1], [Enable bsdreadpassphrase])
+    AC_SEARCH_LIBS([readpassphrase], [bsd], [], [AC_MSG_ERROR([library for bsd/readpassphrase.h not found])])])
+
 # Check if the target platform is macOS
 case "$host_os" in
   darwin*)

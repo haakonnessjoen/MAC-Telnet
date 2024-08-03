@@ -16,6 +16,10 @@ mactelnetd_SOURCES = config.h mactelnetd.c protocol.c protocol.h interfaces.c in
 mactelnetd_CFLAGS = -DFROM_MACTELNETD -DUSERSFILE='"$(sysconfdir)/mactelnetd.users"'
 mactelnetd_LDADD = $(CRYPTO_LIBS) $(COREFOUNDATION_LIBS) $(SYSTEMCONFIGURATION_LIBS)
 
+savepass_SOURCES = config.h savepass.c mtwei.c mtwei.h users.c users.h extra.h utlist.h
+savepass_CFLAGS = -DUSERSFILE='"$(sysconfdir)/mactelnetd.users"'
+savepass_LDADD = $(CRYPTO_LIBS)
+
 mndp_SOURCES = config.h mndp.c mndp.h protocol.c protocol.h extra.h
 
 macping_SOURCES = config.h macping.c interfaces.c interfaces.h protocol.c protocol.h extra.h utlist.h

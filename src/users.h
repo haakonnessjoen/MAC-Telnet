@@ -20,11 +20,19 @@
 #define _USERS_H 1
 
 #define MT_CRED_LEN 100
-#define MT_CRED_MAXNUM 128
+#define MT_CRED_USERLEN 32
+#define MT_CRED_SALTLEN 16
+#define MT_CRED_HASHLEN 32
+
+#if MT_CRED_LEN < MT_CRED_HASHLEN * 2 + 1
+#error "MT_CRED_LEN must be at least twice the length of MT_CRED_HASHLEN"
+#endif
 
 struct mt_credentials {
 	char username[MT_CRED_LEN];
 	char password[MT_CRED_LEN];
+	char salt[MT_CRED_SALTLEN];
+	char hashed;
 
 	struct mt_credentials *prev;
 	struct mt_credentials *next;
@@ -33,6 +41,7 @@ struct mt_credentials {
 extern struct mt_credentials *mt_users;
 
 extern void read_userfile();
-struct mt_credentials *find_user(char *username);
+extern int add_user(const char *username, const char *password);
+extern struct mt_credentials *find_user(char *username);
 
 #endif

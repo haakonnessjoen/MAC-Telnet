@@ -37,3 +37,4 @@ src/mactelnetd
 src/mndp
 src/.deps/
 src/config.h
+doc/mactelnetd.1

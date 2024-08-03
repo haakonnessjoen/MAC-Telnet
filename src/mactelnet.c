@@ -16,6 +16,7 @@
 	with this program; if not, write to the Free Software Foundation, Inc.,
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
+#include "config.h"
 #define _DEFAULT_SOURCE
 #include <libintl.h>
 #include <locale.h>
@@ -53,7 +54,14 @@
 #endif
 #include <openssl/evp.h>
 
-#include "config.h"
+#if (HAVE_READPASSPHRASE == 1)
+#include <readpassphrase.h>
+#elif (HAVE_BSDREADPASSPHRASE == 1)
+#include <bsd/readpassphrase.h>
+#else
+#warning "Falling back to getpass(3), which is marked obsolete!"
+#endif
+
 #include "mtwei.h"
 #include "protocol.h"
 #include "console.h"
@@ -717,8 +725,12 @@ int main(int argc, char **argv) {
 	}
 
 	if (!have_password) {
-		char *tmp;
-		tmp = getpass(quiet_mode ? "" : _("Password: "));
+#if (HAVE_READPASSPHRASE == 1 || HAVE_BSDREADPASSPHRASE == 1)
+		static char pwd[200];
+		char *tmp = readpassphrase(_("Password: "), (char *)&pwd, 200, RPP_ECHO_OFF);
+#else
+		char *tmp = getpass(_("Password: "));
+#endif
 #if defined(_POSIX_MEMLOCK_RANGE) && _POSIX_MEMLOCK_RANGE > 0
 		mlock(password, sizeof(password));
 #endif

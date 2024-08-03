@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <readpassphrase.h>
 #if defined(__APPLE__)
 #include <sys/sysctl.h>
 #include <libkern/OSByteOrder.h>
@@ -80,6 +81,15 @@
 #include <sys/utsname.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
+
+#if (HAVE_READPASSPHRASE == 1)
+#include <readpassphrase.h>
+#elif (HAVE_BSDREADPASSPHRASE == 1)
+#include <bsd/readpassphrase.h>
+#else
+#warning "Falling back to getpass(3), which is marked obsolete!"
+#include <unistd.h>
+#endif
 
 #include "protocol.h"
 #include "console.h"
@@ -442,7 +452,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		act_pass_len = strlen(user->password);
 		act_pass_len = act_pass_len <= 82 ? act_pass_len : 82;
 
-		if (use_md5) {
+		if (use_md5 && user->hashed == 0) {
 			/* Concat string of 0 + password + pass_salt */
 			hashdata[0] = 0;
 			memcpy(hashdata + 1, user->password, act_pass_len);
@@ -458,10 +468,21 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 			EVP_DigestFinal_ex(context, hashsum + 1, &md_len);
 			EVP_MD_CTX_free(context);
 			hashsum[0] = 0;
+		} else if (use_md5 && user->hashed == 1) {
+			// Provoke invalid login response
+			user = NULL;
+			syslog(LOG_NOTICE, _("(%d) User %s tried to login with md5 authentication, but user is not saved in plaintext"), curconn->seskey, curconn->username);
 		} else {
-			mtwei_id(curconn->username, user->password, curconn->pass_salt + MTWEI_PUBKEY_LEN, (uint8_t *)hashdata);
-			mtwei_docryptos(&mtwei, curconn->private_key, curconn->client_key, curconn->pass_salt, (uint8_t *)hashdata,
-							hashsum);
+			if (user->hashed == 1) {
+				// copy validator from userfile
+				memcpy(hashdata, user->password, 32);
+				mtwei_docryptos(&mtwei, curconn->private_key, curconn->client_key, curconn->pass_salt,
+								(uint8_t *)hashdata, hashsum);
+			} else {
+				mtwei_id(curconn->username, user->password, curconn->pass_salt + MTWEI_PUBKEY_LEN, (uint8_t *)hashdata);
+				mtwei_docryptos(&mtwei, curconn->private_key, curconn->client_key, curconn->pass_salt,
+								(uint8_t *)hashdata, hashsum);
+			}
 		}
 	}
 
@@ -499,18 +520,12 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 	if (slavename != NULL) {
 		pid_t pid;
 		struct stat sb;
-		struct passwd *user = (struct passwd *)malloc(sizeof(struct passwd));
-		struct passwd *tmpuser = user;
-		char *buffer;
+		struct passwd srcuser;
+		struct passwd *user;
+		const size_t bufsize = 16384;
+		char * buffer;
 
-		if (user == NULL) {
-			syslog(LOG_CRIT, _("(%d) Error allocating memory."), curconn->seskey);
-			/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
-			abort_connection(curconn, pkthdr, _("System error, out of memory\r\n"));
-			return;
-		}
-
-		buffer = (char *)malloc(1024);
+		buffer = (char *)malloc(bufsize);
 		if (buffer == NULL) {
 			syslog(LOG_CRIT, _("(%d) Error allocating memory."), curconn->seskey);
 			/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
@@ -518,12 +533,12 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 			return;
 		}
 
-		if (getpwnam_r(curconn->username, user, buffer, 1024, &tmpuser) != 0) {
+		// TODO: support ERANGE
+		if (getpwnam_r(curconn->username, &srcuser, buffer, bufsize, &user) != 0 || user == NULL) {
 			syslog(LOG_WARNING, _("(%d) Login ok, but local user not accessible (%s)."), curconn->seskey,
 				   curconn->username);
 			/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
-			abort_connection(curconn, pkthdr, _("Local user not accessible\r\n"));
-			free(user);
+			abort_connection(curconn, pkthdr, _("Error: Local user not accessible\r\n"));
 			free(buffer);
 			return;
 		}
@@ -535,6 +550,7 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 		if (curconn->slavefd == -1) {
 			syslog(LOG_ERR, _("Error opening %s: %s"), slavename, strerror(errno));
 			/*_ Please include both \r and \n in translation, this is needed for the terminal emulator. */
+			free(buffer);
 			abort_connection(curconn, pkthdr, _("Error opening terminal\r\n"));
 			list_remove_connection(curconn);
 			return;
@@ -610,7 +626,6 @@ static void user_login(struct mt_connection *curconn, struct mt_mactelnet_hdr *p
 			execl(user->pw_shell, user->pw_shell, "-", (char *)0);
 			exit(0);  // just to be sure.
 		}
-		free(user);
 		free(buffer);
 		close(curconn->slavefd);
 		curconn->pid = pid;
@@ -701,20 +716,27 @@ static void handle_data_packet(struct mt_connection *curconn, struct mt_mactelne
 					if ((user = find_user(curconn->username)) != NULL) {
 						curconn->have_pass_salt = 1;
 						uint8_t validator[32];
-						mtwei_id(curconn->username, user->password, curconn->pass_salt + MTWEI_PUBKEY_LEN, validator);
+
+						if (user->hashed) {
+							memcpy(validator, user->password, 32);
+							memcpy(curconn->pass_salt + MTWEI_PUBKEY_LEN, user->salt, 16);
+						} else {
+							mtwei_id(curconn->username, user->password, curconn->pass_salt + MTWEI_PUBKEY_LEN,
+									 validator);
+						}
 						curconn->private_key = mtwei_keygen(&mtwei, curconn->pass_salt, validator);
 					} else {
 						/* Continue auth flow, so we do not let an attacker figure out if the user exists or not.
-						   we need to set a fake private key, so we can continue the auth flow until the user sends password,
-						   then we can send "invalid login" message, and disconnect the user. */
+						   we need to set a fake private key, so we can continue the auth flow until the user sends
+						   password, then we can send "invalid login" message, and disconnect the user. */
 						curconn->have_pass_salt = 1;
 						curconn->invalid_login = 1;
 						uint8_t validator[32];
 						char username[33];
-						RAND_bytes(username, 32);
+						RAND_bytes((unsigned char*)username, 32);
 						username[32] = 0;
 						char password[33];
-						RAND_bytes(password, 32);
+						RAND_bytes((unsigned char*)password, 32);
 						password[32] = 0;
 
 						mtwei_id(username, password, curconn->pass_salt + MTWEI_PUBKEY_LEN, validator);
@@ -1051,6 +1073,96 @@ void sighup_handler() {
 	}
 }
 
+static int main_add_user(char *username, char *password) {
+	char user[32];
+	char pwd[200];
+
+	if (username == NULL) {
+		printf(_("Username: "));
+		fflush(stdout);
+		(void)scanf("%31s", user);
+
+		if (strlen(user) == 0) {
+			fprintf(stderr, _("Username must be specified.\n"));
+			return 1;
+		}
+		username = user;
+	}
+
+	if (strlen(username) > 32) {
+		fprintf(stderr, _("Username too long.\n"));
+		return 1;
+	}
+
+	struct passwd *user_entry = getpwnam(username);
+	if (user_entry == NULL) {
+		fprintf(stderr, _("Warning: Local user '%s' does not exist.\n"), username);
+	}
+
+	if (password == NULL) {
+#if (HAVE_READPASSPHRASE == 1 || HAVE_BSDREADPASSPHRASE == 1)
+		char *tmp = readpassphrase(_("Password: "), (char *)&pwd, 200, RPP_ECHO_OFF);
+#else
+		char *tmp = getpass(_("Password: "));
+#endif
+		if (tmp == NULL || strlen(tmp) == 0) {
+			fprintf(stderr, _("Password must be specified.\n"));
+			return 1;
+		}
+		password = tmp;
+	}
+
+	int result = add_user(username, password);
+	if (result == 1) {
+		printf(_("User %s was added.\n"), username);
+	} else if (result == 2) {
+		printf(_("User %s was updated.\n"), username);
+	} else {
+		fprintf(stderr, _("Failed to add user %s.\n"), username);
+		return 1;
+	}
+	return 0;
+}
+
+static int main_delete_user(char *username) {
+	if (username == NULL) {
+		fprintf(stderr, _("Username must be specified.\n"));
+		return 1;
+	}
+
+	int result = add_user(username, NULL);
+	if (result == 2) {
+		printf(_("User %s was deleted.\n"), username);
+	} else if (result == 1) {
+		printf(_("User %s did not exist.\n"), username);
+	} else {
+		fprintf(stderr, _("Failed to delete user %s.\n"), username);
+		return 1;
+	}
+	return 0;
+}
+
+static int main_list_users() {
+	struct mt_credentials *user;
+
+	printf(_("Users:\n"));
+	DL_FOREACH(mt_users, user) {
+		struct passwd *user_entry = getpwnam(user->username);
+
+		if (user_entry == NULL) {
+			printf("\t%s (%s)\n", user->username, _("local user not found!"));
+		} else if (user_entry->pw_uid == 0 || user_entry->pw_gid == 0) {
+			printf("\t%s (%s)\n", user->username, _("has root access!"));
+		} else if (!user->hashed) {
+			printf("\t%s (%s)\n", user->username, _("plain-text password!"));
+		} else {
+			printf("\t%s\n", user->username);
+		}
+	}
+	printf("\n");
+	return 0;
+}
+
 /*
  * TODO: Rewrite main() when all sub-functionality is tested
  */
@@ -1066,6 +1178,11 @@ int main(int argc, char **argv) {
 	int print_help = 0;
 	int foreground = 0;
 	int interface_count = 0;
+	char add_user = 0;
+	char list_users = 0;
+	char *add_user_name = NULL;
+	char *add_user_password = NULL;
+	char *delete_user = NULL;
 
 	setlocale(LC_ALL, "");
 	bindtextdomain(PACKAGE, LOCALEDIR);
@@ -1074,7 +1191,7 @@ int main(int argc, char **argv) {
 #if !defined(__APPLE__)
 	while ((c = getopt(argc, argv, "fnovh?")) != -1) {
 #else
-	while ((c = getopt(argc, argv, "novh")) != -1) {
+	while ((c = getopt(argc, argv, "novhlau:p:d:")) != -1) {
 #endif
 		switch (c) {
 			case 'f':
@@ -1094,6 +1211,26 @@ int main(int argc, char **argv) {
 				exit(0);
 				break;
 
+			case 'a':
+				add_user = 1;
+				break;
+
+			case 'u':
+				add_user_name = optarg;
+				break;
+
+			case 'p':
+				add_user_password = optarg;
+				break;
+
+			case 'd':
+				delete_user = optarg;
+				break;
+
+			case 'l':
+				list_users = 1;
+				break;
+
 			case 'h':
 			case '?':
 				print_help = 1;
@@ -1103,24 +1240,36 @@ int main(int argc, char **argv) {
 
 	if (print_help) {
 		print_version();
-		fprintf(stderr, _("Usage: %s [-fnoh]\n"), argv[0]);
+		fprintf(stderr, _("Usage: %s [-fnoh]|-a [-u <user>|-p <password>]|[-d <user>]\n"), argv[0]);
 
 		if (print_help) {
 #if !defined(__APPLE__)
 			/*_ This is the usage output for operating systems other than MacOS */
 			fprintf(stderr, _("\nParameters:\n"
-							  "  -f        Run process in foreground.\n"
-							  "  -n        Do not use broadcast packets. Just a tad less insecure.\n"
-							  "  -o        Use MD5 for password hashing.\n"
-							  "  -h        This help.\n"
+							  "  -f            Run process in foreground.\n"
+							  "  -n            Do not use broadcast packets. Just a tad less insecure.\n"
+							  "  -o            Use MD5 for password hashing.\n"
+							  "  -l            List users from userfile.\n"
+							  "  -a            Add a new user.\n"
+							  "  -u [user]     Optionally set username to add with -a.\n"
+							  "  -p [password] Optionally set password for -a command.\n"
+							  "  -d [user]     Delete user.\n"
+							  "  -h            This help.\n"
+							  "\n\nIf any of -a, -d, -l or -h is specified, the server will not start.\n"
 							  "\n"));
 #else
 			/*_ This is the usage output for MacOS which always runs in the forground
 				as it should be daemonized by launchd */
 			fprintf(stderr, _("\nParameters:\n"
-							  "  -n        Do not use broadcast packets. Just a tad less insecure.\n"
-							  "  -o        Use MD5 for password hashing.\n"
-							  "  -h        This help.\n"
+							  "  -n            Do not use broadcast packets. Just a tad less insecure.\n"
+							  "  -o            Use MD5 for password hashing.\n"
+							  "  -l            List users from userfile.\n"
+							  "  -a            Add a new user.\n"
+							  "  -u [user]     Optionally set username to add with -a.\n"
+							  "  -p [password] Optionally set password for -a command.\n"
+							  "  -d [user]     Delete user.\n"
+							  "  -h            This help.\n"
+							  "\n\nIf any of -a, -d, -l or -h is specified, the server will not start.\n"
 							  "\n"));
 #endif
 		}
@@ -1134,6 +1283,14 @@ int main(int argc, char **argv) {
 
 	/* Try to read user file */
 	read_userfile();
+
+	if (add_user) {
+		return main_add_user(add_user_name, add_user_password);
+	} else if (delete_user) {
+		return main_delete_user(delete_user);
+	} else if (list_users) {
+		return main_list_users();
+	}
 
 	/* Seed randomizer */
 	srand(time(NULL));

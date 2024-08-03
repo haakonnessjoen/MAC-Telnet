@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mactelnet\n"
 "Report-Msgid-Bugs-To: haakon.nessjoen@gmail.com\n"
-"POT-Creation-Date: 2024-04-22 21:15+0200\n"
+"POT-Creation-Date: 2024-07-30 10:37+0200\n"
 "PO-Revision-Date: 2024-04-22 19:37+0200\n"
 "Last-Translator: Håkon Nessjøen <haakon.nessjoen@gmail.com>\n"
 "Language-Team: Håkon Nessjøen <haakon.nessjoen@gmail.com>\n"
@@ -175,7 +175,7 @@ msgstr "Passord: "
 msgid "Connecting to %s..."
 msgstr "Kobler til %s…"
 
-#: src/mactelnet.c:762 src/mactelnetd.c:258 src/mactelnetd.c:1163
+#: src/mactelnet.c:762 src/mactelnetd.c:259 src/mactelnetd.c:1179
 #, c-format
 msgid "Error binding to %s:%d, %s\n"
 msgstr "Problemer med å binde til %s:%d, %s\n"
@@ -195,110 +195,110 @@ msgstr "ferdig\n"
 msgid "Username too long\n"
 msgstr "Brukernavn for langt\n"
 
-#: src/mactelnetd.c:260
+#: src/mactelnetd.c:261
 #, c-format
 msgid "Error binding to %s:%d on %s\n"
 msgstr "Problemer med å binde til %s:%d på %s\n"
 
-#: src/mactelnetd.c:264
+#: src/mactelnetd.c:265
 #, c-format
 msgid "Using %s to transmit packets from %s\n"
 msgstr "Bruker %s til å sende pakker fra %s\n"
 
-#: src/mactelnetd.c:469
+#: src/mactelnetd.c:473
 #, c-format
 msgid "(%d) Invalid login by %s."
 msgstr "(%d) Ugyldig login av %s."
 
-#: src/mactelnetd.c:472
+#: src/mactelnetd.c:476
 msgid "Login failed, incorrect username or password\r\n"
 msgstr "Login feilet, ugyldig brukernavn eller passord\r\n"
 
-#: src/mactelnetd.c:489
+#: src/mactelnetd.c:493
 msgid "Terminal error\r\n"
 msgstr "Terminalfeil\r\n"
 
-#: src/mactelnetd.c:503 src/mactelnetd.c:511
+#: src/mactelnetd.c:507 src/mactelnetd.c:515
 #, c-format
 msgid "(%d) Error allocating memory."
 msgstr "(%d) Klarer ikke allokere minne."
 
-#: src/mactelnetd.c:505 src/mactelnetd.c:513
+#: src/mactelnetd.c:509 src/mactelnetd.c:517
 msgid "System error, out of memory\r\n"
 msgstr "Systemfeil, minne fullt\r\n"
 
-#: src/mactelnetd.c:518
+#: src/mactelnetd.c:522
 #, c-format
 msgid "(%d) Login ok, but local user not accessible (%s)."
 msgstr "(%d) Login ok, men lokal bruker er ikke tilgjengelig (%s)."
 
-#: src/mactelnetd.c:521
+#: src/mactelnetd.c:525
 msgid "Local user not accessible\r\n"
 msgstr "Lokal bruker er ikke tilgjengelig\r\n"
 
-#: src/mactelnetd.c:532
+#: src/mactelnetd.c:536
 #, c-format
 msgid "Error opening %s: %s"
 msgstr "Klarer ikke åpne %s: %s"
 
-#: src/mactelnetd.c:534
+#: src/mactelnetd.c:538
 msgid "Error opening terminal\r\n"
 msgstr "Klarer ikke åpne terminal\r\n"
 
-#: src/mactelnetd.c:545
+#: src/mactelnetd.c:549
 #, c-format
 msgid "(%d) User %s logged in."
 msgstr "(%d) Bruker %s logget inn."
 
-#: src/mactelnetd.c:580
+#: src/mactelnetd.c:584
 #, c-format
 msgid "(%d) Could not log in %s (%d:%d): setuid/setgid: %s"
 msgstr "(%d) Kunne ikke logge inn %s (%d:%d): setuid/setgid: %s"
 
-#: src/mactelnetd.c:583
+#: src/mactelnetd.c:587
 msgid "Internal error\r\n"
 msgstr "Intern feil\r\n"
 
-#: src/mactelnetd.c:589
+#: src/mactelnetd.c:593
 #, c-format
 msgid "(%d) User %s disconnected with "
 msgstr "(%d) Bruker %s frakoblet med "
 
-#: src/mactelnetd.c:715
+#: src/mactelnetd.c:731
 #, c-format
 msgid "(%d) Invalid mtwei key by %s."
 msgstr "(%d) Ugyldig mtwei nøkkel av %s."
 
-#: src/mactelnetd.c:738
+#: src/mactelnetd.c:754
 #, c-format
 msgid "(%d) Unhandeled control packet type: %d, length: %d"
 msgstr "(%d) Uhåndtert kontrollpakke-type: %d, lengde: %d"
 
-#: src/mactelnetd.c:742
+#: src/mactelnetd.c:758
 #, c-format
 msgid "(%d) Unhandeled control packet type: %d, in state: %d, length: %d"
 msgstr "(%d) Uhåndtert kontrollpakke-type: %d, i tilstand: %d, lengde: %d"
 
-#: src/mactelnetd.c:798
+#: src/mactelnetd.c:814
 #, c-format
 msgid "(%d) New connection from %s."
 msgstr "(%d) Ny tilkobling fra %s."
 
-#: src/mactelnetd.c:827 src/mactelnetd.c:1318
+#: src/mactelnetd.c:843 src/mactelnetd.c:1334
 #, c-format
 msgid "(%d) Connection closed."
 msgstr "(%d) Tilkobling lukket."
 
-#: src/mactelnetd.c:882
+#: src/mactelnetd.c:898
 #, c-format
 msgid "(%d) Unhandeled packet type: %d"
 msgstr "(%d) Uhåndtert pakke-type: %d"
 
-#: src/mactelnetd.c:957
+#: src/mactelnetd.c:973
 msgid "Was not able to send any MNDP packets"
 msgstr "Klarte ikke sende MNDP pakker"
 
-#: src/mactelnetd.c:966
+#: src/mactelnetd.c:982
 msgid ""
 "\r\n"
 "\r\n"
@@ -308,29 +308,29 @@ msgstr ""
 "\r\n"
 "Tjener avslutter.\r\n"
 
-#: src/mactelnetd.c:968
+#: src/mactelnetd.c:984
 msgid "Daemon shutting down"
 msgstr "Tjener avslutter"
 
-#: src/mactelnetd.c:1001
+#: src/mactelnetd.c:1017
 msgid "SIGHUP: Reloading interfaces"
 msgstr "SIGHUP: Laster grensesnitt på nytt"
 
-#: src/mactelnetd.c:1016
+#: src/mactelnetd.c:1032
 msgid "No devices found! Exiting.\n"
 msgstr "Ingen enheter funnet! Avslutter.\n"
 
-#: src/mactelnetd.c:1030
+#: src/mactelnetd.c:1046
 #, c-format
 msgid "(%d) Connection closed because interface %s is gone."
 msgstr "(%d) Tilkobling lukket på grunn av at %s er borte."
 
-#: src/mactelnetd.c:1090
+#: src/mactelnetd.c:1106
 #, c-format
 msgid "Usage: %s [-fnoh]\n"
 msgstr "Bruksmåte: %s [-fnoh]\n"
 
-#: src/mactelnetd.c:1095
+#: src/mactelnetd.c:1111
 #, c-format
 msgid ""
 "\n"
@@ -349,7 +349,7 @@ msgstr ""
 "  -h        Denne hjelpen.\n"
 "\n"
 
-#: src/mactelnetd.c:1104
+#: src/mactelnetd.c:1120
 #, c-format
 msgid ""
 "\n"
@@ -366,45 +366,45 @@ msgstr ""
 "  -h        Denne hjelpen.\n"
 "\n"
 
-#: src/mactelnetd.c:1115 src/macping.c:189
+#: src/mactelnetd.c:1131 src/macping.c:189
 #, c-format
 msgid "You need to have root privileges to use %s.\n"
 msgstr "Du trenger superbruker-rettigheter for å bruke %s.\n"
 
-#: src/mactelnetd.c:1185
+#: src/mactelnetd.c:1201
 #, c-format
 msgid "MNDP: Error binding to %s:%d, %s\n"
 msgstr "MNDP: Klarte ikke binde til %s:%d, %s\n"
 
-#: src/mactelnetd.c:1190
+#: src/mactelnetd.c:1206
 #, c-format
 msgid "Bound to %s:%d"
 msgstr "Bundet til %s:%d"
 
-#: src/mactelnetd.c:1224
+#: src/mactelnetd.c:1240
 msgid "Unable to find any valid network interfaces\n"
 msgstr "Klarte ikke finne noen gyldige nettverksgrensesnitt\n"
 
-#: src/mactelnetd.c:1269 src/interfaces.c:284
+#: src/mactelnetd.c:1285 src/interfaces.c:284
 msgid "Network change detected"
 msgstr "Nettverksforandring oppdaget"
 
-#: src/mactelnetd.c:1316
+#: src/mactelnetd.c:1332
 #, c-format
 msgid "(%d) Connection to user %s closed."
 msgstr "(%d) Tilkobling til bruker %s lukket."
 
-#: src/mactelnetd.c:1324
+#: src/mactelnetd.c:1340
 #, c-format
 msgid "(%d) Waiting for ack\n"
 msgstr "(%d) Venter på ack\n"
 
-#: src/mactelnetd.c:1340
+#: src/mactelnetd.c:1356
 #, c-format
 msgid "(%d) Session timed out"
 msgstr "(%d) Sesjonen utgikk på tidsavbrudd"
 
-#: src/mactelnetd.c:1343
+#: src/mactelnetd.c:1359
 msgid "Timeout\r\n"
 msgstr "Tidsavbrudd\r\n"
 
@@ -607,12 +607,12 @@ msgstr "funnet\n"
 msgid "FATAL ERROR: Function returned NULL at %s:%d: %s;\n"
 msgstr "FATAL FEIL: Funksjonen returnerte NULL ved %s:%d: %s;\n"
 
-#: src/mtwei.c:154
+#: src/mtwei.c:162
 #, c-format
 msgid "Cannot mix gamma into pubkey: %s\n"
 msgstr "Kan ikke blande gamma inn i offentlig nøkkel: %s\n"
 
-#: src/mtwei.c:192
+#: src/mtwei.c:200
 #, c-format
 msgid "Cannot make a public key: %s\n"
 msgstr "Kan ikke lage en offentlig nøkkel: %s\n"

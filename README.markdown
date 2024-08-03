@@ -32,7 +32,7 @@ See [Usage](#usage) for more.
 
 To install dependencies:
 
-    yum -y install wget automake gettext gettext-devel gcc make
+    yum -y install wget automake gettext gettext-devel libbsd-devel gcc make
 
 Download source tarball, extract, compile and install:
 
@@ -48,7 +48,7 @@ Dependencies: gcc (or similar), automake, autoconf
 
 To install dependencies on Debian/Ubuntu based systems:
 
-    apt-get install build-essential autopoint automake autoconf libssl-dev
+    apt-get install build-essential autopoint automake autoconf libbsd-dev libssl-dev
 
 Download source tarball, extract, compile and install:
 

@@ -33,7 +33,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <readpassphrase.h>
 #if defined(__APPLE__)
 #include <sys/sysctl.h>
 #include <libkern/OSByteOrder.h>

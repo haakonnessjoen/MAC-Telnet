@@ -22,7 +22,7 @@ Use the older MD5 based authentication. This is less secure, and also requires y
 option.
 .TP
 .B \-a
-Add a new user. The user should be an existing user in your system. You will be prompted for the username and password, or you can use one of the following options to specify them on the command line:
+Add a new user. The user should be an existing user in your system. This can be done without restarting your mactelnetd server as it re-reads the user file for each authentication attempt. You will be prompted for the username and password, or you can use one of the following options to specify them on the command line:
 .RS
 .TP
 .B \-u \fIusername\fR

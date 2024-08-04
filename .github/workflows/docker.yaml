@@ -43,4 +43,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.version }},latest
+          tags: ${{ env.REGISTRY }}:${{ steps.meta.outputs.version }},${{ env.REGISTRY }}:latest
+      - name: Inspect
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}:${{ steps.meta.outputs.version }}

@@ -41,6 +41,10 @@
 
 char *ether_ntoa_z(const struct ether_addr *addr);
 
+static void sig_term(int signo) {
+	exit(0);
+}
+
 /* This file is also used for the -l option in mactelnet */
 #ifndef FROM_MACTELNET
 
@@ -66,6 +70,9 @@ int mndp(int timeout, int batch_mode) {
 	mt_direction_fromserver = 0;
 	signal(SIGALRM, sig_alarm);
 #endif
+	// Add support for ctrl+c inside docker containers
+	signal(SIGTERM, sig_term);
+	signal(SIGINT, sig_term);
 
 	setlocale(LC_ALL, "");
 	bindtextdomain(PACKAGE, LOCALEDIR);

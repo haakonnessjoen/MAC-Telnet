@@ -1188,9 +1188,9 @@ int main(int argc, char **argv) {
 	textdomain(PACKAGE);
 
 #if !defined(__APPLE__)
-	while ((c = getopt(argc, argv, "fnovh?")) != -1) {
+	while ((c = getopt(argc, argv, "fnovh?lau:p:d:")) != -1) {
 #else
-	while ((c = getopt(argc, argv, "novhlau:p:d:")) != -1) {
+	while ((c = getopt(argc, argv, "novh?lau:p:d:")) != -1) {
 #endif
 		switch (c) {
 			case 'f':
@@ -1239,7 +1239,7 @@ int main(int argc, char **argv) {
 
 	if (print_help) {
 		print_version();
-		fprintf(stderr, _("Usage: %s [-fnoh]|-a [-u <user>|-p <password>]|[-d <user>]\n"), argv[0]);
+		fprintf(stderr, _("Usage: %s [-fnovh]|-l|-a [-u <user>|-p <password>]|[-d <user>]\n"), argv[0]);
 
 		if (print_help) {
 #if !defined(__APPLE__)

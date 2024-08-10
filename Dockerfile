@@ -1,7 +1,10 @@
-FROM alpine:3.19 AS builder
+FROM debian:bookworm AS builder
 
 # Install build dependencies
-RUN apk add --no-cache diffutils build-base automake autoconf git gettext gettext-dev linux-headers openssl-dev
+RUN apt-get update && apt-get -y install \
+	gettext autoconf automake libtool autopoint \
+	libssl-dev git libbsd-dev build-essential && \
+	apt-get clean && rm -rf /tmp/* /var/tmp/*
 
 # Copy everything to /src
 RUN mkdir /src
@@ -9,17 +12,19 @@ WORKDIR /src
 ADD . /src/
 
 # Build
-ENV CFLAGS="-D_GNU_SOURCE"
-RUN ./autogen.sh --prefix=/build
+RUN ./autogen.sh --prefix=/build --sysconfdir=/config
 RUN make all install
 
 ## 
-FROM alpine:3.19
+FROM debian:bookworm-slim
 
 # Install runtime dependencies
-RUN apk add --no-cache gettext-libs openssl-dev
+RUN apt-get update && apt-get -y install gettext \
+	libbsd0 openssl man-db && apt-get clean && \
+	rm -rf /tmp/* /var/tmp/*
 
 # Copy build artifacts
 COPY --from=builder /build/ /usr/
+COPY --from=builder /config /config
 
 CMD ["/usr/bin/mactelnet"]

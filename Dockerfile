@@ -27,4 +27,4 @@ RUN apt-get update && apt-get -y install gettext \
 COPY --from=builder /build/ /usr/
 COPY --from=builder /config /config
 
-ENTRYPOINT ["/usr/bin/mactelnet"]
+CMD ["/usr/bin/mactelnet"]

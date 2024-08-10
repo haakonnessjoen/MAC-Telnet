@@ -2,8 +2,8 @@ name: Configure and Build in Docker
 
 on:
   push:
-    branches:
-      - dockertest
+    tags:
+      - 'v*'
 
 env:
   REGISTRY: ghcr.io

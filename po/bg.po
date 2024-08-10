@@ -8,17 +8,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mactelnet\n"
 "Report-Msgid-Bugs-To: haakon.nessjoen@gmail.com\n"
-"POT-Creation-Date: 2024-07-30 10:37+0200\n"
-"PO-Revision-Date: 2024-04-22 19:42+0200\n"
+"POT-Creation-Date: 2024-08-10 13:29+0200\n"
+"PO-Revision-Date: 2024-08-10 14:07+0200\n"
 "Last-Translator: Chat GPT <chatgpt@lunatic.no>\n"
 "Language-Team: Boian Bonev <bbonev@ipacct.com>\n"
 "Language: bg\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 3.4.2\n"
+"X-Generator: Poedit 3.4.4\n"
 
-#: src/mactelnet.c:130
+#: src/mactelnet.c:138
 #, c-format
 msgid ""
 "Failed dropping privileges. The user %s is not a valid username on local "
@@ -27,22 +27,22 @@ msgstr ""
 "Грешка при опит за намаляване на правата. Потребител %s не е валиден в "
 "локалната система.\n"
 
-#: src/mactelnet.c:137
+#: src/mactelnet.c:145
 #, c-format
 msgid "setgid: Error dropping group privileges\n"
 msgstr "setgid: Грешка при намаляване на груповите права\n"
 
-#: src/mactelnet.c:141
+#: src/mactelnet.c:149
 #, c-format
 msgid "setuid: Error dropping user privileges\n"
 msgstr "setgid: Грешка при намаляване на потребителските привилегии\n"
 
-#: src/mactelnet.c:146
+#: src/mactelnet.c:154
 #, c-format
 msgid "Failed to drop privileges\n"
 msgstr "Грешка при намаляване на правата\n"
 
-#: src/mactelnet.c:214
+#: src/mactelnet.c:222
 #, c-format
 msgid ""
 "\n"
@@ -51,38 +51,38 @@ msgstr ""
 "\n"
 "Изтече времето за свързване\n"
 
-#: src/mactelnet.c:250
+#: src/mactelnet.c:258
 #, c-format
 msgid "Error: md5 digest not found\n"
 msgstr "Грешка: md5 хаш не е намерен\n"
 
-#: src/mactelnet.c:255
+#: src/mactelnet.c:263
 #, c-format
 msgid "Error initializing md5 context\n"
 msgstr "Грешка при инициализиране на контекста на md5\n"
 
-#: src/mactelnet.c:371
+#: src/mactelnet.c:379
 #, c-format
 msgid "Invalid salt length: %d (instead of 16 or 49) received from server %s\n"
 msgstr ""
 "Невалидна дължина на сол: %d (вместо 16 или 49), получена от сървъра %s\n"
 
-#: src/mactelnet.c:418
+#: src/mactelnet.c:426
 #, c-format
 msgid "Connection closed.\n"
 msgstr "Връзката е затворена.\n"
 
-#: src/mactelnet.c:424
+#: src/mactelnet.c:432
 #, c-format
 msgid "Unhandeled packet type: %d received from server %s\n"
 msgstr "Необработваем тип на пакет: %d, получен от %s\n"
 
-#: src/mactelnet.c:445
+#: src/mactelnet.c:453
 #, c-format
 msgid "Error: No suitable devices found\n"
 msgstr "Грешка: Няма намерено подходящо устройство\n"
 
-#: src/mactelnet.c:609
+#: src/mactelnet.c:617
 #, c-format
 msgid ""
 "Usage: %s <MAC|identity> [-nqoA] [-a <path>] [-t <timeout>] [-u <user>] [-p "
@@ -91,7 +91,7 @@ msgstr ""
 "Използване: %s <MAC|идентификатор> [-nqoA] [-a <път>] [-t <таймаут>] [-u "
 "<потребител>] [-p <парола>] [-U <потребител>] | -l [-B] [-t <таймаут>]\n"
 
-#: src/mactelnet.c:615
+#: src/mactelnet.c:623
 #, c-format
 msgid ""
 "\n"
@@ -109,8 +109,9 @@ msgid ""
 "  -a <path>      Use specified path instead of the default: %s for autologin "
 "config file.\n"
 "  -A             Disable autologin feature.\n"
-"  -t <timeout>   Amount of seconds to wait for a response on each "
-"interface.\n"
+"  -t <timeout>   Amount of seconds to wait for a successufl connection, or "
+"amount of seconds\n"
+"                 to wait for MNDP response (when used with -l).\n"
 "  -u <user>      Specify username on command line.\n"
 "  -p <password>  Specify password on command line.\n"
 "  -U <user>      Drop privileges to this user. Used in conjunction with -n\n"
@@ -137,6 +138,9 @@ msgstr ""
 "на конфигурация за автоматично влизане.\n"
 "  -A              Изключване на функцията за автоматично влизане.\n"
 "  -t <изчакване>  Брой секунди за изчакване на отговор за всеки интерфейс.\n"
+"  -t <изчакване>  Брой секунди за изчакване на успешна връзка, или брой "
+"секунди\n"
+"                  за изчакване на MNDP отговор (когато се използва с -l).\n"
 "  -u <потребител> Задава потребител от командния ред.\n"
 "  -p <парола>     Задава парола от командния ред.\n"
 "  -U <user>       Намалява правата до този потребител. Може да се използва "
@@ -148,160 +152,170 @@ msgstr ""
 "  -h              Тази инструкция.\n"
 "\n"
 
-#: src/mactelnet.c:650
+#: src/mactelnet.c:659
 #, c-format
 msgid "Using autologin credentials from %s\n"
 msgstr "Използване на автоматично влизане с учетелни данни от %s\n"
 
-#: src/mactelnet.c:674
+#: src/mactelnet.c:683
 #, c-format
 msgid "You need to have root privileges to use the -n parameter.\n"
 msgstr "Необходими са права на потребител root, за да използвате опция -n.\n"
 
-#: src/mactelnet.c:684
+#: src/mactelnet.c:693
 #, c-format
 msgid "The -U option must be used in conjunction with the -n parameter.\n"
 msgstr "Опция -U трябва да се използва заедно с опция -n.\n"
 
-#: src/mactelnet.c:713
+#: src/mactelnet.c:722
 #, c-format
 msgid "Login: "
 msgstr "Потребител: "
 
-#: src/mactelnet.c:721
+#: src/mactelnet.c:731 src/mactelnet.c:733 src/mactelnetd.c:1103
+#: src/mactelnetd.c:1105
 msgid "Password: "
 msgstr "Парола: "
 
-#: src/mactelnet.c:752
+#: src/mactelnet.c:765
 #, c-format
 msgid "Connecting to %s..."
 msgstr "Свързване към %s..."
 
-#: src/mactelnet.c:762 src/mactelnetd.c:259 src/mactelnetd.c:1179
+#: src/mactelnet.c:775 src/mactelnetd.c:268 src/mactelnetd.c:1335
 #, c-format
 msgid "Error binding to %s:%d, %s\n"
 msgstr "Грешка при свързване от %s:%d, %s\n"
 
-#: src/mactelnet.c:767
+#: src/mactelnet.c:780
 #, c-format
 msgid "Connection failed.\n"
 msgstr "Връзката не е осъществена.\n"
 
-#: src/mactelnet.c:771
+#: src/mactelnet.c:784
 #, c-format
 msgid "done\n"
 msgstr "готово\n"
 
-#: src/mactelnet.c:782
+#: src/mactelnet.c:795
 #, c-format
 msgid "Username too long\n"
 msgstr "Потребителското име е твърде дълго\n"
 
-#: src/mactelnetd.c:261
+#: src/mactelnetd.c:270
 #, c-format
 msgid "Error binding to %s:%d on %s\n"
 msgstr "Грешка при свързване към %s:%d на %s\n"
 
-#: src/mactelnetd.c:265
+#: src/mactelnetd.c:274
 #, c-format
 msgid "Using %s to transmit packets from %s\n"
 msgstr "Използване на %s за предаване на пакети от %s\n"
 
 #: src/mactelnetd.c:473
 #, c-format
+msgid ""
+"(%d) User %s tried to login with md5 authentication, but user is not saved "
+"in plaintext"
+msgstr ""
+"(%d) Потребителят %s се опита да влезе с MD5 аутентикация, но потребителят "
+"не е запазен в четим текст"
+
+#: src/mactelnetd.c:493
+#, c-format
 msgid "(%d) Invalid login by %s."
 msgstr "(%d) Неправилен вход от %s."
 
-#: src/mactelnetd.c:476
+#: src/mactelnetd.c:496
 msgid "Login failed, incorrect username or password\r\n"
 msgstr "Неуспешен вход, невалиден потребител или парола\r\n"
 
-#: src/mactelnetd.c:493
+#: src/mactelnetd.c:513
 msgid "Terminal error\r\n"
 msgstr "Грешка в терминала\r\n"
 
-#: src/mactelnetd.c:507 src/mactelnetd.c:515
+#: src/mactelnetd.c:529
 #, c-format
 msgid "(%d) Error allocating memory."
 msgstr "(%d) Грешка при заделяне на памет."
 
-#: src/mactelnetd.c:509 src/mactelnetd.c:517
+#: src/mactelnetd.c:531
 msgid "System error, out of memory\r\n"
 msgstr "Системна грешка, недостатъчно памет\r\n"
 
-#: src/mactelnetd.c:522
+#: src/mactelnetd.c:537
 #, c-format
 msgid "(%d) Login ok, but local user not accessible (%s)."
 msgstr "(%d) Успешен вход, но локалният потребител не е достъпен (%s)."
 
-#: src/mactelnetd.c:525
-msgid "Local user not accessible\r\n"
-msgstr "Локалният потребител не е достъпен\r\n"
+#: src/mactelnetd.c:540
+msgid "Error: Local user not accessible\r\n"
+msgstr "Грешка: Локалният потребител не е достъпен\r\n"
 
-#: src/mactelnetd.c:536
+#: src/mactelnetd.c:550
 #, c-format
 msgid "Error opening %s: %s"
-msgstr "Грешка при отваряне %s: %s"
+msgstr "Грешка при отваряне на %s: %s"
 
-#: src/mactelnetd.c:538
+#: src/mactelnetd.c:553
 msgid "Error opening terminal\r\n"
 msgstr "Грешка при отваряне на терминал\r\n"
 
-#: src/mactelnetd.c:549
+#: src/mactelnetd.c:564
 #, c-format
 msgid "(%d) User %s logged in."
 msgstr "(%d) Потребител %s влезе."
 
-#: src/mactelnetd.c:584
+#: src/mactelnetd.c:599
 #, c-format
 msgid "(%d) Could not log in %s (%d:%d): setuid/setgid: %s"
 msgstr "(%d) Неуспешен вход %s (%d:%d): setuid/setgid: %s"
 
-#: src/mactelnetd.c:587
+#: src/mactelnetd.c:602
 msgid "Internal error\r\n"
 msgstr "Вътрешна грешка\r\n"
 
-#: src/mactelnetd.c:593
+#: src/mactelnetd.c:608
 #, c-format
 msgid "(%d) User %s disconnected with "
 msgstr "(%d) Потребител %s е изхвърлен с "
 
-#: src/mactelnetd.c:731
+#: src/mactelnetd.c:752
 #, c-format
 msgid "(%d) Invalid mtwei key by %s."
 msgstr "(%d) Невалиден ключ mtwei от %s."
 
-#: src/mactelnetd.c:754
+#: src/mactelnetd.c:775
 #, c-format
 msgid "(%d) Unhandeled control packet type: %d, length: %d"
 msgstr "(%d) Необработен тип на контролен пакет: %d, дължина: %d"
 
-#: src/mactelnetd.c:758
+#: src/mactelnetd.c:779
 #, c-format
 msgid "(%d) Unhandeled control packet type: %d, in state: %d, length: %d"
 msgstr ""
 "(%d) Необработен тип на контролен пакет: %d, в състояние: %d, дължина: %d"
 
-#: src/mactelnetd.c:814
+#: src/mactelnetd.c:835
 #, c-format
 msgid "(%d) New connection from %s."
 msgstr "(%d) Нова връзка от %s."
 
-#: src/mactelnetd.c:843 src/mactelnetd.c:1334
+#: src/mactelnetd.c:864 src/mactelnetd.c:1490
 #, c-format
 msgid "(%d) Connection closed."
 msgstr "(%d) Връзката е затворена."
 
-#: src/mactelnetd.c:898
+#: src/mactelnetd.c:919
 #, c-format
 msgid "(%d) Unhandeled packet type: %d"
 msgstr "(%d) Необработваем пакет от тип: %d"
 
-#: src/mactelnetd.c:973
+#: src/mactelnetd.c:994
 msgid "Was not able to send any MNDP packets"
 msgstr "Не успях да изпратя нито един MNDP пакет"
 
-#: src/mactelnetd.c:982
+#: src/mactelnetd.c:1003
 msgid ""
 "\r\n"
 "\r\n"
@@ -311,103 +325,211 @@ msgstr ""
 "\r\n"
 "Демон процеса прекратява работата си.\r\n"
 
-#: src/mactelnetd.c:984
+#: src/mactelnetd.c:1005
 msgid "Daemon shutting down"
 msgstr "Демон процеса прекратява работата си"
 
-#: src/mactelnetd.c:1017
+#: src/mactelnetd.c:1038
 msgid "SIGHUP: Reloading interfaces"
 msgstr "SIGHUP: Презареждане на интерфейсите"
 
-#: src/mactelnetd.c:1032
+#: src/mactelnetd.c:1053
 msgid "No devices found! Exiting.\n"
 msgstr "Няма намерени устройства! Изход.\n"
 
-#: src/mactelnetd.c:1046
+#: src/mactelnetd.c:1067
 #, c-format
 msgid "(%d) Connection closed because interface %s is gone."
 msgstr "(%d) Връзката е затворена поради изчезнал интерфейс %s."
 
-#: src/mactelnetd.c:1106
+#: src/mactelnetd.c:1080
 #, c-format
-msgid "Usage: %s [-fnoh]\n"
-msgstr "Използване: %s [-fnoh]\n"
+msgid "Username: "
+msgstr "Потребителско име: "
 
-#: src/mactelnetd.c:1111
+#: src/mactelnetd.c:1085 src/mactelnetd.c:1128
 #, c-format
-msgid ""
-"\n"
-"Parameters:\n"
-"  -f        Run process in foreground.\n"
-"  -n        Do not use broadcast packets. Just a tad less insecure.\n"
-"  -o        Use MD5 for password hashing.\n"
-"  -h        This help.\n"
-"\n"
-msgstr ""
-"\n"
-"Параметри:\n"
-"  -f        Изпълнение на процеса в първи план.\n"
-"  -n        Не използвайте broadcast пакети. Малко по-малко несигурно.\n"
-"  -o        Използвайте MD5 за хеширане на паролата.\n"
-"  -h        Тази инструкция.\n"
-"\n"
+msgid "Username must be specified.\n"
+msgstr "Потребителското име трябва да бъде посочено.\n"
+
+#: src/mactelnetd.c:1092
+#, c-format
+msgid "Username too long.\n"
+msgstr "Потребителското име е твърде дълго.\n"
+
+#: src/mactelnetd.c:1098
+#, c-format
+msgid "Warning: Local user '%s' does not exist.\n"
+msgstr "Внимание: Локалният потребител '%s' не съществува.\n"
+
+#: src/mactelnetd.c:1108
+#, c-format
+msgid "Password must be specified.\n"
+msgstr "Паролата трябва да бъде посочена.\n"
+
+#: src/mactelnetd.c:1116
+#, c-format
+msgid "User %s was added.\n"
+msgstr "Потребителят %s беше добавен.\n"
+
+#: src/mactelnetd.c:1118
+#, c-format
+msgid "User %s was updated.\n"
+msgstr "Потребителят %s беше обновен.\n"
 
 #: src/mactelnetd.c:1120
 #, c-format
+msgid "Failed to add user %s.\n"
+msgstr "Неуспешно добавяне на потребител %s.\n"
+
+#: src/mactelnetd.c:1134
+#, c-format
+msgid "User %s was deleted.\n"
+msgstr "Потребителят %s беше изтрит.\n"
+
+#: src/mactelnetd.c:1136
+#, c-format
+msgid "User %s did not exist.\n"
+msgstr "Потребителят %s не съществуваше.\n"
+
+#: src/mactelnetd.c:1138
+#, c-format
+msgid "Failed to delete user %s.\n"
+msgstr "Неуспешно изтриване на потребител %s\n"
+
+#: src/mactelnetd.c:1147
+#, c-format
+msgid "Users:\n"
+msgstr "Потребители:\n"
+
+#: src/mactelnetd.c:1152
+msgid "local user not found!"
+msgstr "локалният потребител не беше намерен!"
+
+#: src/mactelnetd.c:1154
+msgid "has root access!"
+msgstr "има root достъп!"
+
+#: src/mactelnetd.c:1156
+msgid "plain-text password!"
+msgstr "парола в четим текст!"
+
+#: src/mactelnetd.c:1242
+#, c-format
+msgid "Usage: %s [-fnovh]|-l|-a [-u <user>|-p <password>]|[-d <user>]\n"
+msgstr ""
+"Използване: %s [-fnovh]|-l|-a [-u <потребител>|-p <парола>]|[-d "
+"<потребител>]\n"
+
+#: src/mactelnetd.c:1247
+#, c-format
 msgid ""
 "\n"
 "Parameters:\n"
-"  -n        Do not use broadcast packets. Just a tad less insecure.\n"
-"  -o        Use MD5 for password hashing.\n"
-"  -h        This help.\n"
+"  -f            Run process in foreground.\n"
+"  -n            Do not use broadcast packets. Just a tad less insecure.\n"
+"  -o            Use MD5 for password hashing. (less secure)\n"
+"  -l            List users from userfile.\n"
+"  -a            Add a new user.\n"
+"  -u [user]     Optionally set username to add with -a.\n"
+"  -p [password] Optionally set password for -a command.\n"
+"  -d [user]     Delete user.\n"
+"  -h            This help.\n"
+"\n"
+"\n"
+"If any of -a, -d, -l or -h is specified, the server will not start.\n"
 "\n"
 msgstr ""
 "\n"
 "Параметри:\n"
-"  -n        Не използвайте broadcast пакети. Малко по-малко несигурно.\n"
-"  -o        Използвайте MD5 за хеширане на паролата.\n"
-"  -h        Тази инструкция.\n"
+"  -f              Изпълнява процеса на преден план.\n"
+"  -n              Да не се използват броудкаст пакети. Малко по-малко "
+"несигурно.\n"
+"  -o              Използвайте MD5 за хеширане на пароли. (по-малко сигурно)\n"
+"  -l              Показва потребителите от файла с потребители.\n"
+"  -a              Добавя нов потребител.\n"
+"  -u [потребител] По желание задайте потребителско име за добавяне с -a.\n"
+"  -p [парола]     По желание задайте парола за командата -a.\n"
+"  -d [потребител] Изтрива потребител.\n"
+"  -h              Тази помощ.\n"
+"\n"
+"Ако е зададен някой от параметрите -a, -d, -l или -h, сървърът няма да "
+"стартира.\n"
 "\n"
 
-#: src/mactelnetd.c:1131 src/macping.c:189
+#: src/mactelnetd.c:1262
+#, c-format
+msgid ""
+"\n"
+"Parameters:\n"
+"  -n            Do not use broadcast packets. Just a tad less insecure.\n"
+"  -o            Use MD5 for password hashing. (less secure)\n"
+"  -l            List users from userfile.\n"
+"  -a            Add a new user.\n"
+"  -u [user]     Optionally set username to add with -a.\n"
+"  -p [password] Optionally set password for -a command.\n"
+"  -d [user]     Delete user.\n"
+"  -h            This help.\n"
+"\n"
+"\n"
+"If any of -a, -d, -l or -h is specified, the server will not start.\n"
+"\n"
+msgstr ""
+"\n"
+"Параметри:\n"
+"  -n              Да не се използват броудкаст пакети. Малко по-малко "
+"несигурно.\n"
+"  -o              Използвайте MD5 за хеширане на пароли. (по-малко сигурно)\n"
+"  -l              Показва потребителите от файла с потребители.\n"
+"  -a              Добавя нов потребител.\n"
+"  -u [потребител] По желание задайте потребителско име за добавяне с -a.\n"
+"  -p [парола]     По желание задайте парола за командата -a.\n"
+"  -d [потребител] Изтрива потребител.\n"
+"  -h              Тази помощ.\n"
+"\n"
+"Ако е зададен някой от параметрите -a, -d, -l или -h, сървърът няма да "
+"стартира.\n"
+"\n"
+
+#: src/mactelnetd.c:1279 src/macping.c:189
 #, c-format
 msgid "You need to have root privileges to use %s.\n"
 msgstr "Необходими са права на потребител root, за да използвате %s.\n"
 
-#: src/mactelnetd.c:1201
+#: src/mactelnetd.c:1357
 #, c-format
 msgid "MNDP: Error binding to %s:%d, %s\n"
 msgstr "MNDP: Грешка при свързване от %s:%d, %s\n"
 
-#: src/mactelnetd.c:1206
+#: src/mactelnetd.c:1362
 #, c-format
 msgid "Bound to %s:%d"
 msgstr "Свързване от %s:%d"
 
-#: src/mactelnetd.c:1240
+#: src/mactelnetd.c:1396
 msgid "Unable to find any valid network interfaces\n"
 msgstr "Няма валидни мрежови интерфейси\n"
 
-#: src/mactelnetd.c:1285 src/interfaces.c:284
+#: src/mactelnetd.c:1441 src/interfaces.c:284
 msgid "Network change detected"
 msgstr "Промяна в мрежата открита"
 
-#: src/mactelnetd.c:1332
+#: src/mactelnetd.c:1488
 #, c-format
 msgid "(%d) Connection to user %s closed."
 msgstr "(%d) Връзката към потребител %s е прекъсната."
 
-#: src/mactelnetd.c:1340
+#: src/mactelnetd.c:1496
 #, c-format
 msgid "(%d) Waiting for ack\n"
 msgstr "(%d) Изчакване на потвърждение\n"
 
-#: src/mactelnetd.c:1356
+#: src/mactelnetd.c:1512
 #, c-format
 msgid "(%d) Session timed out"
 msgstr "(%d) Изтекло време за изчакване на сесията"
 
-#: src/mactelnetd.c:1359
+#: src/mactelnetd.c:1515
 msgid "Timeout\r\n"
 msgstr "Изтекло време за изчакване\r\n"
 
@@ -460,7 +582,7 @@ msgstr ""
 msgid "Packet size must be between 18 and %d\n"
 msgstr "Размерът на пакета трябва да е от 18 до %d\n"
 
-#: src/macping.c:218 src/mndp.c:88 src/protocol.c:444
+#: src/macping.c:218 src/mndp.c:95 src/protocol.c:444
 #, c-format
 msgid "Error binding to %s:%d\n"
 msgstr "Грешка при свързване от %s:%d\n"
@@ -485,42 +607,42 @@ msgstr "%s %d байта, време за ping %.2f мс%s\n"
 msgid "%s Reply of %d bytes of unequal data\n"
 msgstr "%s Отговор от %d байта с несъвпадащи данни\n"
 
-#: src/mndp.c:93
+#: src/mndp.c:100
 #, c-format
 msgid "Searching for MikroTik routers... Abort with CTRL+C.\n"
 msgstr "Търсене на MikroTik рутери... Прекъсване с CTRL+C.\n"
 
-#: src/mndp.c:97
+#: src/mndp.c:104
 #, c-format
 msgid "Unable to send broadcast packets: Operating in receive only mode.\n"
 msgstr ""
 "Не може да се изпратят броудкаст пакети: Работи се само в режим на "
 "приемане.\n"
 
-#: src/mndp.c:107
+#: src/mndp.c:114
 #, c-format
 msgid "Unable to send broadcast packet: Operating in receive only mode.\n"
 msgstr ""
 "Не може да се изпрати броудкаст пакет: Работи се само в режим на приемане.\n"
 
-#: src/mndp.c:114
+#: src/mndp.c:121
 msgid "IP"
 msgstr "IP"
 
-#: src/mndp.c:114
+#: src/mndp.c:121
 msgid "MAC-Address"
 msgstr "MAC-Адрес"
 
-#: src/mndp.c:115
+#: src/mndp.c:122
 msgid "Identity (platform version hardware) uptime"
 msgstr "Идентификатор (платформа версия хардуер) време от стартиране"
 
-#: src/mndp.c:134
+#: src/mndp.c:141
 #, c-format
 msgid "An error occurred. aborting\n"
 msgstr "Възникна грешка. Прекратяване на операцията\n"
 
-#: src/mndp.c:149
+#: src/mndp.c:156
 #, c-format
 msgid "  up %d days %d hours"
 msgstr "  за %d дни и %d часа"
@@ -628,6 +750,123 @@ msgstr "Не може да се смеси гама в обща ключ: %s\n"
 #, c-format
 msgid "Cannot make a public key: %s\n"
 msgstr "Не може да се направи общ ключ: %s\n"
+
+#: src/users.c:85
+#, c-format
+msgid "Error stating file %s: %s\n"
+msgstr "Грешка при извличане на информация за файл %s: %s\n"
+
+#: src/users.c:91
+#, c-format
+msgid "Error getting user information for uid %d: %s\n"
+msgstr "Грешка при получаване на информация за потребителя с uid %d: %s\n"
+
+#: src/users.c:96
+#, c-format
+msgid "Error: %s is not owned by root\n"
+msgstr "Грешка: %s не е собственост на root\n"
+
+#: src/users.c:102
+#, c-format
+msgid ""
+"Error: %s is writable by others, It should have permissions set to 0600 for "
+"better security\n"
+msgstr ""
+"Грешка: %s е достъпен за писане от други, трябва да има права 0600 за по-"
+"добра сигурност\n"
+
+#: src/users.c:121
+#, c-format
+msgid "Error: %s is invalid and no users known, aborting.\n"
+msgstr ""
+"Грешка: %s е невалиден и не са известни потребители, операцията се "
+"прекратява.\n"
+
+#: src/users.c:126
+#, c-format
+msgid "Warning: User file '%s' is not readable, falling back to known users.\n"
+msgstr ""
+"Внимание: Файлът с потребители '%s' не е четим, връщане към известни "
+"потребители.\n"
+
+#: src/users.c:157
+#, c-format
+msgid "Error allocating memory for user information\n"
+msgstr "Грешка при заделяне на памет за информация за потребителя\n"
+
+#: src/users.c:166 src/users.c:187
+#, c-format
+msgid "Warning: Invalid password hash on line %d of user file\n"
+msgstr "Внимание: Невалиден хеш на парола на ред %d от файла с потребители\n"
+
+#: src/users.c:171 src/users.c:178
+#, c-format
+msgid "Warning: Invalid salt on line %d of user file\n"
+msgstr "Внимание: Невалиден сол на ред %d от файла с потребители\n"
+
+#: src/users.c:236
+#, c-format
+msgid "Error opening password file %s: %s\n"
+msgstr "Грешка при отваряне на файла с пароли %s: %s\n"
+
+#: src/users.c:241
+#, c-format
+msgid "Error opening temporary password file for writing %s: %s\n"
+msgstr "Грешка при отваряне на файл с временна парола за запис на %s: %s\n"
+
+#: src/users.c:247
+#, c-format
+msgid "Error changing ownership of temporary password file %s: %s\n"
+msgstr ""
+"Грешка при промяна на собствеността на временния файл с пароли %s: %s\n"
+
+#: src/users.c:255
+#, c-format
+msgid "Error changing permissions of temporary password file %s: %s\n"
+msgstr "Грешка при промяна на правата на временния файл с пароли %s: %s\n"
+
+#: src/users.c:264
+#, c-format
+msgid "Error generating random salt.\n"
+msgstr "Грешка при генериране на случайна сол.\n"
+
+#, c-format
+#~ msgid "Usage: %s [-fnoh]\n"
+#~ msgstr "Използване: %s [-fnoh]\n"
+
+#, c-format
+#~ msgid ""
+#~ "\n"
+#~ "Parameters:\n"
+#~ "  -f        Run process in foreground.\n"
+#~ "  -n        Do not use broadcast packets. Just a tad less insecure.\n"
+#~ "  -o        Use MD5 for password hashing.\n"
+#~ "  -h        This help.\n"
+#~ "\n"
+#~ msgstr ""
+#~ "\n"
+#~ "Параметри:\n"
+#~ "  -f        Изпълнение на процеса в първи план.\n"
+#~ "  -n        Не използвайте broadcast пакети. Малко по-малко несигурно.\n"
+#~ "  -o        Използвайте MD5 за хеширане на паролата.\n"
+#~ "  -h        Тази инструкция.\n"
+#~ "\n"
+
+#, c-format
+#~ msgid ""
+#~ "\n"
+#~ "Parameters:\n"
+#~ "  -n        Do not use broadcast packets. Just a tad less insecure.\n"
+#~ "  -o        Use MD5 for password hashing.\n"
+#~ "  -h        This help.\n"
+#~ "\n"
+#~ msgstr ""
+#~ "\n"
+#~ "Параметри:\n"
+#~ "  -n        Не използвайте broadcast пакети. Малко по-малко несигурно.\n"
+#~ "  -o        Използвайте MD5 за хеширане на паролата.\n"
+#~ "  -h        Тази инструкция.\n"
+#~ "\n"
 
 #, fuzzy, c-format
 #~ msgid "SIGHUP: Reloading interfaces\n"

@@ -7,3 +7,4 @@ src/autologin.c
 src/interfaces.c
 src/protocol.c
 src/mtwei.c
+src/users.c

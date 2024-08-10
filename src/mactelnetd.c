@@ -1247,7 +1247,7 @@ int main(int argc, char **argv) {
 			fprintf(stderr, _("\nParameters:\n"
 							  "  -f            Run process in foreground.\n"
 							  "  -n            Do not use broadcast packets. Just a tad less insecure.\n"
-							  "  -o            Use MD5 for password hashing.\n"
+							  "  -o            Use MD5 for password hashing. (less secure)\n"
 							  "  -l            List users from userfile.\n"
 							  "  -a            Add a new user.\n"
 							  "  -u [user]     Optionally set username to add with -a.\n"
@@ -1261,7 +1261,7 @@ int main(int argc, char **argv) {
 				as it should be daemonized by launchd */
 			fprintf(stderr, _("\nParameters:\n"
 							  "  -n            Do not use broadcast packets. Just a tad less insecure.\n"
-							  "  -o            Use MD5 for password hashing.\n"
+							  "  -o            Use MD5 for password hashing. (less secure)\n"
 							  "  -l            List users from userfile.\n"
 							  "  -a            Add a new user.\n"
 							  "  -u [user]     Optionally set username to add with -a.\n"

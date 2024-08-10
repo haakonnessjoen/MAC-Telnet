@@ -65,7 +65,12 @@ void mtwei_init(mtwei_state_t *state) {
 
 	CHECKNULL(cofactor = BN_new());
 	CHECKNULL(state->ctx = BN_CTX_new());
+#if OPENSSL_VERSION_NUMBER >= 0x030000000  // 3.0.0
+#error "EC_GFp_simple_method() is not available in OpenSSL 3.0.0"
 	CHECKNULL(state->curve25519 = EC_GROUP_new(EC_GFp_simple_method()));
+#else
+	CHECKNULL(state->curve25519 = EC_GROUP_new(EC_GFp_simple_method()));
+#endif
 	CHECKNULL(state->g = EC_POINT_new(state->curve25519));
 
 	state->mod = NULL;
@@ -85,8 +90,13 @@ void mtwei_init(mtwei_state_t *state) {
 	CHECKNULL(BN_hex2bn(&state->w2m, "555555555555555555555555555555555555555555555555555555555552db9c"));
 	CHECKNULL(BN_hex2bn(&state->m2w, "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaad2451"));
 
+#if OPENSSL_VERSION_NUMBER >= 0x030000000  // 3.0.0
+	CHECKNULL(EC_GROUP_set_curve(state->curve25519, state->mod, a, b, 0));
+	CHECKNULL(EC_POINT_set_affine_coordinates(state->curve25519, state->g, gx, gy, 0));
+#else
 	CHECKNULL(EC_GROUP_set_curve_GFp(state->curve25519, state->mod, a, b, 0));
 	CHECKNULL(EC_POINT_set_affine_coordinates_GFp(state->curve25519, state->g, gx, gy, 0));
+#endif
 	CHECKNULL(EC_GROUP_set_generator(state->curve25519, state->g, state->order, cofactor));
 
 	BN_clear_free(a);
@@ -100,7 +110,11 @@ void mtwei_init(mtwei_state_t *state) {
 abort:
 	BN_clear_free(cofactor);
 	BN_CTX_free(state->ctx);
+#if OPENSSL_VERSION_NUMBER >= 0x030000000  // 3.0.0
+	EC_GROUP_free(state->curve25519);
+#else
 	EC_GROUP_clear_free(state->curve25519);
+#endif
 	EC_POINT_clear_free(state->g);
 	BN_clear_free(state->mod);
 	BN_clear_free(state->order);
@@ -125,7 +139,11 @@ static BIGNUM *tangle(mtwei_state_t *state, EC_POINT *target, uint8_t *validator
 	CHECKNULL(vpub_x = BN_new());
 
 	unsigned char buf_out[32];
+#if OPENSSL_VERSION_NUMBER >= 0x030000000  // 3.0.0
+	EC_POINT_get_affine_coordinates(state->curve25519, validator_pt, vpub_x, NULL, NULL);
+#else
 	EC_POINT_get_affine_coordinates_GFp(state->curve25519, validator_pt, vpub_x, NULL, NULL);
+#endif
 	BN_mod_add(vpub_x, vpub_x, state->w2m, state->mod, state->ctx);
 	BN_bn2binpad(vpub_x, buf_out, 32);
 
@@ -187,7 +205,7 @@ BIGNUM *mtwei_keygen(mtwei_state_t *state, uint8_t *pubkey_out, uint8_t *validat
 	CHECKNULL(x = BN_new());
 	CHECKNULL(y = BN_new());
 
-	if (getrandom(client_priv, sizeof(client_priv), 0) != sizeof(client_priv)) {
+	if (getrandom((char *)client_priv, sizeof(client_priv), 0) != sizeof(client_priv)) {
 		perror("getrandom");
 		goto abort;
 	}
@@ -205,7 +223,11 @@ BIGNUM *mtwei_keygen(mtwei_state_t *state, uint8_t *pubkey_out, uint8_t *validat
 		CHECKNULL(tangle(state, pubkey, validator, 0));
 	}
 
+#if OPENSSL_VERSION_NUMBER >= 0x030000000  // 3.0.0
+	EC_POINT_get_affine_coordinates(state->curve25519, pubkey, x, y, NULL);
+#else
 	EC_POINT_get_affine_coordinates_GFp(state->curve25519, pubkey, x, y, NULL);
+#endif
 	BN_mod_add(x, x, state->w2m, state->mod, state->ctx);
 	BN_bn2binpad(x, pubkey_out, 32);
 	pubkey_out[32] = BN_is_odd(y) ? 1 : 0;
@@ -299,7 +321,11 @@ void mtwei_docrypto(mtwei_state_t *state, BIGNUM *privkey, const uint8_t *server
 	EC_POINT_mul(state->curve25519, pt, NULL, server_pubkey, vh, state->ctx);
 
 	CHECKNULL(pt_x = BN_new());
+#if OPENSSL_VERSION_NUMBER >= 0x030000000  // 3.0.0
+	EC_POINT_get_affine_coordinates(state->curve25519, pt, pt_x, NULL, NULL);
+#else
 	EC_POINT_get_affine_coordinates_GFp(state->curve25519, pt, pt_x, NULL, NULL);
+#endif
 
 	CHECKNULL(z_input = BN_new());
 	BN_mod_add(z_input, pt_x, state->w2m, state->mod, state->ctx);
@@ -391,8 +417,11 @@ void mtwei_docryptos(mtwei_state_t *state, BIGNUM *privkey, const uint8_t *clien
 	EC_POINT_mul(state->curve25519, pt, NULL, client_pubkey, privkey, state->ctx);
 
 	CHECKNULL(pt_x = BN_new());
+#if OPENSSL_VERSION_NUMBER >= 0x030000000  // 3.0.0
+	EC_POINT_get_affine_coordinates(state->curve25519, pt, pt_x, NULL, NULL);
+#else
 	EC_POINT_get_affine_coordinates_GFp(state->curve25519, pt, pt_x, NULL, NULL);
-
+#endif
 	CHECKNULL(z_input = BN_new());
 	BN_mod_add(z_input, pt_x, state->w2m, state->mod, state->ctx);
 

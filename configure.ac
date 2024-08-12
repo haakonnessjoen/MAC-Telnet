@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.71])
-AC_INIT([mactelnet],[0.5.3],[haakon.nessjoen@gmail.com])
+AC_INIT([mactelnet],[0.6.0],[haakon.nessjoen@gmail.com])
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_SRCDIR([src/mactelnet.c])
 AC_CONFIG_HEADERS([src/config.h])

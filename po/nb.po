@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mactelnet\n"
 "Report-Msgid-Bugs-To: haakon.nessjoen@gmail.com\n"
-"POT-Creation-Date: 2024-08-10 13:29+0200\n"
+"POT-Creation-Date: 2024-08-12 14:00+0200\n"
 "PO-Revision-Date: 2024-08-10 13:42+0200\n"
 "Last-Translator: Håkon Nessjøen <haakon.nessjoen@gmail.com>\n"
 "Language-Team: Håkon Nessjøen <haakon.nessjoen@gmail.com>\n"
@@ -718,17 +718,17 @@ msgstr "ikke funnet\n"
 msgid "found\n"
 msgstr "funnet\n"
 
-#: src/mtwei.c:57
+#: src/mtwei.c:56
 #, c-format
 msgid "FATAL ERROR: Function returned NULL at %s:%d: %s;\n"
 msgstr "FATAL FEIL: Funksjonen returnerte NULL ved %s:%d: %s;\n"
 
-#: src/mtwei.c:162
+#: src/mtwei.c:178
 #, c-format
 msgid "Cannot mix gamma into pubkey: %s\n"
 msgstr "Kan ikke blande gamma inn i offentlig nøkkel: %s\n"
 
-#: src/mtwei.c:200
+#: src/mtwei.c:216
 #, c-format
 msgid "Cannot make a public key: %s\n"
 msgstr "Kan ikke lage en offentlig nøkkel: %s\n"

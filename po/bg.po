@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mactelnet\n"
 "Report-Msgid-Bugs-To: haakon.nessjoen@gmail.com\n"
-"POT-Creation-Date: 2024-08-10 13:29+0200\n"
+"POT-Creation-Date: 2024-08-12 14:00+0200\n"
 "PO-Revision-Date: 2024-08-10 14:07+0200\n"
 "Last-Translator: Chat GPT <chatgpt@lunatic.no>\n"
 "Language-Team: Boian Bonev <bbonev@ipacct.com>\n"
@@ -736,17 +736,17 @@ msgstr "не е намерен\n"
 msgid "found\n"
 msgstr "намерен\n"
 
-#: src/mtwei.c:57
+#: src/mtwei.c:56
 #, c-format
 msgid "FATAL ERROR: Function returned NULL at %s:%d: %s;\n"
 msgstr "ФАТАЛНА ГРЕШКА: Функцията върна NULL на %s:%d: %s;\n"
 
-#: src/mtwei.c:162
+#: src/mtwei.c:178
 #, c-format
 msgid "Cannot mix gamma into pubkey: %s\n"
 msgstr "Не може да се смеси гама в обща ключ: %s\n"
 
-#: src/mtwei.c:200
+#: src/mtwei.c:216
 #, c-format
 msgid "Cannot make a public key: %s\n"
 msgstr "Не може да се направи общ ключ: %s\n"

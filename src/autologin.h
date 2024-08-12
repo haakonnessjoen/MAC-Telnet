@@ -23,9 +23,9 @@ struct autologin_profile {
 	char identifier[AUTOLOGIN_MAXSTR];
 	char username[AUTOLOGIN_MAXSTR];
 	char password[AUTOLOGIN_MAXSTR];
-	char inuse : 1;
-	char hasUsername : 1;
-	char hasPassword : 1;
+	unsigned char inuse : 1;
+	unsigned char hasUsername : 1;
+	unsigned char hasPassword : 1;
 };
 
 enum autologin_state { ALS_NONE, ALS_PREIDENTIFIER, ALS_IDENTIFIER, ALS_PREKEY, ALS_KEY, ALS_PREVALUE, ALS_VALUE };

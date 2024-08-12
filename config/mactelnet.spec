@@ -1,5 +1,5 @@
 Name:     mactelnet
-Version:  0.6.0
+Version:  0.6.1
 Release:  1%{?gitrev:.%{gitrev}git}%{?dist}
 Summary:  Console tools for connecting to, and serving, devices using MikroTik RouterOS MAC-Telnet protocol.
 Epoch:    7

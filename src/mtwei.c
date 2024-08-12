@@ -29,7 +29,6 @@
 	implementation from Margin Research
 	  https://github.com/MarginResearch/mikrotik_authentication
 */
-
 #include "mtwei.h"
 #include "config.h"
 #include <assert.h>
@@ -65,13 +64,6 @@ void mtwei_init(mtwei_state_t *state) {
 
 	CHECKNULL(cofactor = BN_new());
 	CHECKNULL(state->ctx = BN_CTX_new());
-#if OPENSSL_VERSION_NUMBER >= 0x030000000  // 3.0.0
-#error "EC_GFp_simple_method() is not available in OpenSSL 3.0.0"
-	CHECKNULL(state->curve25519 = EC_GROUP_new(EC_GFp_simple_method()));
-#else
-	CHECKNULL(state->curve25519 = EC_GROUP_new(EC_GFp_simple_method()));
-#endif
-	CHECKNULL(state->g = EC_POINT_new(state->curve25519));
 
 	state->mod = NULL;
 	CHECKNULL(BN_hex2bn(&state->mod, "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed"));
@@ -80,6 +72,13 @@ void mtwei_init(mtwei_state_t *state) {
 	CHECKNULL(BN_hex2bn(&b, "7b425ed097b425ed097b425ed097b425ed097b425ed097b4260b5e9c7710c864"));
 	CHECKNULL(BN_hex2bn(&gx, "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaad245a"));
 	CHECKNULL(BN_hex2bn(&gy, "5f51e65e475f794b1fe122d388b72eb36dc2b28192839e4dd6163a5d81312c14"));
+
+#if OPENSSL_VERSION_NUMBER >= 0x030000000  // 3.0.0
+	CHECKNULL(state->curve25519 = EC_GROUP_new_curve_GFp(state->mod, a, b, 0));
+#else
+	CHECKNULL(state->curve25519 = EC_GROUP_new(EC_GFp_simple_method()));
+#endif
+	CHECKNULL(state->g = EC_POINT_new(state->curve25519));
 
 	CHECKNULL(state->order = BN_new());
 	CHECKNULL(BN_hex2bn(&state->order, "1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed"));
@@ -91,7 +90,6 @@ void mtwei_init(mtwei_state_t *state) {
 	CHECKNULL(BN_hex2bn(&state->m2w, "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaad2451"));
 
 #if OPENSSL_VERSION_NUMBER >= 0x030000000  // 3.0.0
-	CHECKNULL(EC_GROUP_set_curve(state->curve25519, state->mod, a, b, 0));
 	CHECKNULL(EC_POINT_set_affine_coordinates(state->curve25519, state->g, gx, gy, 0));
 #else
 	CHECKNULL(EC_GROUP_set_curve_GFp(state->curve25519, state->mod, a, b, 0));

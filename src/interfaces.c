@@ -151,7 +151,7 @@ int net_get_interfaces(struct net_interface **interfaces) {
 	const struct sockaddr_in *dl_addr;
 	int found = 0;
 #if !defined(__FreeBSD__)
-	long allones_bcast = htonl(INADDR_BROADCAST);
+	uint32_t allones_bcast = htonl(INADDR_BROADCAST);
 #endif
 
 	if (getifaddrs(&int_addrs) < 0) {

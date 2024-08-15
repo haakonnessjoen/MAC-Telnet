@@ -25,6 +25,7 @@ struct net_interface {
 	char name[256];
 	unsigned char ipv4_addr[IPV4_ALEN];
 	unsigned char mac_addr[ETH_ALEN];
+	unsigned char bcast_addr[IPV4_ALEN];
 
 	/* used by mactelnetd */
 	int socketfd;

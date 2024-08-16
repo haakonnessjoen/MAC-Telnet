@@ -1,20 +1,33 @@
+[![Build](https://github.com/haakonnessjoen/MAC-Telnet/actions/workflows/build.yaml/badge.svg?branch=master)](https://github.com/haakonnessjoen/MAC-Telnet/actions/workflows/build.yaml)
+[![Docker release](https://github.com/haakonnessjoen/MAC-Telnet/actions/workflows/docker.yaml/badge.svg)](https://github.com/haakonnessjoen/MAC-Telnet/actions/workflows/docker.yaml)
+[![License: GPL v2+](https://img.shields.io/badge/License-GPL_v2%2b-blue)](https://github.com/haakonnessjoen/MAC-Telnet/blob/master/LICENSE)
+
 # MAC-Telnet for Posix systems
 
-Console tools for connecting to, and serving, devices using MikroTik RouterOS MAC-Telnet protocol.
+This project contains a set of console tools for connecting to and serving devices using the MikroTik RouterOS MAC-Telnet protocol. This is a proprietary network protocol used by MikroTik RouterOS devices to provide shell access to their devices even if the device is not configured with an ip address.
 
-## New EC-SRP key sharing and authentication support
+The protocol is based on sending and receiving udp broadcast packets, so it is **not secure** in any means. It should only be used as a last resort for configuring a device lacking an ip address, or in a secure network environment.
+
+In addition to a client and server, this project also includes a ping tool, that can be used to ping RouterOS devices using their MAC address, and a MNDP tool, that can be used to discover RouterOS and MAC-Telnet devices on the local network.
+
+## New EC-SRP key sharing and authentication support (RouterOS >= v6.43)
 
 The MAC-Telnet client and server now supports the new EC-SRP authentication that is mandatory after Mikrotik removed support for MD5 authentication in RouterOS v6.43 and forward. Support for using the old MD5 authentication is still possible via command line flags for backwards comatibility.
 
+## Support for password hashing on the server side
+
+With the new EC-SRP authentication, the MAC-Telnet server now supports password hashing for the user file. This means that the server can store hashed passwords in a file, instead of plaintext passwords. To add/update users with the new hashed password support, use the `-a` flag with the `mactelnetd` command. You can also list users with the `-l` flag, or delete users from the user file with `-d`. 
+
+**Note:** These commands can be used while the server is running to update the user database without restarting the server.
+
 ## Installation
 
-### Without mactelnetd
-
-If you only want the `mactelnet` client, and not the `mactelnetd` server, you can add the `--without-mactelnetd` flag to the `./configure` command before compiling.
+> [!TIP]
+> If you only want the `mactelnet` client tools, and not the `mactelnetd` server when compiling from source, you can add the `--without-mactelnetd` flag to the `./configure` command before compiling.
 
 ### Docker
 
-[`haakonn/mactelnet`](https://hub.docker.com/r/haakonn/mactelnet/) contains all four programs:
+[`ghcr.io/haakonnessjoen/mac-telnet`](https://github.com/haakonnessjoen/MAC-Telnet/pkgs/container/mac-telnet) contains the latest release of all four programs:
 
     docker run -it --rm --net=host haakonn/mactelnet mactelnet …
     docker run -it --rm --net=host haakonn/mactelnet macping …
@@ -26,9 +39,6 @@ Note that Docker runs containers on isolated internal networks by default. [`--n
 See [Usage](#usage) for more.
 
 ### CentOS 7
-
-> **Warning**
-> Currently untested in new version.
 
 To install dependencies:
 
@@ -42,11 +52,11 @@ Download source tarball, extract, compile and install:
     ./autogen.sh
     make all install
 
-### Linux / kfreebsd
+### Linux (Debian/Ubuntu)
 
-Dependencies: gcc (or similar), automake, autoconf
+The latest releases are usually available in the lastest versions of Debian and Ubuntu. You can install them with `apt install mactelnet-client` or `apt install mactelnet-server`.
 
-To install dependencies on Debian/Ubuntu based systems:
+To install the lastest `master` branch *from source*, use the following instructions:
 
     apt-get install build-essential autopoint automake autoconf libbsd-dev libssl-dev
 
@@ -60,12 +70,9 @@ Download source tarball, extract, compile and install:
 
 ### FreeBSD
 
-> **Warning**
-> Currently untested in new version.
-
 Dependencies: clang (gcc or similar), automake, autoconf
 
-To install dependencies on Debian/Ubuntu based systems:
+To install dependencies on FreeBSD:
 
     pkg install automake autoconf gettext-tools
 
@@ -80,18 +87,20 @@ Download source tarball, extract, compile and install:
 
 ### Mac OS X
 
-Install dependencies, download source tarball, extract, compile and install:
+Download source tarball and extract:
 
     wget http://github.com/haakonnessjoen/MAC-Telnet/tarball/master -O mactelnet.tar.gz
     tar zxvf mactelnet.tar.gz
     cd haakonness*/
 
-    # Install dependencies
+Install dependencies
+
     brew install gettext autoconf automake libtool openssl pkg-config
+
+Set up build environment, compile and install:
 
     export GETTEXT_PATH=$(brew --prefix gettext)
     export OPENSSL_PATH=$(brew --prefix openssl)
-
     export PATH="${GETTEXT_PATH}/bin:${OPENSSL_PATH}/bin:$PATH"
     export LDFLAGS="-L${GETTEXT_PATH}/lib"
     export CPPFLAGS="-I${GETTEXT_PATH}/include -I${OPENSSL_PATH}/include"
@@ -135,7 +144,8 @@ Example using identity:
 
 Example using mac address:
 
-    $ mactelnet -u admin 0:c:42:43:58:a5
+    $ mactelnet 0:c:42:43:58:a5
+    Login: admin
     Password:
     Connecting to 0:c:42:43:58:a5...done
 
@@ -156,7 +166,7 @@ Example using mac address:
 
 You can use the well known "expect" tool to automate/script dialogues via mactelnet!
 
-### List available hosts
+### List available hosts using MNDP Discovery
 
     # mactelnet -l
 

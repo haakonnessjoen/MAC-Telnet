@@ -1,4 +1,4 @@
-name: Configure and Build
+name: Build master branch
 
 on:
   push:

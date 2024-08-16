@@ -1,4 +1,4 @@
-name: Configure and Build in Docker
+name: Docker release
 
 on:
   push:

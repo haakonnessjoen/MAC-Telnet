@@ -87,7 +87,7 @@ Install dependencies, download source tarball, extract, compile and install:
     cd haakonness*/
 
     # Install dependencies
-    brew install gettext autoconf automake libtool openssl
+    brew install gettext autoconf automake libtool openssl pkg-config
 
     export GETTEXT_PATH=$(brew --prefix gettext)
     export OPENSSL_PATH=$(brew --prefix openssl)

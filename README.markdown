@@ -58,7 +58,7 @@ The latest releases are usually available in the lastest versions of Debian and 
 
 To install the lastest `master` branch *from source*, use the following instructions:
 
-    apt-get install build-essential autopoint automake autoconf libbsd-dev libssl-dev
+    apt-get install build-essential autopoint automake autoconf libbsd-dev libssl-dev gettext
 
 Download source tarball, extract, compile and install:
 

@@ -37,6 +37,7 @@
 #endif
 #if defined(__FreeBSD__) || defined(__APPLE__)
 #include <sys/types.h>
+#include <sys/mman.h>
 #include <net/ethernet.h>
 #else
 #include <netinet/ether.h>

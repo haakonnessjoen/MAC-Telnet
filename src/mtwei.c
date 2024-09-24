@@ -36,7 +36,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <libintl.h>
-#if defined(__linux__)
+#if defined(HAVE_SYS_RANDOM_H)
 #include <sys/random.h>
 #endif
 

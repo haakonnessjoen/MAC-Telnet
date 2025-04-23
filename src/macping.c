@@ -234,7 +234,7 @@ int main(int argc, char **argv) {
 		ping_size = sizeof(struct timeval);
 	}
 
-	signal(SIGINT, display_results);
+	signal(SIGINT, (void(*)(int))display_results);
 
 	for (i = 0; i < send_packets || send_packets <= 0; ++i) {
 		fd_set read_fds;

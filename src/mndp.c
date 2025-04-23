@@ -28,6 +28,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #else
+#include <net/ethernet.h>
 #include <netinet/ether.h>
 #endif
 #include <arpa/inet.h>

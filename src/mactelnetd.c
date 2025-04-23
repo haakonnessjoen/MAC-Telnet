@@ -1383,8 +1383,8 @@ int main(int argc, char **argv) {
 	signal(SIGTSTP, SIG_IGN);
 	signal(SIGTTOU, SIG_IGN);
 	signal(SIGTTIN, SIG_IGN);
-	signal(SIGHUP, sighup_handler);
-	signal(SIGTERM, sigterm_handler);
+	signal(SIGHUP, (void(*)(int))sighup_handler);
+	signal(SIGTERM, (void(*)(int))sigterm_handler);
 
 	DL_FOREACH(interfaces, interface) {
 		if (interface->has_mac) {

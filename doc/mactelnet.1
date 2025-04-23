@@ -7,7 +7,11 @@ mactelnet \- A tool for telneting via MAC addresses
 .SH DESCRIPTION
 This tool enables you to telnet other RouterOS or MAC-Telnetd enabled
 devices. You can connect to either a hostname or a MAC address.
-If specified, the hostname (identity) will be looked up via MNDP discovery.
+If specified, the hostname (identity) will be looked up via
+.BR ether_hostton(3)
+(typically in
+.BR ethers(5) )
+or if that fails, MNDP discovery.
 .SH OPTIONS
 These programs follow the usual GNU command line syntax.
 A summary of options is included below.

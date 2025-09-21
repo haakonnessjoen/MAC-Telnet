@@ -1,4 +1,4 @@
-.TH MACTELNETD 1 "February 27, 2011"
+.TH MACTELNETD 8 "February 27, 2011"
 .SH NAME
 mactelnetd \- Telnet daemon for MAC-address connections
 .SH SYNOPSIS

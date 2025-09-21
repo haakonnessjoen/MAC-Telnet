@@ -533,6 +533,9 @@ int query_mndp_or_mac(char *address, unsigned char *dstmac, int verbose) {
 	}
 
 	if (colons != 5) {
+		if (ether_hostton(address, (struct ether_addr*)dstmac) == 0) {
+			return 1;
+		}
 		/*
 		 * Not a valid mac-address.
 		 * Search for Router by identity name, using MNDP

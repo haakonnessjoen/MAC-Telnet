@@ -82,7 +82,7 @@ static long long int toddiff(struct timeval *tod1, struct timeval *tod2) {
 	return t1 - t2;
 }
 
-static void display_results() {
+static void display_results(int signo) {
 	int percent = (int)((100.f / ping_sent) * pong_received);
 	if (percent > 100) {
 		percent = 0;
@@ -345,7 +345,7 @@ int main(int argc, char **argv) {
 	}
 
 	/* Display statistics and exit */
-	display_results();
+	display_results(0);
 
 	return 0;
 }

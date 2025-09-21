@@ -1001,7 +1001,7 @@ void mndp_broadcast() {
 	}
 }
 
-void sigterm_handler() {
+void sigterm_handler(int signo) {
 	struct mt_connection *p;
 	struct mt_packet pdata;
 	struct net_interface *interface, *tmp;
@@ -1038,7 +1038,7 @@ void sigterm_handler() {
 	exit(0);
 }
 
-void sighup_handler() {
+void sighup_handler(int signo) {
 	struct mt_connection *p, *conntmp;
 
 	syslog(LOG_NOTICE, _("SIGHUP: Reloading interfaces"));
@@ -1445,7 +1445,7 @@ int main(int argc, char **argv) {
 				// Debounce
 				if (should_refresh_interfaces()) {
 					syslog(LOG_NOTICE, _("Network change detected"));
-					sighup_handler();
+					sighup_handler(0);
 				}
 			}
 #endif
